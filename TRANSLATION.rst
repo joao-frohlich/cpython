@@ -45,7 +45,7 @@ Palavras-chave traduzidas
     import      importe
     in          em
     in          no
-    is          iguais
+    is          eh_tipo
     lambda      lambda**
     None        Nada
     nonlocal    naolocal

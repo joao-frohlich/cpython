@@ -175,13 +175,16 @@ _get_keyword_or_name_type(Parser *p, struct token *new_token)
 }
 
 void translate_ptbr_token(struct token *new_token) {
+    //Method names
     if (strncmp(new_token->start, "escreva", 7) == 0) {
         strcpy(new_token->start, "print");
     } else if (strncmp(new_token->start, "intervalo", 9) == 0) {
         strcpy(new_token->start, "range");
     } else if (strncmp(new_token->start, "entrada", 7) == 0) {
         strcpy(new_token->start, "input");
-    } else if (strncmp(new_token->start, "enquanto", 8) == 0) {
+    } 
+    //Keywords
+    if (strncmp(new_token->start, "enquanto", 8) == 0) {
         strcpy(new_token->start, "while");
         new_token->end_col_offset = new_token->col_offset+5;
     } else if (strncmp(new_token->start, "quebra", 6) == 0) {

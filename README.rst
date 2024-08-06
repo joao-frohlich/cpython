@@ -1,11 +1,15 @@
-This is Porthon, based in Python version 3.14.0 alpha 0
-=======================================================
+This is Sucuri, a portuguese translation for Python version 3.14.0 alpha 0
+==========================================================================
 
 This fork contains an attempt to turn Python into a portuguese programming language, using the
 infrastructure of the Python compiler, and just translating keywords and method names. For now,
 I'm just putting it here in order to document my changes, and the idea is that, when I finish
 translating the most important keywords and methods (and also standardize the C code), I submit
 the changes to the cpython repository.
+
+The list of translated words can be found in `this file`_.
+
+.. _this file: https://github.com/joao-frohlich/cpython/blob/ptbr-mod/TRANSLATION.rst
 
 Everything in the below text works in this fork. The main changes are contained in the
 `pegen.c`_ file, where, for now, there is a `translate_ptbr_token` function, and a call for it

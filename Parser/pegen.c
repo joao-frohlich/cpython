@@ -174,10 +174,45 @@ _get_keyword_or_name_type(Parser *p, struct token *new_token)
     return NAME;
 }
 
+void translate_ptbr_token(struct token *new_token) {
+    if (strncmp(new_token->start, "escreva", 7) == 0) {
+        strcpy(new_token->start, "print");
+    } else if (strncmp(new_token->start, "intervalo", 9) == 0) {
+        strcpy(new_token->start, "range");
+    } else if (strncmp(new_token->start, "entrada", 7) == 0) {
+        strcpy(new_token->start, "input");
+    } else if (strncmp(new_token->start, "enquanto", 8) == 0) {
+        strcpy(new_token->start, "while");
+        new_token->end_col_offset = new_token->col_offset+5;
+    } else if (strncmp(new_token->start, "quebra", 6) == 0) {
+        strcpy(new_token->start, "break");
+        new_token->end_col_offset = new_token->col_offset+5;
+    } else if (strncmp(new_token->start, "senao", 5) == 0) {
+        strcpy(new_token->start, "else");
+        new_token->end_col_offset = new_token->col_offset+4;
+    } else if (new_token->end_col_offset-new_token->col_offset == 4) {
+        if (strncmp(new_token->start, "para", 4) == 0) {
+            strcpy(new_token->start, "for");
+            new_token->end_col_offset = new_token->col_offset+3;
+        } else if (strncmp(new_token->start, "caso", 4) == 0) {
+            strncpy(new_token->start, "case", 4);
+        }
+    } else if (new_token->end_col_offset-new_token->col_offset == 2) {
+        if (strncmp(new_token->start, "em", 2) == 0) {
+            strncpy(new_token->start, "in", 2);
+        } else if (strncmp(new_token->start, "no", 2) == 0) {
+            strncpy(new_token->start, "in", 2);
+        } else if (strncmp(new_token->start, "se", 2) == 0) {
+            strncpy(new_token->start, "if", 2);
+        }
+    }
+}
+
 static int
 initialize_token(Parser *p, Token *parser_token, struct token *new_token, int token_type) {
     assert(parser_token != NULL);
 
+    if (token_type == NAME) translate_ptbr_token(new_token);
     parser_token->type = (token_type == NAME) ? _get_keyword_or_name_type(p, new_token) : token_type;
     parser_token->bytes = PyBytes_FromStringAndSize(new_token->start, new_token->end - new_token->start);
     if (parser_token->bytes == NULL) {

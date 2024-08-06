@@ -1,9 +1,7 @@
 #include <Python.h>
 #include <errcode.h>
 
-#include "pycore_pyerrors.h"      // _PyErr_ProgramDecodedTextObject()
-#include "lexer/state.h"
-#include "lexer/lexer.h"
+#include "tokenizer.h"
 #include "pegen.h"
 
 // TOKENIZER ERRORS
@@ -155,7 +153,7 @@ _Pypegen_raise_decode_error(Parser *p)
 static int
 _PyPegen_tokenize_full_source_to_check_for_errors(Parser *p) {
     // Tokenize the whole input to see if there are any tokenization
-    // errors such as mismatching parentheses. These will get priority
+    // errors such as mistmatching parentheses. These will get priority
     // over generic syntax errors only if the line number of the error is
     // before the one that we had for the generic error.
 
@@ -404,7 +402,7 @@ error:
 
 void
 _Pypegen_set_syntax_error(Parser* p, Token* last_token) {
-    // Existing syntax error
+    // Existing sintax error
     if (PyErr_Occurred()) {
         // Prioritize tokenizer errors to custom syntax errors raised
         // on the second phase only if the errors come from the parser.

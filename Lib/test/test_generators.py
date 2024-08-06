@@ -6,7 +6,6 @@ import doctest
 import unittest
 import weakref
 import inspect
-import types
 
 from test import support
 
@@ -90,12 +89,9 @@ class FinalizationTest(unittest.TestCase):
         self.assertEqual(gc.garbage, old_garbage)
 
     def test_lambda_generator(self):
-        # bpo-23192, gh-119897: Test that a lambda returning a generator behaves
+        # Issue #23192: Test that a lambda returning a generator behaves
         # like the equivalent function
         f = lambda: (yield 1)
-        self.assertIsInstance(f(), types.GeneratorType)
-        self.assertEqual(next(f()), 1)
-
         def g(): return (yield 1)
 
         # test 'yield from'
@@ -453,88 +449,6 @@ class ExceptionTest(unittest.TestCase):
             gen.send(StopIteration(2))
         self.assertIsInstance(cm.exception.value, StopIteration)
         self.assertEqual(cm.exception.value.value, 2)
-
-
-class GeneratorCloseTest(unittest.TestCase):
-
-    def test_close_no_return_value(self):
-        def f():
-            yield
-
-        gen = f()
-        gen.send(None)
-        self.assertIsNone(gen.close())
-
-    def test_close_return_value(self):
-        def f():
-            try:
-                yield
-                # close() raises GeneratorExit here, which is caught
-            except GeneratorExit:
-                return 0
-
-        gen = f()
-        gen.send(None)
-        self.assertEqual(gen.close(), 0)
-
-    def test_close_not_catching_exit(self):
-        def f():
-            yield
-            # close() raises GeneratorExit here, which isn't caught and
-            # therefore propagates -- no return value
-            return 0
-
-        gen = f()
-        gen.send(None)
-        self.assertIsNone(gen.close())
-
-    def test_close_not_started(self):
-        def f():
-            try:
-                yield
-            except GeneratorExit:
-                return 0
-
-        gen = f()
-        self.assertIsNone(gen.close())
-
-    def test_close_exhausted(self):
-        def f():
-            try:
-                yield
-            except GeneratorExit:
-                return 0
-
-        gen = f()
-        next(gen)
-        with self.assertRaises(StopIteration):
-            next(gen)
-        self.assertIsNone(gen.close())
-
-    def test_close_closed(self):
-        def f():
-            try:
-                yield
-            except GeneratorExit:
-                return 0
-
-        gen = f()
-        gen.send(None)
-        self.assertEqual(gen.close(), 0)
-        self.assertIsNone(gen.close())
-
-    def test_close_raises(self):
-        def f():
-            try:
-                yield
-            except GeneratorExit:
-                pass
-            raise RuntimeError
-
-        gen = f()
-        gen.send(None)
-        with self.assertRaises(RuntimeError):
-            gen.close()
 
     def test_close_releases_frame_locals(self):
         # See gh-118272
@@ -911,7 +825,7 @@ Specification: Generators and Exception Propagation
       File "<stdin>", line 1, in ?
       File "<stdin>", line 2, in g
       File "<stdin>", line 2, in f
-    ZeroDivisionError: division by zero
+    ZeroDivisionError: integer division or modulo by zero
     >>> next(k)  # and the generator cannot be resumed
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
@@ -2246,16 +2160,6 @@ Check some syntax errors for yield expressions:
 Traceback (most recent call last):
   ...
 SyntaxError: 'yield' outside function
-
->>> f=lambda: (yield from (1,2)), (yield from (3,4))
-Traceback (most recent call last):
-  ...
-SyntaxError: 'yield from' outside function
-
->>> yield from [1,2]
-Traceback (most recent call last):
-  ...
-SyntaxError: 'yield from' outside function
 
 >>> def f(): x = yield = y
 Traceback (most recent call last):

@@ -224,7 +224,7 @@ positives from posix, socket, time, test_io, and test_faulthandler.
 .. nonce: 9vMWSP
 .. section: Core and Builtins
 
-Fix an assertion error in :func:`format` in debug build for floating-point
+Fix an assertion error in :func:`format` in debug build for floating point
 formatting with "n" format, zero padding and small width. Release build is
 not impacted. Patch by Karthikeyan Singaravelan.
 
@@ -1406,8 +1406,8 @@ Fix potential memory leak in ``normalizestring()``.
 
 Change dict growth function from
 ``round_up_to_power_2(used*2+hashtable_size/2)`` to
-``round_up_to_power_2(used*3)``.  Previously, dict is shrunk only when
-``used == 0``. Now dict has more chance to be shrunk.
+``round_up_to_power_2(used*3)``.  Previously, dict is shrinked only when
+``used == 0``. Now dict has more chance to be shrinked.
 
 ..
 
@@ -2519,7 +2519,7 @@ non-Windows systems.
 .. nonce: dQS1ng
 .. section: Library
 
-Fix incorrect parsing of :class:`io.IncrementalNewlineDecoder`'s
+Fix incorrect parsing of :class:`_io.IncrementalNewlineDecoder`'s
 *translate* argument.
 
 ..
@@ -2747,7 +2747,7 @@ smaller file). Also, change the default compression level to 6 (tradeoff).
 .. nonce: xo5LAr
 .. section: Library
 
-The 2to3 ``execfile`` fixer now opens the file with mode
+The :term:`2to3` :2to3fixer:`execfile` fixer now opens the file with mode
 ``'rb'``.  Patch by Zackery Spytz.
 
 ..
@@ -3817,7 +3817,7 @@ user.
 .. nonce: w6g7tn
 .. section: Library
 
-The ``reload`` fixer now uses :func:`importlib.reload` instead of
+The :2to3fixer:`reload` fixer now uses :func:`importlib.reload` instead of
 deprecated :func:`!imp.reload`.
 
 ..
@@ -5576,8 +5576,8 @@ documentation.
 .. section: Library
 
 Improved exceptions raised for invalid number of channels and sample width
-when read an audio file in modules :mod:`!aifc`, :mod:`wave` and
-:mod:`!sunau`.
+when read an audio file in modules :mod:`aifc`, :mod:`wave` and
+:mod:`sunau`.
 
 ..
 
@@ -8051,7 +8051,7 @@ Update macOS 10.9+ installer to Tcl/Tk 8.6.8.
 .. nonce: K6jCVG
 .. section: macOS
 
-In :mod:`!_scproxy`, drop the GIL when calling into ``SystemConfiguration``
+In :mod:`_scproxy`, drop the GIL when calling into ``SystemConfiguration``
 to avoid deadlocks.
 
 ..

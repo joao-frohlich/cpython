@@ -72,7 +72,6 @@
         <Package Include="..\tcltk\tcltk*.wixproj" />
         <Package Include="..\test\test*.wixproj" />
         <Package Include="..\ucrt\ucrt*.wixproj" Condition="$(Platform) != 'ARM64'" />
-        <Package Include="..\freethreaded\freethreaded*.wixproj" Condition="$(IncludeFreethreaded) == 'true'" />
     </ItemGroup>
 
     <PropertyGroup>

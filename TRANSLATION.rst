@@ -39,12 +39,11 @@ Palavras-chave traduzidas
     False       Falso
     finally     finally*
     for         para
-    from        desta
+    from        deste
     global      global**
-    if          se
+    if          seja
     import      importe
-    in          em
-    in          no
+    in          em_um
     is          eh_tipo
     lambda      lambda**
     None        Nada

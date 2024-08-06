@@ -5,9 +5,8 @@
 #endif
 
 #include "Python.h"
-#include "pycore_interp.h"
-#include "pycore_pystate.h"       // _PyInterpreterState_GET()
-#include "pycore_typevarobject.h"
+#include "internal/pycore_interp.h"
+#include "internal/pycore_typevarobject.h"
 #include "clinic/_typingmodule.c.h"
 
 /*[clinic input]
@@ -40,12 +39,12 @@ static PyMethodDef typing_methods[] = {
 };
 
 PyDoc_STRVAR(typing_doc,
-"Primitives and accelerators for the typing module.\n");
+"Accelerators for the typing module.\n");
 
 static int
 _typing_exec(PyObject *m)
 {
-    PyInterpreterState *interp = _PyInterpreterState_GET();
+    PyInterpreterState *interp = PyInterpreterState_Get();
 
 #define EXPORT_TYPE(name, typename) \
     if (PyModule_AddObjectRef(m, name, \
@@ -63,19 +62,12 @@ _typing_exec(PyObject *m)
     if (PyModule_AddObjectRef(m, "TypeAliasType", (PyObject *)&_PyTypeAlias_Type) < 0) {
         return -1;
     }
-    if (PyType_Ready(&_PyNoDefault_Type) < 0) {
-        return -1;
-    }
-    if (PyModule_AddObjectRef(m, "NoDefault", (PyObject *)&_Py_NoDefaultStruct) < 0) {
-        return -1;
-    }
     return 0;
 }
 
 static struct PyModuleDef_Slot _typingmodule_slots[] = {
     {Py_mod_exec, _typing_exec},
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
 

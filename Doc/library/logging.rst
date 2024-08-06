@@ -352,10 +352,6 @@ in a module, ``__name__`` is the module's name in the Python package namespace.
       .. versionchanged:: 3.8
          The *stacklevel* parameter was added.
 
-      .. versionchanged:: 3.13
-         Remove the undocumented ``warn()`` method which was an alias to the
-         :meth:`warning` method.
-
 
    .. method:: Logger.info(msg, *args, **kwargs)
 
@@ -367,6 +363,10 @@ in a module, ``__name__`` is the module's name in the Python package namespace.
 
       Logs a message with level :const:`WARNING` on this logger. The arguments are
       interpreted as for :meth:`debug`.
+
+      .. note:: There is an obsolete method ``warn`` which is functionally
+         identical to ``warning``. As ``warn`` is deprecated, please do not use
+         it - use ``warning`` instead.
 
    .. method:: Logger.error(msg, *args, **kwargs)
 
@@ -1003,7 +1003,7 @@ the options available to you.
 |                |                         | portion of the time).                         |
 +----------------+-------------------------+-----------------------------------------------+
 | created        | ``%(created)f``         | Time when the :class:`LogRecord` was created  |
-|                |                         | (as returned by :func:`time.time_ns` / 1e9).  |
+|                |                         | (as returned by :func:`time.time`).           |
 +----------------+-------------------------+-----------------------------------------------+
 | exc_info       | You shouldn't need to   | Exception tuple (à la ``sys.exc_info``) or,   |
 |                | format this yourself.   | if no exception has occurred, ``None``.       |
@@ -1079,14 +1079,10 @@ LoggerAdapter Objects
 information into logging calls. For a usage example, see the section on
 :ref:`adding contextual information to your logging output <context-info>`.
 
-.. class:: LoggerAdapter(logger, extra, merge_extra=False)
+.. class:: LoggerAdapter(logger, extra)
 
    Returns an instance of :class:`LoggerAdapter` initialized with an
-   underlying :class:`Logger` instance, a dict-like object (*extra*), and a
-   boolean (*merge_extra*) indicating whether or not the *extra* argument of
-   individual log calls should be merged with the :class:`LoggerAdapter` extra.
-   The default behavior is to ignore the *extra* argument of individual log
-   calls and only use the one of the :class:`LoggerAdapter` instance
+   underlying :class:`Logger` instance and a dict-like object.
 
    .. method:: process(msg, kwargs)
 
@@ -1123,15 +1119,6 @@ information into logging calls. For a usage example, see the section on
 
       Attribute :attr:`!manager` and method :meth:`!_log` were added, which
       delegate to the underlying logger and allow adapters to be nested.
-
-   .. versionchanged:: 3.13
-
-      Remove the undocumented :meth:`!warn`` method which was an alias to the
-      :meth:`!warning` method.
-
-   .. versionchanged:: 3.13
-
-      The *merge_extra* argument was added.
 
 
 Thread Safety
@@ -1206,7 +1193,7 @@ functions.
    most programs will want to carefully and explicitly control the logging
    configuration, and should therefore prefer creating a module-level logger and
    calling :meth:`Logger.debug` (or other level-specific methods) on it, as
-   described at the beginning of this documentation.
+   described at the beginnning of this documentation.
 
 
 .. function:: info(msg, *args, **kwargs)
@@ -1223,10 +1210,6 @@ functions.
    .. note:: There is an obsolete function ``warn`` which is functionally
       identical to ``warning``. As ``warn`` is deprecated, please do not use
       it - use ``warning`` instead.
-
-   .. versionchanged:: 3.13
-      Remove the undocumented ``warn()`` function which was an alias to the
-      :func:`warning` function.
 
 
 .. function:: error(msg, *args, **kwargs)

@@ -1,10 +1,8 @@
 #include <stdbool.h>
 
 #include <Python.h>
-#include "pycore_bytesobject.h"   // _PyBytes_DecodeEscape()
-#include "pycore_unicodeobject.h" // _PyUnicode_DecodeUnicodeEscapeInternal()
 
-#include "lexer/state.h"
+#include "tokenizer.h"
 #include "pegen.h"
 #include "string_parser.h"
 
@@ -19,9 +17,8 @@ warn_invalid_escape_sequence(Parser *p, const char *first_invalid_escape, Token 
         return 0;
     }
     unsigned char c = *first_invalid_escape;
-    if ((t->type == FSTRING_MIDDLE || t->type == FSTRING_END) && (c == '{' || c == '}')) {
-        // in this case the tokenizer has already emitted a warning,
-        // see Parser/tokenizer/helpers.c:warn_invalid_escape_sequence
+    if ((t->type == FSTRING_MIDDLE || t->type == FSTRING_END) && (c == '{' || c == '}')) {  // in this case the tokenizer has already emitted a warning,
+                                                                                            // see tokenizer.c:warn_invalid_escape_sequence
         return 0;
     }
 
@@ -229,14 +226,9 @@ _PyPegen_parse_string(Parser *p, Token *t)
         PyErr_BadInternalCall();
         return NULL;
     }
-
     /* Skip the leading quote char. */
     s++;
     len = strlen(s);
-    // gh-120155: 's' contains at least the trailing quote,
-    // so the code '--len' below is safe.
-    assert(len >= 1);
-
     if (len > INT_MAX) {
         PyErr_SetString(PyExc_OverflowError, "string to parse is too long");
         return NULL;

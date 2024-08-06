@@ -91,7 +91,7 @@ The :mod:`bz2` module contains:
    and :meth:`~io.IOBase.truncate`.
    Iteration and the :keyword:`with` statement are supported.
 
-   :class:`BZ2File` also provides the following methods and attributes:
+   :class:`BZ2File` also provides the following methods:
 
    .. method:: peek([n])
 
@@ -147,19 +147,6 @@ The :mod:`bz2` module contains:
       Returns the number of bytes read (0 for EOF).
 
       .. versionadded:: 3.3
-
-   .. attribute:: mode
-
-      ``'rb'`` for reading and ``'wb'`` for writing.
-
-      .. versionadded:: 3.13
-
-   .. attribute:: name
-
-      The bzip2 file name.  Equivalent to the :attr:`~io.FileIO.name`
-      attribute of the underlying :term:`file object`.
-
-      .. versionadded:: 3.13
 
 
    .. versionchanged:: 3.1

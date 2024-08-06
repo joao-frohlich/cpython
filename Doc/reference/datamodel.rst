@@ -170,12 +170,9 @@ See
 for more details.
 
 .. versionchanged:: 3.9
-   Evaluating :data:`NotImplemented` in a boolean context was deprecated.
-
-.. versionchanged:: 3.14
-   Evaluating :data:`NotImplemented` in a boolean context now raises a :exc:`TypeError`.
-   It previously evaluated to :const:`True` and emitted a :exc:`DeprecationWarning`
-   since Python 3.9.
+   Evaluating :data:`NotImplemented` in a boolean context is deprecated. While
+   it currently evaluates as true, it will emit a :exc:`DeprecationWarning`.
+   It will raise a :exc:`TypeError` in a future version of Python.
 
 
 Ellipsis
@@ -218,7 +215,7 @@ properties:
 
 * A sign is shown only when the number is negative.
 
-Python distinguishes between integers, floating-point numbers, and complex
+Python distinguishes between integers, floating point numbers, and complex
 numbers:
 
 
@@ -262,18 +259,18 @@ Booleans (:class:`bool`)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. index::
-   pair: object; floating-point
-   pair: floating-point; number
+   pair: object; floating point
+   pair: floating point; number
    pair: C; language
    pair: Java; language
 
-These represent machine-level double precision floating-point numbers. You are
+These represent machine-level double precision floating point numbers. You are
 at the mercy of the underlying machine architecture (and C or Java
 implementation) for the accepted range and handling of overflow. Python does not
-support single-precision floating-point numbers; the savings in processor and
+support single-precision floating point numbers; the savings in processor and
 memory usage that are usually the reason for using these are dwarfed by the
 overhead of using objects in Python, so there is no reason to complicate the
-language with two kinds of floating-point numbers.
+language with two kinds of floating point numbers.
 
 
 :class:`numbers.Complex` (:class:`complex`)
@@ -284,7 +281,7 @@ language with two kinds of floating-point numbers.
    pair: complex; number
 
 These represent complex numbers as a pair of machine-level double precision
-floating-point numbers.  The same caveats apply as for floating-point numbers.
+floating point numbers.  The same caveats apply as for floating point numbers.
 The real and imaginary parts of a complex number ``z`` can be retrieved through
 the read-only attributes ``z.real`` and ``z.imag``.
 
@@ -730,7 +727,14 @@ When an instance method object is derived from a :class:`classmethod` object, th
 itself, so that calling either ``x.f(1)`` or ``C.f(1)`` is equivalent to
 calling ``f(C,1)`` where ``f`` is the underlying function.
 
-It is important to note that user-defined functions
+Note that the transformation from :ref:`function object <user-defined-funcs>`
+to instance method
+object happens each time the attribute is retrieved from the instance.  In
+some cases, a fruitful optimization is to assign the attribute to a local
+variable and call that local variable. Also notice that this
+transformation only happens for user-defined functions; other callable
+objects (and all non-callable objects) are retrieved without
+transformation.  It is also important to note that user-defined functions
 which are attributes of a class instance are not converted to bound
 methods; this *only* happens when the function is an attribute of the
 class.
@@ -966,8 +970,6 @@ A class object can be called (see above) to yield a class instance (see below).
    single: __doc__ (class attribute)
    single: __annotations__ (class attribute)
    single: __type_params__ (class attribute)
-   single: __static_attributes__ (class attribute)
-   single: __firstlineno__ (class attribute)
 
 Special attributes:
 
@@ -997,13 +999,6 @@ Special attributes:
    :attr:`__type_params__`
       A tuple containing the :ref:`type parameters <type-params>` of
       a :ref:`generic class <generic-classes>`.
-
-   :attr:`~class.__static_attributes__`
-      A tuple containing names of attributes of this class which are assigned
-      through ``self.X`` from any function in its body.
-
-   :attr:`__firstlineno__`
-      The line number of the first line of the class definition, including decorators.
 
 
 Class instances
@@ -1301,8 +1296,6 @@ Methods on code objects
 
    Return a copy of the code object with new values for the specified fields.
 
-   Code objects are also supported by the generic function :func:`copy.replace`.
-
    .. versionadded:: 3.8
 
 
@@ -1340,13 +1333,8 @@ Special read-only attributes
        ``object.__getattr__`` with arguments ``obj`` and ``"f_code"``.
 
    * - .. attribute:: frame.f_locals
-     - The mapping used by the frame to look up
-       :ref:`local variables <naming>`.
-       If the frame refers to an :term:`optimized scope`,
-       this may return a write-through proxy object.
-
-       .. versionchanged:: 3.13
-          Return a proxy for optimized scopes.
+     - The dictionary used by the frame to look up
+       :ref:`local variables <naming>`
 
    * - .. attribute:: frame.f_globals
      - The dictionary used by the frame to look up
@@ -1406,14 +1394,9 @@ Frame objects support one method:
    objects (for example when catching an :ref:`exception <bltin-exceptions>`
    and storing its :ref:`traceback <traceback-objects>` for later use).
 
-   :exc:`RuntimeError` is raised if the frame is currently executing
-   or suspended.
+   :exc:`RuntimeError` is raised if the frame is currently executing.
 
    .. versionadded:: 3.4
-
-   .. versionchanged:: 3.13
-      Attempting to clear a suspended frame raises :exc:`RuntimeError`
-      (as has always been the case for executing frames).
 
 
 .. _traceback-objects:
@@ -1660,8 +1643,6 @@ Basic customization
 
    It is not guaranteed that :meth:`__del__` methods are called for objects
    that still exist when the interpreter exits.
-   :class:`weakref.finalize` provides a straightforward way to register
-   a cleanup function to be called when an object is garbage collected.
 
    .. note::
 
@@ -1951,7 +1932,7 @@ access (use of, assignment to, or deletion of ``x.name``) for class instances.
    :meth:`__getattr__` and :meth:`__setattr__`.) This is done both for efficiency
    reasons and because otherwise :meth:`__getattr__` would have no way to access
    other attributes of the instance.  Note that at least for instance variables,
-   you can take total control by not inserting any values in the instance attribute
+   you can fake total control by not inserting any values in the instance attribute
    dictionary (but instead inserting them in another object).  See the
    :meth:`__getattribute__` method below for a way to actually get total control
    over attribute access.
@@ -3122,8 +3103,11 @@ left undefined.
    return the value of the object truncated to an :class:`~numbers.Integral`
    (typically an :class:`int`).
 
-   .. versionchanged:: 3.14
-      :func:`int` no longer delegates to the :meth:`~object.__trunc__` method.
+   The built-in function :func:`int` falls back to :meth:`__trunc__` if neither
+   :meth:`__int__` nor :meth:`__index__` is defined.
+
+   .. versionchanged:: 3.11
+      The delegation of :func:`int` to :meth:`__trunc__` is deprecated.
 
 
 .. _context-managers:
@@ -3510,9 +3494,8 @@ An example of an asynchronous context manager class::
    lead to some very strange behaviour if it is handled incorrectly.
 
 .. [#] The :meth:`~object.__hash__`, :meth:`~object.__iter__`,
-   :meth:`~object.__reversed__`, :meth:`~object.__contains__`,
-   :meth:`~object.__class_getitem__` and :meth:`~os.PathLike.__fspath__`
-   methods have special handling for this. Others
+   :meth:`~object.__reversed__`, and :meth:`~object.__contains__` methods have
+   special handling for this; others
    will still raise a :exc:`TypeError`, but may do so by relying on
    the behavior that ``None`` is not callable.
 

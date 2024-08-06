@@ -56,13 +56,9 @@ Additionally, there are **low-level** APIs for
 * :ref:`bridge <asyncio-futures>` callback-based libraries and code
   with async/await syntax.
 
-.. include:: ../includes/wasm-notavail.rst
-
 .. _asyncio-cli:
 
-.. rubric:: asyncio REPL
-
-You can experiment with an ``asyncio`` concurrent context in the :term:`REPL`:
+You can experiment with an ``asyncio`` concurrent context in the REPL:
 
 .. code-block:: pycon
 
@@ -74,14 +70,7 @@ You can experiment with an ``asyncio`` concurrent context in the :term:`REPL`:
    >>> await asyncio.sleep(10, result='hello')
    'hello'
 
-.. audit-event:: cpython.run_stdin "" ""
-
-.. versionchanged:: 3.12.5 (also 3.11.10, 3.10.15, 3.9.20, and 3.8.20)
-   Emits audit events.
-
-.. versionchanged:: 3.13
-   Uses PyREPL if possible, in which case :envvar:`PYTHONSTARTUP` is
-   also executed. Emits audit events.
+.. include:: ../includes/wasm-notavail.rst
 
 .. We use the "rubric" directive here to avoid creating
    the "Reference" subsection in the TOC.

@@ -243,7 +243,7 @@ FTP objects
       Retrieve a file in binary transfer mode.
 
       :param str cmd:
-        An appropriate ``RETR`` command: :samp:`"RETR {filename}"`.
+        An appropriate ``STOR`` command: :samp:`"STOR {filename}"`.
 
       :param callback:
          A single parameter callable that is called

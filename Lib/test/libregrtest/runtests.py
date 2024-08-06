@@ -93,7 +93,6 @@ class RunTests:
     hunt_refleak: HuntRefleak | None
     test_dir: StrPath | None
     use_junit: bool
-    coverage: bool
     memory_limit: str | None
     gc_threshold: int | None
     use_resources: tuple[str, ...]
@@ -157,8 +156,6 @@ class RunTests:
         cmd = [*executable, *python_opts]
         if '-u' not in python_opts:
             cmd.append('-u')  # Unbuffered stdout and stderr
-        if self.coverage:
-            cmd.append("-Xpresite=test.cov")
         return cmd
 
     def bisect_cmd_args(self) -> list[str]:

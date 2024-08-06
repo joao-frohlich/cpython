@@ -5,16 +5,14 @@ import shlex
 import sys
 import sysconfig
 import time
-import trace
 
-from test.support import (os_helper, MS_WINDOWS, flush_std_streams,
-                          suppress_immortalization)
+from test.support import os_helper, MS_WINDOWS, flush_std_streams
 
 from .cmdline import _parse_args, Namespace
 from .findtests import findtests, split_test_packages, list_cases
 from .logger import Logger
 from .pgo import setup_pgo_tests
-from .result import State, TestResult
+from .result import State
 from .results import TestResults, EXITCODE_INTERRUPTED
 from .runtests import RunTests, HuntRefleak
 from .setup import setup_process, setup_test_dir
@@ -25,7 +23,7 @@ from .utils import (
     strip_py_suffix, count, format_duration,
     printlist, get_temp_dir, get_work_dir, exit_timeout,
     display_header, cleanup_temp_dir, print_warning,
-    is_cross_compiled, get_host_runner,
+    is_cross_compiled, get_host_runner, process_cpu_count,
     EXIT_TIMEOUT)
 
 
@@ -89,13 +87,12 @@ class Regrtest:
         self.cmdline_args: TestList = ns.args
 
         # Workers
-        self.single_process: bool = ns.single_process
-        if self.single_process or ns.use_mp is None:
-            num_workers = 0   # run sequentially in a single process
+        if ns.use_mp is None:
+            num_workers = 0  # run sequentially
         elif ns.use_mp <= 0:
-            num_workers = -1  # run in parallel, use the number of CPUs
+            num_workers = -1  # use the number of CPUs
         else:
-            num_workers = ns.use_mp  # run in parallel
+            num_workers = ns.use_mp
         self.num_workers: int = num_workers
         self.worker_json: StrJSON | None = ns.worker_json
 
@@ -237,7 +234,7 @@ class Regrtest:
 
     def _rerun_failed_tests(self, runtests: RunTests):
         # Configure the runner to re-run tests
-        if self.num_workers == 0 and not self.single_process:
+        if self.num_workers == 0:
             # Always run tests in fresh processes to have more deterministic
             # initial state. Don't re-run tests in parallel but limit to a
             # single worker process to have side effects (on the system load
@@ -247,6 +244,7 @@ class Regrtest:
         tests, match_tests_dict = self.results.prepare_rerun()
 
         # Re-run failed tests
+        self.log(f"Re-running {len(tests)} failed tests in verbose mode in subprocesses")
         runtests = runtests.copy(
             tests=tests,
             rerun=True,
@@ -256,15 +254,7 @@ class Regrtest:
             match_tests_dict=match_tests_dict,
             output_on_failure=False)
         self.logger.set_tests(runtests)
-
-        msg = f"Re-running {len(tests)} failed tests in verbose mode"
-        if not self.single_process:
-            msg = f"{msg} in subprocesses"
-            self.log(msg)
-            self._run_tests_mp(runtests, self.num_workers)
-        else:
-            self.log(msg)
-            self.run_tests_sequentially(runtests)
+        self._run_tests_mp(runtests, self.num_workers)
         return runtests
 
     def rerun_failed_tests(self, runtests: RunTests):
@@ -348,9 +338,7 @@ class Regrtest:
         self.results.display_result(runtests.tests,
                                     self.quiet, self.print_slowest)
 
-    def run_test(
-        self, test_name: TestName, runtests: RunTests, tracer: trace.Trace | None
-    ) -> TestResult:
+    def run_test(self, test_name: TestName, runtests: RunTests, tracer):
         if tracer is not None:
             # If we're tracing code coverage, then we don't exit with status
             # if on a false return value from main.
@@ -358,7 +346,6 @@ class Regrtest:
             namespace = dict(locals())
             tracer.runctx(cmd, globals=globals(), locals=namespace)
             result = namespace['result']
-            result.covered_lines = list(tracer.counts)
         else:
             result = run_single_test(test_name, runtests)
 
@@ -366,8 +353,9 @@ class Regrtest:
 
         return result
 
-    def run_tests_sequentially(self, runtests) -> None:
+    def run_tests_sequentially(self, runtests):
         if self.coverage:
+            import trace
             tracer = trace.Trace(trace=False, count=True)
         else:
             tracer = None
@@ -379,7 +367,7 @@ class Regrtest:
             tests = count(jobs, 'test')
         else:
             tests = 'tests'
-        msg = f"Run {tests} sequentially in a single process"
+        msg = f"Run {tests} sequentially"
         if runtests.timeout:
             msg += " (timeout: %s)" % format_duration(runtests.timeout)
         self.log(msg)
@@ -423,6 +411,8 @@ class Regrtest:
         if previous_test:
             print(previous_test)
 
+        return tracer
+
     def get_state(self):
         state = self.results.get_state(self.fail_env_changed)
         if self.first_state:
@@ -433,7 +423,7 @@ class Regrtest:
         from .run_workers import RunWorkers
         RunWorkers(num_workers, runtests, self.logger, self.results).run()
 
-    def finalize_tests(self, coverage: trace.CoverageResults | None) -> None:
+    def finalize_tests(self, tracer):
         if self.next_single_filename:
             if self.next_single_test:
                 with open(self.next_single_filename, 'w') as fp:
@@ -441,11 +431,10 @@ class Regrtest:
             else:
                 os.unlink(self.next_single_filename)
 
-        if coverage is not None:
-            # uses a new-in-Python 3.13 keyword argument that mypy doesn't know about yet:
-            coverage.write_results(show_missing=True, summary=True,  # type: ignore[call-arg]
-                                   coverdir=self.coverage_dir,
-                                   ignore_missing_files=True)
+        if tracer is not None:
+            results = tracer.results()
+            results.write_results(show_missing=True, summary=True,
+                                  coverdir=self.coverage_dir)
 
         if self.want_run_leaks:
             os.system("leaks %d" % os.getpid())
@@ -485,7 +474,6 @@ class Regrtest:
             hunt_refleak=self.hunt_refleak,
             test_dir=self.test_dir,
             use_junit=(self.junit_filename is not None),
-            coverage=self.coverage,
             memory_limit=self.memory_limit,
             gc_threshold=self.gc_threshold,
             use_resources=self.use_resources,
@@ -503,10 +491,7 @@ class Regrtest:
         if self.num_workers < 0:
             # Use all CPUs + 2 extra worker processes for tests
             # that like to sleep
-            #
-            # os.process.cpu_count() is new in Python 3.13;
-            # mypy doesn't know about it yet
-            self.num_workers = (os.process_cpu_count() or 1) + 2  # type: ignore[attr-defined]
+            self.num_workers = (process_cpu_count() or 1) + 2
 
         # For a partial run, we do not need to clutter the output.
         if (self.want_header
@@ -534,13 +519,10 @@ class Regrtest:
         try:
             if self.num_workers:
                 self._run_tests_mp(runtests, self.num_workers)
+                tracer = None
             else:
-                # gh-117783: don't immortalize deferred objects when tracking
-                # refleaks. Only releveant for the free-threaded build.
-                with suppress_immortalization(runtests.hunt_refleak):
-                    self.run_tests_sequentially(runtests)
+                tracer = self.run_tests_sequentially(runtests)
 
-            coverage = self.results.get_coverage_results()
             self.display_result(runtests)
 
             if self.want_rerun and self.results.need_rerun():
@@ -553,7 +535,7 @@ class Regrtest:
                 self.logger.stop_load_tracker()
 
         self.display_summary()
-        self.finalize_tests(coverage)
+        self.finalize_tests(tracer)
 
         return self.results.get_exitcode(self.fail_env_changed,
                                          self.fail_rerun)
@@ -607,7 +589,7 @@ class Regrtest:
             keep_environ = True
 
         if cross_compile and hostrunner:
-            if self.num_workers == 0 and not self.single_process:
+            if self.num_workers == 0:
                 # For now use only two cores for cross-compiled builds;
                 # hostrunner can be expensive.
                 regrtest_opts.extend(['-j', '2'])

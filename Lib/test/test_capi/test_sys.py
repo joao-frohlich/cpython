@@ -5,9 +5,9 @@ from test import support
 from test.support import import_helper
 
 try:
-    import _testlimitedcapi
+    import _testcapi
 except ImportError:
-    _testlimitedcapi = None
+    _testcapi = None
 
 NULL = None
 
@@ -15,33 +15,28 @@ class CAPITest(unittest.TestCase):
     # TODO: Test the following functions:
     #
     #   PySys_Audit()
-    #   PySys_AuditTuple()
 
     maxDiff = None
 
     @support.cpython_only
-    @unittest.skipIf(_testlimitedcapi is None, 'need _testlimitedcapi module')
+    @unittest.skipIf(_testcapi is None, 'need _testcapi module')
     def test_sys_getobject(self):
         # Test PySys_GetObject()
-        getobject = _testlimitedcapi.sys_getobject
+        getobject = _testcapi.sys_getobject
 
         self.assertIs(getobject(b'stdout'), sys.stdout)
         with support.swap_attr(sys, '\U0001f40d', 42):
             self.assertEqual(getobject('\U0001f40d'.encode()), 42)
 
         self.assertIs(getobject(b'nonexisting'), AttributeError)
-        with support.catch_unraisable_exception() as cm:
-            self.assertIs(getobject(b'\xff'), AttributeError)
-            self.assertEqual(cm.unraisable.exc_type, UnicodeDecodeError)
-            self.assertRegex(str(cm.unraisable.exc_value),
-                             "'utf-8' codec can't decode")
+        self.assertIs(getobject(b'\xff'), AttributeError)
         # CRASHES getobject(NULL)
 
     @support.cpython_only
-    @unittest.skipIf(_testlimitedcapi is None, 'need _testlimitedcapi module')
+    @unittest.skipIf(_testcapi is None, 'need _testcapi module')
     def test_sys_setobject(self):
         # Test PySys_SetObject()
-        setobject = _testlimitedcapi.sys_setobject
+        setobject = _testcapi.sys_setobject
 
         value = ['value']
         value2 = ['value2']
@@ -70,10 +65,10 @@ class CAPITest(unittest.TestCase):
         # CRASHES setobject(NULL, value)
 
     @support.cpython_only
-    @unittest.skipIf(_testlimitedcapi is None, 'need _testlimitedcapi module')
+    @unittest.skipIf(_testcapi is None, 'need _testcapi module')
     def test_sys_getxoptions(self):
         # Test PySys_GetXOptions()
-        getxoptions = _testlimitedcapi.sys_getxoptions
+        getxoptions = _testcapi.sys_getxoptions
 
         self.assertIs(getxoptions(), sys._xoptions)
 

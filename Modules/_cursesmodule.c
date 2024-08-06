@@ -104,6 +104,8 @@ static const char PyCursesVersion[] = "2.2";
 #  define Py_BUILD_CORE_MODULE 1
 #endif
 
+#define PY_SSIZE_T_CLEAN
+
 #include "Python.h"
 #include "pycore_long.h"          // _PyLong_GetZero()
 #include "pycore_structseq.h"     // _PyStructSequence_NewType()
@@ -128,7 +130,7 @@ static const char PyCursesVersion[] = "2.2";
 #include <langinfo.h>
 #endif
 
-#if !defined(NCURSES_VERSION) && (defined(sgi) || defined(__sun) || defined(SCO5))
+#if !defined(HAVE_NCURSES_H) && (defined(sgi) || defined(__sun) || defined(SCO5))
 #define STRICT_SYSV_CURSES       /* Don't use ncurses extensions */
 typedef chtype attr_t;           /* No attr_t type is available */
 #endif
@@ -233,20 +235,13 @@ static int
 PyCurses_ConvertToChtype(PyCursesWindowObject *win, PyObject *obj, chtype *ch)
 {
     long value;
-    if (PyBytes_Check(obj)) {
-        if (PyBytes_GET_SIZE(obj) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                         "expect int or bytes or str of length 1, "
-                         "got a bytes of length %zd",
-                         PyBytes_GET_SIZE(obj));
-            return 0;
-        }
+    if(PyBytes_Check(obj) && PyBytes_Size(obj) == 1) {
         value = (unsigned char)PyBytes_AsString(obj)[0];
     }
     else if (PyUnicode_Check(obj)) {
-        if (PyUnicode_GET_LENGTH(obj) != 1) {
+        if (PyUnicode_GetLength(obj) != 1) {
             PyErr_Format(PyExc_TypeError,
-                         "expect int or bytes or str of length 1, "
+                         "expect bytes or str of length 1, or int, "
                          "got a str of length %zi",
                          PyUnicode_GET_LENGTH(obj));
             return 0;
@@ -279,7 +274,7 @@ PyCurses_ConvertToChtype(PyCursesWindowObject *win, PyObject *obj, chtype *ch)
     }
     else {
         PyErr_Format(PyExc_TypeError,
-                     "expect int or bytes or str of length 1, got %s",
+                     "expect bytes or str of length 1, or int, got %s",
                      Py_TYPE(obj)->tp_name);
         return 0;
     }
@@ -322,7 +317,7 @@ PyCurses_ConvertToCchar_t(PyCursesWindowObject *win, PyObject *obj,
 #ifdef HAVE_NCURSESW
         if (PyUnicode_AsWideChar(obj, buffer, 2) != 1) {
             PyErr_Format(PyExc_TypeError,
-                         "expect int or bytes or str of length 1, "
+                         "expect bytes or str of length 1, or int, "
                          "got a str of length %zi",
                          PyUnicode_GET_LENGTH(obj));
             return 0;
@@ -333,14 +328,7 @@ PyCurses_ConvertToCchar_t(PyCursesWindowObject *win, PyObject *obj,
         return PyCurses_ConvertToChtype(win, obj, ch);
 #endif
     }
-    else if (PyBytes_Check(obj)) {
-        if (PyBytes_GET_SIZE(obj) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                         "expect int or bytes or str of length 1, "
-                         "got a bytes of length %zd",
-                         PyBytes_GET_SIZE(obj));
-            return 0;
-        }
+    else if(PyBytes_Check(obj) && PyBytes_Size(obj) == 1) {
         value = (unsigned char)PyBytes_AsString(obj)[0];
     }
     else if (PyLong_CheckExact(obj)) {
@@ -354,7 +342,7 @@ PyCurses_ConvertToCchar_t(PyCursesWindowObject *win, PyObject *obj,
     }
     else {
         PyErr_Format(PyExc_TypeError,
-                     "expect int or bytes or str of length 1, got %s",
+                     "expect bytes or str of length 1, or int, got %s",
                      Py_TYPE(obj)->tp_name);
         return 0;
     }
@@ -1170,10 +1158,8 @@ int py_mvwdelch(WINDOW *w, int y, int x)
 #endif
 
 #if defined(HAVE_CURSES_IS_PAD)
-// is_pad() is defined, either as a macro or as a function
 #define py_is_pad(win)      is_pad(win)
 #elif defined(WINDOW_HAS_FLAGS)
-// is_pad() is not defined, but we can inspect WINDOW structure members
 #define py_is_pad(win)      ((win) ? ((win)->_flags & _ISPAD) != 0 : FALSE)
 #endif
 
@@ -3689,7 +3675,7 @@ _curses_mousemask_impl(PyObject *module, unsigned long newmask)
 #endif
 
 /*[clinic input]
-_curses.napms -> int
+_curses.napms
 
     ms: int
         Duration in milliseconds.
@@ -3698,13 +3684,13 @@ _curses.napms -> int
 Sleep for specified time.
 [clinic start generated code]*/
 
-static int
+static PyObject *
 _curses_napms_impl(PyObject *module, int ms)
-/*[clinic end generated code: output=5f292a6a724491bd input=c6d6e01f2f1df9f7]*/
+/*[clinic end generated code: output=a40a1da2e39ea438 input=20cd3af2b6900f56]*/
 {
     PyCursesInitialised;
 
-    return napms(ms);
+    return Py_BuildValue("i", napms(ms));
 }
 
 
@@ -4457,7 +4443,7 @@ PyCurses_ConvertToWchar_t(PyObject *obj,
         wchar_t buffer[2];
         if (PyUnicode_AsWideChar(obj, buffer, 2) != 1) {
             PyErr_Format(PyExc_TypeError,
-                         "expect int or str of length 1, "
+                         "expect str of length 1 or int, "
                          "got a str of length %zi",
                          PyUnicode_GET_LENGTH(obj));
             return 0;
@@ -4484,7 +4470,7 @@ PyCurses_ConvertToWchar_t(PyObject *obj,
     }
     else {
         PyErr_Format(PyExc_TypeError,
-                     "expect int or str of length 1, got %s",
+                     "expect str of length 1 or int, got %s",
                      Py_TYPE(obj)->tp_name);
         return 0;
     }
@@ -4602,14 +4588,7 @@ make_ncurses_version(PyTypeObject *type)
     if (ncurses_version == NULL) {
         return NULL;
     }
-    const char *str = curses_version();
-    unsigned long major = 0, minor = 0, patch = 0;
-    if (!str || sscanf(str, "%*[^0-9]%lu.%lu.%lu", &major, &minor, &patch) < 3) {
-        // Fallback to header version, which cannot be that wrong
-        major = NCURSES_VERSION_MAJOR;
-        minor = NCURSES_VERSION_MINOR;
-        patch = NCURSES_VERSION_PATCH;
-    }
+
 #define SetIntItem(flag) \
     PyStructSequence_SET_ITEM(ncurses_version, pos++, PyLong_FromLong(flag)); \
     if (PyErr_Occurred()) { \
@@ -4617,9 +4596,9 @@ make_ncurses_version(PyTypeObject *type)
         return NULL; \
     }
 
-    SetIntItem(major)
-    SetIntItem(minor)
-    SetIntItem(patch)
+    SetIntItem(NCURSES_VERSION_MAJOR)
+    SetIntItem(NCURSES_VERSION_MINOR)
+    SetIntItem(NCURSES_VERSION_PATCH)
 #undef SetIntItem
 
     return ncurses_version;
@@ -4766,9 +4745,6 @@ PyInit__curses(void)
     m = PyModule_Create(&_cursesmodule);
     if (m == NULL)
         return NULL;
-#ifdef Py_GIL_DISABLED
-    PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
-#endif
 
     /* Add some symbolic constants to the module */
     d = PyModule_GetDict(m);

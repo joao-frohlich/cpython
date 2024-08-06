@@ -11,16 +11,6 @@ ALLOWED_PREFIXES = ('Py', '_Py')
 if sys.platform == 'darwin':
     ALLOWED_PREFIXES += ('__Py',)
 
-# mimalloc doesn't use static, but it's symbols are not exported
-# from the shared library.  They do show up in the static library
-# before its linked into an executable.
-ALLOWED_STATIC_PREFIXES = ('mi_', '_mi_')
-
-# "Legacy": some old symbols are prefixed by "PY_".
-EXCEPTIONS = frozenset({
-    'PY_TIMEOUT_MAX',
-})
-
 IGNORED_EXTENSION = "_ctypes_test"
 # Ignore constructor and destructor functions
 IGNORED_SYMBOLS = {'_init', '_fini'}
@@ -64,7 +54,7 @@ def get_exported_symbols(library, dynamic=False):
     return stdout
 
 
-def get_smelly_symbols(stdout, dynamic=False):
+def get_smelly_symbols(stdout):
     smelly_symbols = []
     python_symbols = []
     local_symbols = []
@@ -82,9 +72,7 @@ def get_smelly_symbols(stdout, dynamic=False):
         symbol = parts[-1]
         result = '%s (type: %s)' % (symbol, symtype)
 
-        if (symbol.startswith(ALLOWED_PREFIXES) or
-            symbol in EXCEPTIONS or
-            (not dynamic and symbol.startswith(ALLOWED_STATIC_PREFIXES))):
+        if symbol.startswith(ALLOWED_PREFIXES):
             python_symbols.append(result)
             continue
 
@@ -102,7 +90,7 @@ def get_smelly_symbols(stdout, dynamic=False):
 
 def check_library(library, dynamic=False):
     nm_output = get_exported_symbols(library, dynamic)
-    smelly_symbols, python_symbols = get_smelly_symbols(nm_output, dynamic)
+    smelly_symbols, python_symbols = get_smelly_symbols(nm_output)
 
     if not smelly_symbols:
         print(f"OK: no smelly symbol found ({len(python_symbols)} Python symbols)")

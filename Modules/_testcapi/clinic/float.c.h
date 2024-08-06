@@ -2,7 +2,11 @@
 preserve
 [clinic start generated code]*/
 
-#include "pycore_modsupport.h"    // _PyArg_CheckPositional()
+#if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
+#  include "pycore_gc.h"            // PyGC_Head
+#  include "pycore_runtime.h"       // _Py_ID()
+#endif
+
 
 PyDoc_STRVAR(_testcapi_float_pack__doc__,
 "float_pack($module, size, d, le, /)\n"
@@ -27,7 +31,7 @@ _testcapi_float_pack(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (!_PyArg_CheckPositional("float_pack", nargs, 3, 3)) {
         goto exit;
     }
-    size = PyLong_AsInt(args[0]);
+    size = _PyLong_AsInt(args[0]);
     if (size == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -41,7 +45,7 @@ _testcapi_float_pack(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
             goto exit;
         }
     }
-    le = PyLong_AsInt(args[2]);
+    le = _PyLong_AsInt(args[2]);
     if (le == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -81,4 +85,4 @@ _testcapi_float_unpack(PyObject *module, PyObject *const *args, Py_ssize_t nargs
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=b43dfd3a77fe04ba input=a9049054013a1b77]*/
+/*[clinic end generated code: output=083e5df26cd5fbeb input=a9049054013a1b77]*/

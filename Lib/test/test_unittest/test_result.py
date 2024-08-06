@@ -6,6 +6,7 @@ from test.support import warnings_helper, captured_stdout
 
 import traceback
 import unittest
+from unittest import mock
 from unittest.util import strclass
 from test.test_unittest.support import BufferedWriter
 

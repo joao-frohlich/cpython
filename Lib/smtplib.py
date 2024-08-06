@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 '''SMTP/ESMTP client class.
 
 This should follow RFC 821 (SMTP), RFC 1869 (ESMTP), RFC 2554 (SMTP
@@ -103,7 +105,7 @@ class SMTPSenderRefused(SMTPResponseException):
     """Sender address refused.
 
     In addition to the attributes set by on all SMTPResponseException
-    exceptions, this sets 'sender' to the string that the SMTP refused.
+    exceptions, this sets `sender' to the string that the SMTP refused.
     """
 
     def __init__(self, code, msg, sender):
@@ -313,7 +315,7 @@ class SMTP:
     def connect(self, host='localhost', port=0, source_address=None):
         """Connect to a host on a given port.
 
-        If the hostname ends with a colon (':') followed by a number, and
+        If the hostname ends with a colon (`:') followed by a number, and
         there is no port specified, that suffix will be stripped off and the
         number interpreted as the port number to use.
 
@@ -344,7 +346,7 @@ class SMTP:
         return (code, msg)
 
     def send(self, s):
-        """Send 's' to the server."""
+        """Send `s' to the server."""
         if self.debuglevel > 0:
             self._print_debug('send:', repr(s))
         if self.sock:
@@ -540,7 +542,7 @@ class SMTP:
                     raise SMTPNotSupportedError(
                         'SMTPUTF8 not supported by server')
             optionlist = ' ' + ' '.join(options)
-        self.putcmd("mail", "from:%s%s" % (quoteaddr(sender), optionlist))
+        self.putcmd("mail", "FROM:%s%s" % (quoteaddr(sender), optionlist))
         return self.getreply()
 
     def rcpt(self, recip, options=()):
@@ -548,7 +550,7 @@ class SMTP:
         optionlist = ''
         if options and self.does_esmtp:
             optionlist = ' ' + ' '.join(options)
-        self.putcmd("rcpt", "to:%s%s" % (quoteaddr(recip), optionlist))
+        self.putcmd("rcpt", "TO:%s%s" % (quoteaddr(recip), optionlist))
         return self.getreply()
 
     def data(self, msg):

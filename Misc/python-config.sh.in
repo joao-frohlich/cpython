@@ -4,13 +4,7 @@
 
 exit_with_usage ()
 {
-    local usage
-    usage="Usage: $0 --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed"
-    if [ "$1" -eq 0 ]; then
-        echo "$usage"
-    else
-        echo "$usage" >&2
-    fi
+    echo "Usage: $0 --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed"
     exit $1
 }
 
@@ -47,7 +41,7 @@ LIBM="@LIBM@"
 LIBC="@LIBC@"
 SYSLIBS="$LIBM $LIBC"
 ABIFLAGS="@ABIFLAGS@"
-LIBS="@MODULE_LDFLAGS@ @LIBS@ $SYSLIBS"
+LIBS="@LIBPYTHON@ @LIBS@ $SYSLIBS"
 LIBS_EMBED="-lpython${VERSION}${ABIFLAGS} @LIBS@ $SYSLIBS"
 BASECFLAGS="@BASECFLAGS@"
 LDLIBRARY="@LDLIBRARY@"

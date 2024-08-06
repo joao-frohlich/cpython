@@ -1,5 +1,3 @@
-.. _functional-howto:
-
 ********************************
   Functional Programming HOWTO
 ********************************

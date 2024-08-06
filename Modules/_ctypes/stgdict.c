@@ -9,69 +9,200 @@
 #endif
 
 #include "pycore_call.h"          // _PyObject_CallNoArgs()
-#include "pycore_dict.h"          // _PyDict_SizeOf()
 #include <ffi.h>
 #ifdef MS_WIN32
 #  include <malloc.h>
 #endif
 #include "ctypes.h"
 
-/* This file relates to StgInfo -- type-specific information for ctypes.
- * See ctypes.h for details.
+/******************************************************************/
+/*
+  StdDict - a dictionary subclass, containing additional C accessible fields
+
+  XXX blabla more
+*/
+
+/* Seems we need this, otherwise we get problems when calling
+ * PyDict_SetItem() (ma_lookup is NULL)
  */
+static int
+PyCStgDict_init(StgDictObject *self, PyObject *args, PyObject *kwds)
+{
+    if (PyDict_Type.tp_init((PyObject *)self, args, kwds) < 0)
+        return -1;
+    self->format = NULL;
+    self->ndim = 0;
+    self->shape = NULL;
+    return 0;
+}
+
+static int
+PyCStgDict_clear(StgDictObject *self)
+{
+    Py_CLEAR(self->proto);
+    Py_CLEAR(self->argtypes);
+    Py_CLEAR(self->converters);
+    Py_CLEAR(self->restype);
+    Py_CLEAR(self->checker);
+    return 0;
+}
+
+static void
+PyCStgDict_dealloc(StgDictObject *self)
+{
+    PyCStgDict_clear(self);
+    PyMem_Free(self->format);
+    PyMem_Free(self->shape);
+    PyMem_Free(self->ffi_type_pointer.elements);
+    PyDict_Type.tp_dealloc((PyObject *)self);
+}
+
+static PyObject *
+PyCStgDict_sizeof(StgDictObject *self, void *unused)
+{
+    Py_ssize_t res;
+
+    res = _PyDict_SizeOf((PyDictObject *)self);
+    res += sizeof(StgDictObject) - sizeof(PyDictObject);
+    if (self->format)
+        res += strlen(self->format) + 1;
+    res += self->ndim * sizeof(Py_ssize_t);
+    if (self->ffi_type_pointer.elements)
+        res += (self->length + 1) * sizeof(ffi_type *);
+    return PyLong_FromSsize_t(res);
+}
 
 int
-PyCStgInfo_clone(StgInfo *dst_info, StgInfo *src_info)
+PyCStgDict_clone(StgDictObject *dst, StgDictObject *src)
 {
+    char *d, *s;
     Py_ssize_t size;
 
-    ctype_clear_stginfo(dst_info);
-    PyMem_Free(dst_info->ffi_type_pointer.elements);
-    PyMem_Free(dst_info->format);
-    dst_info->format = NULL;
-    PyMem_Free(dst_info->shape);
-    dst_info->shape = NULL;
-    dst_info->ffi_type_pointer.elements = NULL;
+    PyCStgDict_clear(dst);
+    PyMem_Free(dst->ffi_type_pointer.elements);
+    PyMem_Free(dst->format);
+    dst->format = NULL;
+    PyMem_Free(dst->shape);
+    dst->shape = NULL;
+    dst->ffi_type_pointer.elements = NULL;
 
-    memcpy(dst_info, src_info, sizeof(StgInfo));
+    d = (char *)dst;
+    s = (char *)src;
+    memcpy(d + sizeof(PyDictObject),
+           s + sizeof(PyDictObject),
+           sizeof(StgDictObject) - sizeof(PyDictObject));
 
-    Py_XINCREF(dst_info->proto);
-    Py_XINCREF(dst_info->argtypes);
-    Py_XINCREF(dst_info->converters);
-    Py_XINCREF(dst_info->restype);
-    Py_XINCREF(dst_info->checker);
-    Py_XINCREF(dst_info->module);
+    Py_XINCREF(dst->proto);
+    Py_XINCREF(dst->argtypes);
+    Py_XINCREF(dst->converters);
+    Py_XINCREF(dst->restype);
+    Py_XINCREF(dst->checker);
 
-    if (src_info->format) {
-        dst_info->format = PyMem_Malloc(strlen(src_info->format) + 1);
-        if (dst_info->format == NULL) {
+    if (src->format) {
+        dst->format = PyMem_Malloc(strlen(src->format) + 1);
+        if (dst->format == NULL) {
             PyErr_NoMemory();
             return -1;
         }
-        strcpy(dst_info->format, src_info->format);
+        strcpy(dst->format, src->format);
     }
-    if (src_info->shape) {
-        dst_info->shape = PyMem_Malloc(sizeof(Py_ssize_t) * src_info->ndim);
-        if (dst_info->shape == NULL) {
+    if (src->shape) {
+        dst->shape = PyMem_Malloc(sizeof(Py_ssize_t) * src->ndim);
+        if (dst->shape == NULL) {
             PyErr_NoMemory();
             return -1;
         }
-        memcpy(dst_info->shape, src_info->shape,
-               sizeof(Py_ssize_t) * src_info->ndim);
+        memcpy(dst->shape, src->shape,
+               sizeof(Py_ssize_t) * src->ndim);
     }
 
-    if (src_info->ffi_type_pointer.elements == NULL)
+    if (src->ffi_type_pointer.elements == NULL)
         return 0;
-    size = sizeof(ffi_type *) * (src_info->length + 1);
-    dst_info->ffi_type_pointer.elements = PyMem_Malloc(size);
-    if (dst_info->ffi_type_pointer.elements == NULL) {
+    size = sizeof(ffi_type *) * (src->length + 1);
+    dst->ffi_type_pointer.elements = PyMem_Malloc(size);
+    if (dst->ffi_type_pointer.elements == NULL) {
         PyErr_NoMemory();
         return -1;
     }
-    memcpy(dst_info->ffi_type_pointer.elements,
-           src_info->ffi_type_pointer.elements,
+    memcpy(dst->ffi_type_pointer.elements,
+           src->ffi_type_pointer.elements,
            size);
     return 0;
+}
+
+static struct PyMethodDef PyCStgDict_methods[] = {
+    {"__sizeof__", (PyCFunction)PyCStgDict_sizeof, METH_NOARGS},
+    {NULL, NULL}                /* sentinel */
+};
+
+PyTypeObject PyCStgDict_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "StgDict",
+    sizeof(StgDictObject),
+    0,
+    (destructor)PyCStgDict_dealloc,             /* tp_dealloc */
+    0,                                          /* tp_vectorcall_offset */
+    0,                                          /* tp_getattr */
+    0,                                          /* tp_setattr */
+    0,                                          /* tp_as_async */
+    0,                                          /* tp_repr */
+    0,                                          /* tp_as_number */
+    0,                                          /* tp_as_sequence */
+    0,                                          /* tp_as_mapping */
+    0,                                          /* tp_hash */
+    0,                                          /* tp_call */
+    0,                                          /* tp_str */
+    0,                                          /* tp_getattro */
+    0,                                          /* tp_setattro */
+    0,                                          /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
+    0,                                          /* tp_doc */
+    0,                                          /* tp_traverse */
+    0,                                          /* tp_clear */
+    0,                                          /* tp_richcompare */
+    0,                                          /* tp_weaklistoffset */
+    0,                                          /* tp_iter */
+    0,                                          /* tp_iternext */
+    PyCStgDict_methods,                         /* tp_methods */
+    0,                                          /* tp_members */
+    0,                                          /* tp_getset */
+    0,                                          /* tp_base */
+    0,                                          /* tp_dict */
+    0,                                          /* tp_descr_get */
+    0,                                          /* tp_descr_set */
+    0,                                          /* tp_dictoffset */
+    (initproc)PyCStgDict_init,                          /* tp_init */
+    0,                                          /* tp_alloc */
+    0,                                          /* tp_new */
+    0,                                          /* tp_free */
+};
+
+/* May return NULL, but does not set an exception! */
+StgDictObject *
+PyType_stgdict(PyObject *obj)
+{
+    PyTypeObject *type;
+
+    if (!PyType_Check(obj))
+        return NULL;
+    type = (PyTypeObject *)obj;
+    if (!type->tp_dict || !PyCStgDict_CheckExact(type->tp_dict))
+        return NULL;
+    return (StgDictObject *)type->tp_dict;
+}
+
+/* May return NULL, but does not set an exception! */
+/*
+  This function should be as fast as possible, so we don't call PyType_stgdict
+  above but inline the code, and avoid the PyType_Check().
+*/
+StgDictObject *
+PyObject_stgdict(PyObject *self)
+{
+    PyTypeObject *type = Py_TYPE(self);
+    if (!type->tp_dict || !PyCStgDict_CheckExact(type->tp_dict))
+        return NULL;
+    return (StgDictObject *)type->tp_dict;
 }
 
 /* descr is the descriptor for a field marked as anonymous.  Get all the
@@ -94,7 +225,7 @@ MakeFields(PyObject *type, CFieldObject *descr,
     if (fieldlist == NULL)
         return -1;
 
-    ctypes_state *st = get_module_state_by_class(Py_TYPE(descr));
+    ctypes_state *st = GLOBAL_STATE();
     PyTypeObject *cfield_tp = st->PyCField_Type;
     for (i = 0; i < PySequence_Fast_GET_SIZE(fieldlist); ++i) {
         PyObject *pair = PySequence_Fast_GET_ITEM(fieldlist, i); /* borrowed */
@@ -164,7 +295,7 @@ MakeAnonFields(PyObject *type)
     PyObject *anon_names;
     Py_ssize_t i;
 
-    if (PyObject_GetOptionalAttr(type, &_Py_ID(_anonymous_), &anon) < 0) {
+    if (_PyObject_LookupAttr(type, &_Py_ID(_anonymous_), &anon) < 0) {
         return -1;
     }
     if (anon == NULL) {
@@ -175,7 +306,7 @@ MakeAnonFields(PyObject *type)
     if (anon_names == NULL)
         return -1;
 
-    ctypes_state *st = get_module_state_by_def(Py_TYPE(type));
+    ctypes_state *st = GLOBAL_STATE();
     PyTypeObject *cfield_tp = st->PyCField_Type;
     for (i = 0; i < PySequence_Fast_GET_SIZE(anon_names); ++i) {
         PyObject *fname = PySequence_Fast_GET_ITEM(anon_names, i); /* borrowed */
@@ -235,18 +366,18 @@ _ctypes_alloc_format_padding(const char *prefix, Py_ssize_t padding)
 
 /*
   Retrieve the (optional) _pack_ attribute from a type, the _fields_ attribute,
-  and initialize StgInfo.  Used for Structure and Union subclasses.
+  and create an StgDictObject.  Used for Structure and Union subclasses.
 */
 int
-PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct)
+PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 {
+    StgDictObject *stgdict, *basedict;
     Py_ssize_t len, offset, size, align, i;
     Py_ssize_t union_size, total_align, aligned_size;
     Py_ssize_t field_size = 0;
-    Py_ssize_t bitofs = 0;
+    int bitofs;
     PyObject *tmp;
     int pack;
-    int forced_alignment = 1;
     Py_ssize_t ffi_ofs;
     int big_endian;
     int arrays_seen = 0;
@@ -254,22 +385,22 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
     if (fields == NULL)
         return 0;
 
-    int rc = PyObject_HasAttrWithError(type, &_Py_ID(_swappedbytes_));
-    if (rc < 0) {
+    if (_PyObject_LookupAttr(type, &_Py_ID(_swappedbytes_), &tmp) < 0) {
         return -1;
     }
-    if (rc) {
+    if (tmp) {
+        Py_DECREF(tmp);
         big_endian = !PY_BIG_ENDIAN;
     }
     else {
         big_endian = PY_BIG_ENDIAN;
     }
 
-    if (PyObject_GetOptionalAttr(type, &_Py_ID(_pack_), &tmp) < 0) {
+    if (_PyObject_LookupAttr(type, &_Py_ID(_pack_), &tmp) < 0) {
         return -1;
     }
     if (tmp) {
-        pack = PyLong_AsInt(tmp);
+        pack = _PyLong_AsInt(tmp);
         Py_DECREF(tmp);
         if (pack < 0) {
             if (!PyErr_Occurred() ||
@@ -287,60 +418,6 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
         pack = 0;
     }
 
-    #ifdef MS_WIN32
-    LayoutMode layout_mode = LAYOUT_MODE_MS;
-    #else
-    LayoutMode layout_mode = (pack > 0) ? LAYOUT_MODE_MS : LAYOUT_MODE_GCC_SYSV;
-    #endif
-
-    if (PyObject_GetOptionalAttr(type, &_Py_ID(_layout_), &tmp) < 0) {
-        return -1;
-    }
-    if (tmp) {
-        if (!PyUnicode_Check(tmp)) {
-            PyErr_SetString(PyExc_TypeError,
-                            "_layout_ must be a string");
-            return -1;
-        }
-        if (PyUnicode_CompareWithASCIIString(tmp, "ms") == 0) {
-            layout_mode = LAYOUT_MODE_MS;
-        }
-        else if (PyUnicode_CompareWithASCIIString(tmp, "gcc-sysv") == 0) {
-            layout_mode = LAYOUT_MODE_GCC_SYSV;
-            if (pack > 0) {
-                PyErr_SetString(PyExc_ValueError,
-                                "_pack_ is not compatible with _layout_=\"gcc-sysv\"");
-                return -1;
-            }
-        }
-        else {
-            PyErr_Format(PyExc_ValueError,
-                            "unknown _layout_ %R", tmp);
-            return -1;
-        }
-    }
-    if (PyObject_GetOptionalAttr(type, &_Py_ID(_align_), &tmp) < 0) {
-        return -1;
-    }
-    if (tmp) {
-        forced_alignment = PyLong_AsInt(tmp);
-        Py_DECREF(tmp);
-        if (forced_alignment < 0) {
-            if (!PyErr_Occurred() ||
-                PyErr_ExceptionMatches(PyExc_TypeError) ||
-                PyErr_ExceptionMatches(PyExc_OverflowError))
-            {
-                PyErr_SetString(PyExc_ValueError,
-                                "_align_ must be a non-negative integer");
-            }
-            return -1;
-        }
-    }
-    else {
-        /* Setting `_align_ = 0` amounts to using the default alignment */
-        forced_alignment = 1;
-    }
-
     len = PySequence_Size(fields);
     if (len == -1) {
         if (PyErr_ExceptionMatches(PyExc_TypeError)) {
@@ -350,130 +427,114 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
         return -1;
     }
 
-    ctypes_state *st = get_module_state_by_def(Py_TYPE(type));
-    StgInfo *stginfo;
-    if (PyStgInfo_FromType(st, type, &stginfo) < 0) {
-        return -1;
-    }
-    if (!stginfo) {
+    stgdict = PyType_stgdict(type);
+    if (!stgdict) {
         PyErr_SetString(PyExc_TypeError,
                         "ctypes state is not initialized");
         return -1;
     }
-
     /* If this structure/union is already marked final we cannot assign
        _fields_ anymore. */
 
-    if (stginfo->flags & DICTFLAG_FINAL) {/* is final ? */
+    if (stgdict->flags & DICTFLAG_FINAL) {/* is final ? */
         PyErr_SetString(PyExc_AttributeError,
                         "_fields_ is final");
         return -1;
     }
 
-    if (stginfo->format) {
-        PyMem_Free(stginfo->format);
-        stginfo->format = NULL;
+    if (stgdict->format) {
+        PyMem_Free(stgdict->format);
+        stgdict->format = NULL;
     }
 
-    if (stginfo->ffi_type_pointer.elements)
-        PyMem_Free(stginfo->ffi_type_pointer.elements);
+    if (stgdict->ffi_type_pointer.elements)
+        PyMem_Free(stgdict->ffi_type_pointer.elements);
 
-    StgInfo *baseinfo;
-    if (PyStgInfo_FromType(st, (PyObject *)((PyTypeObject *)type)->tp_base,
-                           &baseinfo) < 0) {
-        return -1;
-    }
-    if (baseinfo) {
-        stginfo->flags |= (baseinfo->flags &
+    basedict = PyType_stgdict((PyObject *)((PyTypeObject *)type)->tp_base);
+    if (basedict) {
+        stgdict->flags |= (basedict->flags &
                            (TYPEFLAG_HASUNION | TYPEFLAG_HASBITFIELD));
     }
     if (!isStruct) {
-        stginfo->flags |= TYPEFLAG_HASUNION;
+        stgdict->flags |= TYPEFLAG_HASUNION;
     }
-    if (baseinfo) {
-        size = offset = baseinfo->size;
-        align = baseinfo->align;
+    if (basedict) {
+        size = offset = basedict->size;
+        align = basedict->align;
         union_size = 0;
         total_align = align ? align : 1;
-        total_align = max(total_align, forced_alignment);
-        stginfo->ffi_type_pointer.type = FFI_TYPE_STRUCT;
-        stginfo->ffi_type_pointer.elements = PyMem_New(ffi_type *, baseinfo->length + len + 1);
-        if (stginfo->ffi_type_pointer.elements == NULL) {
+        stgdict->ffi_type_pointer.type = FFI_TYPE_STRUCT;
+        stgdict->ffi_type_pointer.elements = PyMem_New(ffi_type *, basedict->length + len + 1);
+        if (stgdict->ffi_type_pointer.elements == NULL) {
             PyErr_NoMemory();
             return -1;
         }
-        memset(stginfo->ffi_type_pointer.elements, 0,
-               sizeof(ffi_type *) * (baseinfo->length + len + 1));
-        if (baseinfo->length > 0) {
-            memcpy(stginfo->ffi_type_pointer.elements,
-                   baseinfo->ffi_type_pointer.elements,
-                   sizeof(ffi_type *) * (baseinfo->length));
+        memset(stgdict->ffi_type_pointer.elements, 0,
+               sizeof(ffi_type *) * (basedict->length + len + 1));
+        if (basedict->length > 0) {
+            memcpy(stgdict->ffi_type_pointer.elements,
+                   basedict->ffi_type_pointer.elements,
+                   sizeof(ffi_type *) * (basedict->length));
         }
-        ffi_ofs = baseinfo->length;
+        ffi_ofs = basedict->length;
     } else {
         offset = 0;
         size = 0;
         align = 0;
         union_size = 0;
-        total_align = forced_alignment;
-        stginfo->ffi_type_pointer.type = FFI_TYPE_STRUCT;
-        stginfo->ffi_type_pointer.elements = PyMem_New(ffi_type *, len + 1);
-        if (stginfo->ffi_type_pointer.elements == NULL) {
+        total_align = 1;
+        stgdict->ffi_type_pointer.type = FFI_TYPE_STRUCT;
+        stgdict->ffi_type_pointer.elements = PyMem_New(ffi_type *, len + 1);
+        if (stgdict->ffi_type_pointer.elements == NULL) {
             PyErr_NoMemory();
             return -1;
         }
-        memset(stginfo->ffi_type_pointer.elements, 0,
+        memset(stgdict->ffi_type_pointer.elements, 0,
                sizeof(ffi_type *) * (len + 1));
         ffi_ofs = 0;
     }
 
-    assert(stginfo->format == NULL);
+    assert(stgdict->format == NULL);
     if (isStruct) {
-        stginfo->format = _ctypes_alloc_format_string(NULL, "T{");
+        stgdict->format = _ctypes_alloc_format_string(NULL, "T{");
     } else {
         /* PEP3118 doesn't support union. Use 'B' for bytes. */
-        stginfo->format = _ctypes_alloc_format_string(NULL, "B");
+        stgdict->format = _ctypes_alloc_format_string(NULL, "B");
     }
-    if (stginfo->format == NULL)
+    if (stgdict->format == NULL)
         return -1;
 
     for (i = 0; i < len; ++i) {
         PyObject *name = NULL, *desc = NULL;
         PyObject *pair = PySequence_GetItem(fields, i);
         PyObject *prop;
-        Py_ssize_t bitsize = 0;
+        StgDictObject *dict;
+        int bitsize = 0;
 
-        if (!pair || !PyArg_ParseTuple(pair, "UO|n", &name, &desc, &bitsize)) {
+        if (!pair || !PyArg_ParseTuple(pair, "UO|i", &name, &desc, &bitsize)) {
             PyErr_SetString(PyExc_TypeError,
                             "'_fields_' must be a sequence of (name, C type) pairs");
             Py_XDECREF(pair);
             return -1;
         }
-        if (PyCArrayTypeObject_Check(st, desc)) {
+        if (PyCArrayTypeObject_Check(desc))
             arrays_seen = 1;
-        }
-
-        StgInfo *info;
-        if (PyStgInfo_FromType(st, desc, &info) < 0) {
-            Py_DECREF(pair);
-            return -1;
-        }
-        if (info == NULL) {
+        dict = PyType_stgdict(desc);
+        if (dict == NULL) {
             Py_DECREF(pair);
             PyErr_Format(PyExc_TypeError,
                          "second item in _fields_ tuple (index %zd) must be a C type",
                          i);
             return -1;
         }
-
-        stginfo->ffi_type_pointer.elements[ffi_ofs + i] = &info->ffi_type_pointer;
-        if (info->flags & (TYPEFLAG_ISPOINTER | TYPEFLAG_HASPOINTER))
-            stginfo->flags |= TYPEFLAG_HASPOINTER;
-        stginfo->flags |= info->flags & (TYPEFLAG_HASUNION | TYPEFLAG_HASBITFIELD);
-        info->flags |= DICTFLAG_FINAL; /* mark field type final */
+        stgdict->ffi_type_pointer.elements[ffi_ofs + i] = &dict->ffi_type_pointer;
+        if (dict->flags & (TYPEFLAG_ISPOINTER | TYPEFLAG_HASPOINTER))
+            stgdict->flags |= TYPEFLAG_HASPOINTER;
+        stgdict->flags |= dict->flags & (TYPEFLAG_HASUNION | TYPEFLAG_HASBITFIELD);
+        dict->flags |= DICTFLAG_FINAL; /* mark field type final */
         if (PyTuple_Size(pair) == 3) { /* bits specified */
-            stginfo->flags |= TYPEFLAG_HASBITFIELD;
-            switch(info->ffi_type_pointer.type) {
+            stgdict->flags |= TYPEFLAG_HASBITFIELD;
+            switch(dict->ffi_type_pointer.type) {
             case FFI_TYPE_UINT8:
             case FFI_TYPE_UINT16:
             case FFI_TYPE_UINT32:
@@ -484,12 +545,11 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
             case FFI_TYPE_SINT8:
             case FFI_TYPE_SINT16:
             case FFI_TYPE_SINT32:
-                if (info->getfunc != _ctypes_get_fielddesc("c")->getfunc
-                    && info->getfunc != _ctypes_get_fielddesc("u")->getfunc)
-                {
+                if (dict->getfunc != _ctypes_get_fielddesc("c")->getfunc
+                    && dict->getfunc != _ctypes_get_fielddesc("u")->getfunc
+                    )
                     break;
-                }
-                _Py_FALLTHROUGH;  /* else fall through */
+                /* else fall through */
             default:
                 PyErr_Format(PyExc_TypeError,
                              "bit fields not allowed for type %s",
@@ -497,10 +557,9 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
                 Py_DECREF(pair);
                 return -1;
             }
-            if (bitsize <= 0 || bitsize > info->size * 8) {
-                PyErr_Format(PyExc_ValueError,
-                                "number of bits invalid for bit field %R",
-                                name);
+            if (bitsize <= 0 || bitsize > dict->size * 8) {
+                PyErr_SetString(PyExc_ValueError,
+                                "number of bits invalid for bit field");
                 Py_DECREF(pair);
                 return -1;
             }
@@ -508,7 +567,7 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
             bitsize = 0;
 
         if (isStruct) {
-            const char *fieldfmt = info->format ? info->format : "B";
+            const char *fieldfmt = dict->format ? dict->format : "B";
             const char *fieldname = PyUnicode_AsUTF8(name);
             char *ptr;
             Py_ssize_t len;
@@ -524,10 +583,10 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
 
             /* construct the field now, as `prop->offset` is `offset` with
                corrected alignment */
-            prop = PyCField_FromDesc(st, desc, i,
+            prop = PyCField_FromDesc(desc, i,
                                    &field_size, bitsize, &bitofs,
                                    &size, &offset, &align,
-                                   pack, big_endian, layout_mode);
+                                   pack, big_endian);
             if (prop == NULL) {
                 Py_DECREF(pair);
                 return -1;
@@ -538,10 +597,10 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
             padding = ((CFieldObject *)prop)->offset - last_size;
 
             if (padding > 0) {
-                ptr = stginfo->format;
-                stginfo->format = _ctypes_alloc_format_padding(ptr, padding);
+                ptr = stgdict->format;
+                stgdict->format = _ctypes_alloc_format_padding(ptr, padding);
                 PyMem_Free(ptr);
-                if (stginfo->format == NULL) {
+                if (stgdict->format == NULL) {
                     Py_DECREF(pair);
                     Py_DECREF(prop);
                     return -1;
@@ -559,31 +618,29 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
             }
             sprintf(buf, "%s:%s:", fieldfmt, fieldname);
 
-            ptr = stginfo->format;
-            if (info->shape != NULL) {
-                stginfo->format = _ctypes_alloc_format_string_with_shape(
-                    info->ndim, info->shape, stginfo->format, buf);
+            ptr = stgdict->format;
+            if (dict->shape != NULL) {
+                stgdict->format = _ctypes_alloc_format_string_with_shape(
+                    dict->ndim, dict->shape, stgdict->format, buf);
             } else {
-                stginfo->format = _ctypes_alloc_format_string(stginfo->format, buf);
+                stgdict->format = _ctypes_alloc_format_string(stgdict->format, buf);
             }
             PyMem_Free(ptr);
             PyMem_Free(buf);
 
-            if (stginfo->format == NULL) {
+            if (stgdict->format == NULL) {
                 Py_DECREF(pair);
                 Py_DECREF(prop);
                 return -1;
             }
         } else /* union */ {
-            field_size = 0;
             size = 0;
-            bitofs = 0;
             offset = 0;
             align = 0;
-            prop = PyCField_FromDesc(st, desc, i,
+            prop = PyCField_FromDesc(desc, i,
                                    &field_size, bitsize, &bitofs,
                                    &size, &offset, &align,
-                                   pack, big_endian, layout_mode);
+                                   pack, big_endian);
             if (prop == NULL) {
                 Py_DECREF(pair);
                 return -1;
@@ -615,29 +672,29 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
         /* Pad up to the full size of the struct */
         padding = aligned_size - size;
         if (padding > 0) {
-            ptr = stginfo->format;
-            stginfo->format = _ctypes_alloc_format_padding(ptr, padding);
+            ptr = stgdict->format;
+            stgdict->format = _ctypes_alloc_format_padding(ptr, padding);
             PyMem_Free(ptr);
-            if (stginfo->format == NULL) {
+            if (stgdict->format == NULL) {
                 return -1;
             }
         }
 
-        ptr = stginfo->format;
-        stginfo->format = _ctypes_alloc_format_string(stginfo->format, "}");
+        ptr = stgdict->format;
+        stgdict->format = _ctypes_alloc_format_string(stgdict->format, "}");
         PyMem_Free(ptr);
-        if (stginfo->format == NULL)
+        if (stgdict->format == NULL)
             return -1;
     }
 
-    stginfo->ffi_type_pointer.alignment = Py_SAFE_DOWNCAST(total_align,
+    stgdict->ffi_type_pointer.alignment = Py_SAFE_DOWNCAST(total_align,
                                                            Py_ssize_t,
                                                            unsigned short);
-    stginfo->ffi_type_pointer.size = aligned_size;
+    stgdict->ffi_type_pointer.size = aligned_size;
 
-    stginfo->size = aligned_size;
-    stginfo->align = total_align;
-    stginfo->length = ffi_ofs + len;
+    stgdict->size = aligned_size;
+    stgdict->align = total_align;
+    stgdict->length = ffi_ofs + len;
 
 /*
  * The value of MAX_STRUCT_SIZE depends on the platform Python is running on.
@@ -728,6 +785,7 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
         for (i = 0; i < len; ++i) {
             PyObject *name, *desc;
             PyObject *pair = PySequence_GetItem(fields, i);
+            StgDictObject *dict;
             int bitsize = 0;
 
             if (pair == NULL) {
@@ -739,34 +797,25 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
                 Py_DECREF(pair);
                 return -1;
             }
-
-            StgInfo *info;
-            if (PyStgInfo_FromType(st, desc, &info) < 0) {
-                Py_DECREF(pair);
-                return -1;
-            }
-            if (info == NULL) {
+            dict = PyType_stgdict(desc);
+            if (dict == NULL) {
                 Py_DECREF(pair);
                 PyErr_Format(PyExc_TypeError,
                     "second item in _fields_ tuple (index %zd) must be a C type",
                     i);
                 return -1;
             }
-
-            if (!PyCArrayTypeObject_Check(st, desc)) {
+            if (!PyCArrayTypeObject_Check(desc)) {
                 /* Not an array. Just need an ffi_type pointer. */
                 num_ffi_type_pointers++;
             }
             else {
                 /* It's an array. */
-                Py_ssize_t length = info->length;
+                Py_ssize_t length = dict->length;
+                StgDictObject *edict;
 
-                StgInfo *einfo;
-                if (PyStgInfo_FromType(st, info->proto, &einfo) < 0) {
-                    Py_DECREF(pair);
-                    return -1;
-                }
-                if (einfo == NULL) {
+                edict = PyType_stgdict(dict->proto);
+                if (edict == NULL) {
                     Py_DECREF(pair);
                     PyErr_Format(PyExc_TypeError,
                         "second item in _fields_ tuple (index %zd) must be a C type",
@@ -814,9 +863,9 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
         if (num_ffi_types > 0) {
             memset(structs, 0, num_ffi_types * sizeof(ffi_type));
         }
-        if (ffi_ofs && (baseinfo != NULL)) {
+        if (ffi_ofs && (basedict != NULL)) {
             memcpy(element_types,
-                baseinfo->ffi_type_pointer.elements,
+                basedict->ffi_type_pointer.elements,
                 ffi_ofs * sizeof(ffi_type *));
         }
         element_index = ffi_ofs;
@@ -825,6 +874,7 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
         for (i = 0; i < len; ++i) {
             PyObject *name, *desc;
             PyObject *pair = PySequence_GetItem(fields, i);
+            StgDictObject *dict;
             int bitsize = 0;
 
             if (pair == NULL) {
@@ -844,16 +894,9 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
                 PyMem_Free(type_block);
                 return -1;
             }
-
-            StgInfo *info;
-            if (PyStgInfo_FromType(st, desc, &info) < 0) {
-                Py_DECREF(pair);
-                PyMem_Free(type_block);
-                return -1;
-            }
-
+            dict = PyType_stgdict(desc);
             /* Possibly this check could be avoided, but see above comment. */
-            if (info == NULL) {
+            if (dict == NULL) {
                 Py_DECREF(pair);
                 PyMem_Free(type_block);
                 PyErr_Format(PyExc_TypeError,
@@ -861,21 +904,17 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
                              i);
                 return -1;
             }
-
             assert(element_index < (ffi_ofs + len)); /* will be used below */
-            if (!PyCArrayTypeObject_Check(st, desc)) {
+            if (!PyCArrayTypeObject_Check(desc)) {
                 /* Not an array. Just copy over the element ffi_type. */
-                element_types[element_index++] = &info->ffi_type_pointer;
+                element_types[element_index++] = &dict->ffi_type_pointer;
             }
             else {
-                Py_ssize_t length = info->length;
-                StgInfo *einfo;
-                if (PyStgInfo_FromType(st, info->proto, &einfo) < 0) {
-                    Py_DECREF(pair);
-                    PyMem_Free(type_block);
-                    return -1;
-                }
-                if (einfo == NULL) {
+                Py_ssize_t length = dict->length;
+                StgDictObject *edict;
+
+                edict = PyType_stgdict(dict->proto);
+                if (edict == NULL) {
                     Py_DECREF(pair);
                     PyMem_Free(type_block);
                     PyErr_Format(PyExc_TypeError,
@@ -884,15 +923,15 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
                     return -1;
                 }
                 element_types[element_index++] = &structs[struct_index];
-                structs[struct_index].size = length * einfo->ffi_type_pointer.size;
-                structs[struct_index].alignment = einfo->ffi_type_pointer.alignment;
+                structs[struct_index].size = length * edict->ffi_type_pointer.size;
+                structs[struct_index].alignment = edict->ffi_type_pointer.alignment;
                 structs[struct_index].type = FFI_TYPE_STRUCT;
                 structs[struct_index].elements = &dummy_types[dummy_index];
                 ++struct_index;
                 /* Copy over the element's type, length times. */
                 while (length > 0) {
                     assert(dummy_index < (num_ffi_type_pointers));
-                    dummy_types[dummy_index++] = &einfo->ffi_type_pointer;
+                    dummy_types[dummy_index++] = &edict->ffi_type_pointer;
                     length--;
                 }
                 assert(dummy_index < (num_ffi_type_pointers));
@@ -906,19 +945,19 @@ PyCStructUnionType_update_stginfo(PyObject *type, PyObject *fields, int isStruct
          * Replace the old elements with the new, taking into account
          * base class elements where necessary.
          */
-        assert(stginfo->ffi_type_pointer.elements);
-        PyMem_Free(stginfo->ffi_type_pointer.elements);
-        stginfo->ffi_type_pointer.elements = element_types;
+        assert(stgdict->ffi_type_pointer.elements);
+        PyMem_Free(stgdict->ffi_type_pointer.elements);
+        stgdict->ffi_type_pointer.elements = element_types;
     }
 
     /* We did check that this flag was NOT set above, it must not
        have been set until now. */
-    if (stginfo->flags & DICTFLAG_FINAL) {
+    if (stgdict->flags & DICTFLAG_FINAL) {
         PyErr_SetString(PyExc_AttributeError,
                         "Structure or union cannot contain itself");
         return -1;
     }
-    stginfo->flags |= DICTFLAG_FINAL;
+    stgdict->flags |= DICTFLAG_FINAL;
 
     return MakeAnonFields(type);
 }

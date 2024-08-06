@@ -1,18 +1,11 @@
 #ifndef MULTIPROCESSING_H
 #define MULTIPROCESSING_H
 
-#ifndef Py_BUILD_CORE_BUILTIN
-#  define Py_BUILD_CORE_MODULE 1
-#endif
+#define PY_SSIZE_T_CLEAN
 
 #include "Python.h"
 #include "structmember.h"
 #include "pythread.h"
-#include "pycore_signal.h"        // _PyOS_IsMainThread()
-
-#ifndef MS_WINDOWS
-#  include <unistd.h>             // sysconf()
-#endif
 
 /*
  * Platform includes and definitions

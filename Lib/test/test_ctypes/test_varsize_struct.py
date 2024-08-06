@@ -1,6 +1,5 @@
+from ctypes import *
 import unittest
-from ctypes import Structure, sizeof, resize, c_int
-
 
 class VarSizeTest(unittest.TestCase):
     def test_resize(self):
@@ -46,7 +45,6 @@ class VarSizeTest(unittest.TestCase):
         self.assertRaises(IndexError, array.__getitem__, 1)
         self.assertRaises(IndexError, array.__setitem__, -1, None)
         self.assertRaises(IndexError, array.__getitem__, -1)
-
 
 if __name__ == "__main__":
     unittest.main()

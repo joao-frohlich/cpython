@@ -192,7 +192,7 @@ write code that handles both IP versions correctly.  Address objects are
       ``is_private`` has value opposite to :attr:`is_global`, except for the shared address space
       (``100.64.0.0/10`` range) where they are both ``False``.
 
-      .. versionchanged:: 3.13
+      .. versionchanged:: 3.12.4
 
          Fixed some false positives and false negatives.
 
@@ -221,7 +221,7 @@ write code that handles both IP versions correctly.  Address objects are
 
       .. versionadded:: 3.4
 
-      .. versionchanged:: 3.13
+      .. versionchanged:: 3.12.4
 
          Fixed some false positives and false negatives, see :attr:`is_private` for details.
 
@@ -243,13 +243,6 @@ write code that handles both IP versions correctly.  Address objects are
 
       ``True`` if the address is reserved for link-local usage.  See
       :RFC:`3927`.
-
-   .. attribute:: ipv6_mapped
-
-      :class:`IPv4Address` object representing the IPv4-mapped IPv6 address. See :RFC:`4291`.
-
-      .. versionadded:: 3.13
-
 
 .. _iana-ipv4-special-registry: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
 .. _iana-ipv6-special-registry: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
@@ -504,7 +497,7 @@ dictionaries.
 
    4. A two-tuple of an address description and a netmask, where the address
       description is either a string, a 32-bits integer, a 4-bytes packed
-      integer, or an existing :class:`IPv4Address` object; and the netmask is either
+      integer, or an existing IPv4Address object; and the netmask is either
       an integer representing the prefix length (e.g. ``24``) or a string
       representing the prefix mask (e.g. ``255.255.255.0``).
 
@@ -725,7 +718,7 @@ dictionaries.
 
    4. A two-tuple of an address description and a netmask, where the address
       description is either a string, a 128-bits integer, a 16-bytes packed
-      integer, or an existing :class:`IPv6Address` object; and the netmask is an
+      integer, or an existing IPv6Address object; and the netmask is an
       integer representing the prefix length.
 
    An :exc:`AddressValueError` is raised if *address* is not a valid IPv6
@@ -781,7 +774,7 @@ dictionaries.
 
    .. attribute:: is_site_local
 
-      This attribute is true for the network as a whole if it is true
+      These attribute is true for the network as a whole if it is true
       for both the network address and the broadcast address.
 
 
@@ -990,7 +983,7 @@ The module also provides the following module level functions:
 .. function:: collapse_addresses(addresses)
 
    Return an iterator of the collapsed :class:`IPv4Network` or
-   :class:`IPv6Network` objects.  *addresses* is an :term:`iterable` of
+   :class:`IPv6Network` objects.  *addresses* is an iterator of
    :class:`IPv4Network` or :class:`IPv6Network` objects.  A :exc:`TypeError` is
    raised if *addresses* contains mixed version objects.
 

@@ -70,6 +70,7 @@ Python/thread_pthread.h
 Python/thread_pthread_stubs.h
 
 # only huge constants (safe but parsing is slow)
+Modules/_ssl_data.h
 Modules/_ssl_data_31.h
 Modules/_ssl_data_300.h
 Modules/_ssl_data_111.h
@@ -82,17 +83,9 @@ Objects/unicodetype_db.h
 Python/deepfreeze/*.c
 Python/frozen_modules/*.h
 Python/generated_cases.c.h
-Python/executor_cases.c.h
-Python/optimizer_cases.c.h
 
 # not actually source
 Python/bytecodes.c
-Python/optimizer_bytecodes.c
-
-# mimalloc
-Objects/mimalloc/*.c
-Include/internal/mimalloc/*.h
-Include/internal/mimalloc/mimalloc/*.h
 
 # @end=conf@
 ''')
@@ -115,7 +108,6 @@ glob	dirname
 *	.
 *	./Include
 *	./Include/internal
-*   ./Include/internal/mimalloc
 
 Modules/_decimal/**/*.c	Modules/_decimal/libmpdec
 Modules/_elementtree.c	Modules/expat
@@ -130,6 +122,7 @@ Objects/stringlib/*.h	Objects
 # possible system-installed headers, just in case
 Modules/_tkinter.c	/usr/include/tcl8.6
 Modules/_uuidmodule.c	/usr/include/uuid
+Modules/nismodule.c	/usr/include/tirpc
 Modules/tkappinit.c	/usr/include/tcl
 
 # @end=tsv@
@@ -167,7 +160,6 @@ Objects/stringlib/count.h	Objects/stringlib/fastsearch.h
 Objects/stringlib/find.h	Objects/stringlib/fastsearch.h
 Objects/stringlib/partition.h	Objects/stringlib/fastsearch.h
 Objects/stringlib/replace.h	Objects/stringlib/fastsearch.h
-Objects/stringlib/repr.h	Objects/stringlib/fastsearch.h
 Objects/stringlib/split.h	Objects/stringlib/fastsearch.h
 
 # @end=tsv@
@@ -322,8 +314,6 @@ MAX_SIZES = {
     _abs('Objects/stringlib/unicode_format.h'): (10_000, 400),
     _abs('Objects/typeobject.c'): (35_000, 200),
     _abs('Python/compile.c'): (20_000, 500),
-    _abs('Python/optimizer.c'): (100_000, 5_000),
-    _abs('Python/parking_lot.c'): (40_000, 1000),
     _abs('Python/pylifecycle.c'): (500_000, 5000),
     _abs('Python/pystate.c'): (500_000, 5000),
 
@@ -337,7 +327,7 @@ MAX_SIZES = {
     _abs('Python/stdlib_module_names.h'): (5_000, 500),
 
     # These large files are currently ignored (see above).
-    _abs('Modules/_ssl_data_31.h'): (80_000, 10_000),
+    _abs('Modules/_ssl_data.h'): (80_000, 10_000),
     _abs('Modules/_ssl_data_300.h'): (80_000, 10_000),
     _abs('Modules/_ssl_data_111.h'): (80_000, 10_000),
     _abs('Modules/cjkcodecs/mappings_*.h'): (160_000, 2_000),

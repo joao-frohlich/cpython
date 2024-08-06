@@ -2,11 +2,10 @@
 
 #include "Python.h"
 #include "pycore_call.h"          // _PyObject_VectorcallTstate()
-#include "pycore_ceval.h"         // _PyEval_GetBuiltin()
 #include "pycore_object.h"
 #include "pycore_pyerrors.h"
 #include "pycore_pystate.h"       // _PyThreadState_GET()
-
+#include "structmember.h"         // PyMemberDef
 
 #include "clinic/classobject.c.h"
 
@@ -153,9 +152,9 @@ static PyMethodDef method_methods[] = {
 #define MO_OFF(x) offsetof(PyMethodObject, x)
 
 static PyMemberDef method_memberlist[] = {
-    {"__func__", _Py_T_OBJECT, MO_OFF(im_func), Py_READONLY,
+    {"__func__", T_OBJECT, MO_OFF(im_func), READONLY,
      "the function (or other callable) implementing a method"},
-    {"__self__", _Py_T_OBJECT, MO_OFF(im_self), Py_READONLY,
+    {"__self__", T_OBJECT, MO_OFF(im_self), READONLY,
      "the instance to which a method is bound"},
     {NULL}      /* Sentinel */
 };
@@ -188,18 +187,15 @@ method_getattro(PyObject *obj, PyObject *name)
             if (PyType_Ready(tp) < 0)
                 return NULL;
         }
-        descr = _PyType_LookupRef(tp, name);
+        descr = _PyType_Lookup(tp, name);
     }
 
     if (descr != NULL) {
         descrgetfunc f = TP_DESCR_GET(Py_TYPE(descr));
-        if (f != NULL) {
-            PyObject *res = f(descr, obj, (PyObject *)Py_TYPE(obj));
-            Py_DECREF(descr);
-            return res;
-        }
+        if (f != NULL)
+            return f(descr, obj, (PyObject *)Py_TYPE(obj));
         else {
-            return descr;
+            return Py_NewRef(descr);
         }
     }
 
@@ -281,9 +277,9 @@ method_repr(PyMethodObject *a)
     PyObject *funcname, *result;
     const char *defname = "?";
 
-    if (PyObject_GetOptionalAttr(func, &_Py_ID(__qualname__), &funcname) < 0 ||
+    if (_PyObject_LookupAttr(func, &_Py_ID(__qualname__), &funcname) < 0 ||
         (funcname == NULL &&
-         PyObject_GetOptionalAttr(func, &_Py_ID(__name__), &funcname) < 0))
+         _PyObject_LookupAttr(func, &_Py_ID(__name__), &funcname) < 0))
     {
         return NULL;
     }
@@ -304,7 +300,7 @@ static Py_hash_t
 method_hash(PyMethodObject *a)
 {
     Py_hash_t x, y;
-    x = PyObject_GenericHash(a->im_self);
+    x = _Py_HashPointer(a->im_self);
     y = PyObject_Hash(a->im_func);
     if (y == -1)
         return -1;
@@ -320,13 +316,6 @@ method_traverse(PyMethodObject *im, visitproc visit, void *arg)
     Py_VISIT(im->im_func);
     Py_VISIT(im->im_self);
     return 0;
-}
-
-static PyObject *
-method_descr_get(PyObject *meth, PyObject *obj, PyObject *cls)
-{
-    Py_INCREF(meth);
-    return meth;
 }
 
 PyTypeObject PyMethod_Type = {
@@ -349,7 +338,6 @@ PyTypeObject PyMethod_Type = {
     .tp_methods = method_methods,
     .tp_members = method_memberlist,
     .tp_getset = method_getset,
-    .tp_descr_get = method_descr_get,
     .tp_new = method_new,
 };
 
@@ -386,7 +374,7 @@ PyInstanceMethod_Function(PyObject *im)
 #define IMO_OFF(x) offsetof(PyInstanceMethodObject, x)
 
 static PyMemberDef instancemethod_memberlist[] = {
-    {"__func__", _Py_T_OBJECT, IMO_OFF(func), Py_READONLY,
+    {"__func__", T_OBJECT, IMO_OFF(func), READONLY,
      "the function (or other callable) implementing a method"},
     {NULL}      /* Sentinel */
 };
@@ -413,17 +401,14 @@ instancemethod_getattro(PyObject *self, PyObject *name)
         if (PyType_Ready(tp) < 0)
             return NULL;
     }
-    descr = _PyType_LookupRef(tp, name);
+    descr = _PyType_Lookup(tp, name);
 
     if (descr != NULL) {
         descrgetfunc f = TP_DESCR_GET(Py_TYPE(descr));
-        if (f != NULL) {
-            PyObject *res = f(descr, self, (PyObject *)Py_TYPE(self));
-            Py_DECREF(descr);
-            return res;
-        }
+        if (f != NULL)
+            return f(descr, self, (PyObject *)Py_TYPE(self));
         else {
-            return descr;
+            return Py_NewRef(descr);
         }
     }
 
@@ -496,7 +481,7 @@ instancemethod_repr(PyObject *self)
         return NULL;
     }
 
-    if (PyObject_GetOptionalAttr(func, &_Py_ID(__name__), &funcname) < 0) {
+    if (_PyObject_LookupAttr(func, &_Py_ID(__name__), &funcname) < 0) {
         return NULL;
     }
     if (funcname != NULL && !PyUnicode_Check(funcname)) {

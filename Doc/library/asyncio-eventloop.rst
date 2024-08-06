@@ -671,7 +671,6 @@ Creating network servers
                         flags=socket.AI_PASSIVE, \
                         sock=None, backlog=100, ssl=None, \
                         reuse_address=None, reuse_port=None, \
-                        keep_alive=None, \
                         ssl_handshake_timeout=None, \
                         ssl_shutdown_timeout=None, \
                         start_serving=True)
@@ -736,13 +735,6 @@ Creating network servers
      set this flag when being created. This option is not supported on
      Windows.
 
-   * *keep_alive* set to ``True`` keeps connections active by enabling the
-     periodic transmission of messages.
-
-   .. versionchanged:: 3.13
-
-      Added the *keep_alive* parameter.
-
    * *ssl_handshake_timeout* is (for a TLS server) the time in seconds to wait
      for the TLS handshake to complete before aborting the connection.
      ``60.0`` seconds if ``None`` (default).
@@ -786,7 +778,7 @@ Creating network servers
                           *, sock=None, backlog=100, ssl=None, \
                           ssl_handshake_timeout=None, \
                           ssl_shutdown_timeout=None, \
-                          start_serving=True, cleanup_socket=True)
+                          start_serving=True)
 
    Similar to :meth:`loop.create_server` but works with the
    :py:const:`~socket.AF_UNIX` socket family.
@@ -795,10 +787,6 @@ Creating network servers
    unless a *sock* argument is provided.  Abstract Unix sockets,
    :class:`str`, :class:`bytes`, and :class:`~pathlib.Path` paths
    are supported.
-
-   If *cleanup_socket* is true then the Unix socket will automatically
-   be removed from the filesystem when the server is closed, unless the
-   socket has been replaced after the server has been created.
 
    See the documentation of the :meth:`loop.create_server` method
    for information about arguments to this method.
@@ -813,10 +801,6 @@ Creating network servers
    .. versionchanged:: 3.11
 
       Added the *ssl_shutdown_timeout* parameter.
-
-   .. versionchanged:: 3.13
-
-      Added the *cleanup_socket* parameter.
 
 
 .. coroutinemethod:: loop.connect_accepted_socket(protocol_factory, \
@@ -1155,14 +1139,6 @@ DNS
 
    Asynchronous version of :meth:`socket.getnameinfo`.
 
-.. note::
-   Both *getaddrinfo* and *getnameinfo* internally utilize their synchronous
-   versions through the loop's default thread pool executor.
-   When this executor is saturated, these methods may experience delays,
-   which higher-level networking libraries may report as increased timeouts.
-   To mitigate this, consider using a custom executor for other user tasks,
-   or setting a default executor with a larger number of workers.
-
 .. versionchanged:: 3.7
    Both *getaddrinfo* and *getnameinfo* methods were always documented
    to return a coroutine, but prior to Python 3.7 they were, in fact,
@@ -1262,9 +1238,6 @@ Executing code in thread or process pools
 
    The *executor* argument should be an :class:`concurrent.futures.Executor`
    instance. The default executor is used if *executor* is ``None``.
-   The default executor can be set by :meth:`loop.set_default_executor`,
-   otherwise, a :class:`concurrent.futures.ThreadPoolExecutor` will be
-   lazy-initialized and used by :func:`run_in_executor` if needed.
 
    Example::
 
@@ -1652,31 +1625,6 @@ Do not instantiate the :class:`Server` class directly.
       coroutine to wait until the server is closed (and no more
       connections are active).
 
-   .. method:: close_clients()
-
-      Close all existing incoming client connections.
-
-      Calls :meth:`~asyncio.BaseTransport.close` on all associated
-      transports.
-
-      :meth:`close` should be called before :meth:`close_clients` when
-      closing the server to avoid races with new clients connecting.
-
-      .. versionadded:: 3.13
-
-   .. method:: abort_clients()
-
-      Close all existing incoming client connections immediately,
-      without waiting for pending operations to complete.
-
-      Calls :meth:`~asyncio.WriteTransport.abort` on all associated
-      transports.
-
-      :meth:`close` should be called before :meth:`abort_clients` when
-      closing the server to avoid races with new clients connecting.
-
-      .. versionadded:: 3.13
-
    .. method:: get_loop()
 
       Return the event loop associated with the server object.
@@ -1756,13 +1704,13 @@ Event Loop Implementations
 asyncio ships with two different event loop implementations:
 :class:`SelectorEventLoop` and :class:`ProactorEventLoop`.
 
-By default asyncio is configured to use :class:`EventLoop`.
+By default asyncio is configured to use :class:`SelectorEventLoop`
+on Unix and :class:`ProactorEventLoop` on Windows.
 
 
 .. class:: SelectorEventLoop
 
-   A subclass of :class:`AbstractEventLoop` based on the
-   :mod:`selectors` module.
+   An event loop based on the :mod:`selectors` module.
 
    Uses the most efficient *selector* available for the given
    platform.  It is also possible to manually configure the
@@ -1784,7 +1732,7 @@ By default asyncio is configured to use :class:`EventLoop`.
 
 .. class:: ProactorEventLoop
 
-   A subclass of :class:`AbstractEventLoop` for Windows that uses "I/O Completion Ports" (IOCP).
+   An event loop for Windows that uses "I/O Completion Ports" (IOCP).
 
    .. availability:: Windows.
 
@@ -1793,14 +1741,6 @@ By default asyncio is configured to use :class:`EventLoop`.
       `MSDN documentation on I/O Completion Ports
       <https://docs.microsoft.com/en-ca/windows/desktop/FileIO/i-o-completion-ports>`_.
 
-.. class:: EventLoop
-
-    An alias to the most efficient available subclass of :class:`AbstractEventLoop` for the given
-    platform.
-
-    It is an alias to :class:`SelectorEventLoop` on Unix and :class:`ProactorEventLoop` on Windows.
-
-   .. versionadded:: 3.13
 
 .. class:: AbstractEventLoop
 

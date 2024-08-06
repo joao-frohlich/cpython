@@ -109,8 +109,7 @@ req_template = """
 
     subjectKeyIdentifier=hash
     authorityKeyIdentifier=keyid:always,issuer
-    basicConstraints = critical, CA:true
-    keyUsage = critical, digitalSignature, keyCertSign, cRLSign
+    basicConstraints = CA:true
 
     """
 

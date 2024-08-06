@@ -1,6 +1,4 @@
-// clinic/exceptions.c.h uses internal pycore_modsupport.h API
-#define PYTESTCAPI_NEED_INTERNAL_API
-
+#define PY_SSIZE_T_CLEAN
 #include "parts.h"
 #include "util.h"
 #include "clinic/exceptions.c.h"
@@ -34,11 +32,11 @@ err_restore(PyObject *self, PyObject *args) {
         case 3:
             traceback = PyTuple_GetItem(args, 2);
             Py_INCREF(traceback);
-            _Py_FALLTHROUGH;
+            /* fall through */
         case 2:
             value = PyTuple_GetItem(args, 1);
             Py_INCREF(value);
-            _Py_FALLTHROUGH;
+            /* fall through */
         case 1:
             type = PyTuple_GetItem(args, 0);
             Py_INCREF(type);
@@ -285,6 +283,36 @@ _testcapi_set_exception(PyObject *module, PyObject *new_exc)
 }
 
 /*[clinic input]
+_testcapi.write_unraisable_exc
+    exception as exc: object
+    err_msg: object
+    obj: object
+    /
+[clinic start generated code]*/
+
+static PyObject *
+_testcapi_write_unraisable_exc_impl(PyObject *module, PyObject *exc,
+                                    PyObject *err_msg, PyObject *obj)
+/*[clinic end generated code: output=39827c5e0a8c2092 input=582498da5b2ee6cf]*/
+{
+
+    const char *err_msg_utf8;
+    if (err_msg != Py_None) {
+        err_msg_utf8 = PyUnicode_AsUTF8(err_msg);
+        if (err_msg_utf8 == NULL) {
+            return NULL;
+        }
+    }
+    else {
+        err_msg_utf8 = NULL;
+    }
+
+    PyErr_SetObject((PyObject *)Py_TYPE(exc), exc);
+    _PyErr_WriteUnraisableMsg(err_msg_utf8, obj);
+    Py_RETURN_NONE;
+}
+
+/*[clinic input]
 _testcapi.traceback_print
     traceback: object
     file: object
@@ -316,30 +344,6 @@ err_writeunraisable(PyObject *Py_UNUSED(module), PyObject *args)
         PyErr_SetRaisedException(Py_NewRef(exc));
     }
     PyErr_WriteUnraisable(obj);
-    Py_RETURN_NONE;
-}
-
-static PyObject *
-err_formatunraisable(PyObject *Py_UNUSED(module), PyObject *args)
-{
-    PyObject *exc;
-    const char *fmt;
-    Py_ssize_t fmtlen;
-    PyObject *objs[10] = {NULL};
-
-    if (!PyArg_ParseTuple(args, "Oz#|OOOOOOOOOO", &exc, &fmt, &fmtlen,
-            &objs[0], &objs[1], &objs[2], &objs[3], &objs[4],
-            &objs[5], &objs[6], &objs[7], &objs[8], &objs[9]))
-    {
-        return NULL;
-    }
-    NULLABLE(exc);
-    if (exc) {
-        PyErr_SetRaisedException(Py_NewRef(exc));
-    }
-    PyErr_FormatUnraisable(fmt,
-            objs[0], objs[1], objs[2], objs[3], objs[4],
-            objs[5], objs[6], objs[7], objs[8], objs[9]);
     Py_RETURN_NONE;
 }
 
@@ -388,7 +392,6 @@ static PyTypeObject PyRecursingInfinitelyError_Type = {
 static PyMethodDef test_methods[] = {
     {"err_restore",             err_restore,                     METH_VARARGS},
     {"err_writeunraisable",     err_writeunraisable,             METH_VARARGS},
-    {"err_formatunraisable",    err_formatunraisable,            METH_VARARGS},
     _TESTCAPI_ERR_SET_RAISED_METHODDEF
     _TESTCAPI_EXCEPTION_PRINT_METHODDEF
     _TESTCAPI_FATAL_ERROR_METHODDEF
@@ -402,6 +405,7 @@ static PyMethodDef test_methods[] = {
     _TESTCAPI_SET_EXC_INFO_METHODDEF
     _TESTCAPI_SET_EXCEPTION_METHODDEF
     _TESTCAPI_TRACEBACK_PRINT_METHODDEF
+    _TESTCAPI_WRITE_UNRAISABLE_EXC_METHODDEF
     _TESTCAPI_UNSTABLE_EXC_PREP_RERAISE_STAR_METHODDEF
     {NULL},
 };

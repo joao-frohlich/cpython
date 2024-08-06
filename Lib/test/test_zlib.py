@@ -3,6 +3,7 @@ from test import support
 from test.support import import_helper
 import binascii
 import copy
+import os
 import pickle
 import random
 import sys

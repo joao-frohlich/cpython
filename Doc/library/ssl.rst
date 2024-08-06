@@ -43,10 +43,8 @@ This module provides a class, :class:`ssl.SSLSocket`, which is derived from the
 :class:`socket.socket` type, and provides a socket-like wrapper that also
 encrypts and decrypts the data going over the socket with SSL.  It supports
 additional methods such as :meth:`getpeercert`, which retrieves the
-certificate of the other side of the connection, :meth:`cipher`, which
-retrieves the cipher being used for the secure connection or
-:meth:`get_verified_chain`, :meth:`get_unverified_chain` which retrieves
-certificate chain.
+certificate of the other side of the connection, and :meth:`cipher`, which
+retrieves the cipher being used for the secure connection.
 
 For more sophisticated applications, the :class:`ssl.SSLContext` class
 helps manage settings and certificates, which can then be inherited
@@ -151,12 +149,6 @@ purposes.
    variable :envvar:`SSLKEYLOGFILE` is set, :func:`create_default_context`
    enables key logging.
 
-   The default settings for this context include
-   :data:`VERIFY_X509_PARTIAL_CHAIN` and :data:`VERIFY_X509_STRICT`.
-   These make the underlying OpenSSL implementation behave more like
-   a conforming implementation of :rfc:`5280`, in exchange for a small
-   amount of incompatibility with older X.509 certificates.
-
    .. note::
       The protocol, options, cipher and other settings may change to more
       restrictive values anytime without prior deprecation.  The values
@@ -177,15 +169,6 @@ purposes.
 
          ctx = ssl.create_default_context(Purpose.CLIENT_AUTH)
          ctx.options &= ~ssl.OP_NO_SSLv3
-
-   .. note::
-      This context enables :data:`VERIFY_X509_STRICT` by default, which
-      may reject pre-:rfc:`5280` or malformed certificates that the
-      underlying OpenSSL implementation otherwise would accept. While disabling
-      this is not recommended, you can do so using::
-
-         ctx = ssl.create_default_context()
-         ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT
 
    .. versionadded:: 3.4
 
@@ -208,11 +191,6 @@ purposes.
       The context now uses :data:`PROTOCOL_TLS_CLIENT` or
       :data:`PROTOCOL_TLS_SERVER` protocol instead of generic
       :data:`PROTOCOL_TLS`.
-
-   .. versionchanged:: 3.13
-
-      The context now uses :data:`VERIFY_X509_PARTIAL_CHAIN` and
-      :data:`VERIFY_X509_STRICT` in its default verify flags.
 
 
 Exceptions
@@ -928,12 +906,6 @@ Constants
 
    .. versionadded:: 3.7
 
-.. data:: HAS_PSK
-
-   Whether the OpenSSL library has built-in support for TLS-PSK.
-
-   .. versionadded:: 3.13
-
 .. data:: CHANNEL_BINDING_TYPES
 
    List of supported TLS channel binding types.  Strings in this list
@@ -1238,22 +1210,6 @@ SSL sockets also have the following additional methods and attributes:
    .. versionchanged:: 3.9
       IPv6 address strings no longer have a trailing new line.
 
-.. method:: SSLSocket.get_verified_chain()
-
-   Returns verified certificate chain provided by the other
-   end of the SSL channel as a list of DER-encoded bytes.
-   If certificate verification was disabled method acts the same as
-   :meth:`~SSLSocket.get_unverified_chain`.
-
-   .. versionadded:: 3.13
-
-.. method:: SSLSocket.get_unverified_chain()
-
-   Returns raw certificate chain provided by the other
-   end of the SSL channel as a list of DER-encoded bytes.
-
-   .. versionadded:: 3.13
-
 .. method:: SSLSocket.cipher()
 
    Returns a three-value tuple containing the name of the cipher being used, the
@@ -1472,19 +1428,6 @@ to speed up repeated connections from the same clients.
       :data:`PROTOCOL_TLS`, :data:`PROTOCOL_TLS_CLIENT`, and
       :data:`PROTOCOL_TLS_SERVER` use TLS 1.2 as minimum TLS version.
 
-   .. note::
-
-      :class:`SSLContext` only supports limited mutation once it has been used
-      by a connection. Adding new certificates to the internal trust store is
-      allowed, but changing ciphers, verification settings, or mTLS
-      certificates may result in surprising behavior.
-
-   .. note::
-
-      :class:`SSLContext` is designed to be shared and used by multiple
-      connections.
-      Thus, it is thread-safe as long as it is not reconfigured after being
-      used by a connection.
 
 :class:`SSLContext` objects have the following methods and attributes:
 
@@ -1713,9 +1656,8 @@ to speed up repeated connections from the same clients.
    Due to the early negotiation phase of the TLS connection, only limited
    methods and attributes are usable like
    :meth:`SSLSocket.selected_alpn_protocol` and :attr:`SSLSocket.context`.
-   The :meth:`SSLSocket.getpeercert`, :meth:`SSLSocket.get_verified_chain`,
-   :meth:`SSLSocket.get_unverified_chain` :meth:`SSLSocket.cipher`
-   and :meth:`SSLSocket.compression` methods require that
+   The :meth:`SSLSocket.getpeercert`,
+   :meth:`SSLSocket.cipher` and :meth:`SSLSocket.compression` methods require that
    the TLS connection has progressed beyond the TLS Client Hello and therefore
    will not return meaningful values nor can they be called safely.
 
@@ -1742,7 +1684,7 @@ to speed up repeated connections from the same clients.
    IDN-encoded internationalized domain name, the *server_name_callback*
    receives a decoded U-label (``"pythön.org"``).
 
-   If there is a decoding error on the server name, the TLS connection will
+   If there is an decoding error on the server name, the TLS connection will
    terminate with an :const:`ALERT_DESCRIPTION_INTERNAL_ERROR` fatal TLS
    alert message to the client.
 
@@ -2047,100 +1989,6 @@ to speed up repeated connections from the same clients.
 
          >>> ssl.create_default_context().verify_mode  # doctest: +SKIP
          <VerifyMode.CERT_REQUIRED: 2>
-
-.. method:: SSLContext.set_psk_client_callback(callback)
-
-   Enables TLS-PSK (pre-shared key) authentication on a client-side connection.
-
-   In general, certificate based authentication should be preferred over this method.
-
-   The parameter ``callback`` is a callable object with the signature:
-   ``def callback(hint: str | None) -> tuple[str | None, bytes]``.
-   The ``hint`` parameter is an optional identity hint sent by the server.
-   The return value is a tuple in the form (client-identity, psk).
-   Client-identity is an optional string which may be used by the server to
-   select a corresponding PSK for the client. The string must be less than or
-   equal to ``256`` octets when UTF-8 encoded. PSK is a
-   :term:`bytes-like object` representing the pre-shared key. Return a zero
-   length PSK to reject the connection.
-
-   Setting ``callback`` to :const:`None` removes any existing callback.
-
-   .. note::
-      When using TLS 1.3:
-
-      - the ``hint`` parameter is always :const:`None`.
-      - client-identity must be a non-empty string.
-
-   Example usage::
-
-      context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-      context.check_hostname = False
-      context.verify_mode = ssl.CERT_NONE
-      context.maximum_version = ssl.TLSVersion.TLSv1_2
-      context.set_ciphers('PSK')
-
-      # A simple lambda:
-      psk = bytes.fromhex('c0ffee')
-      context.set_psk_client_callback(lambda hint: (None, psk))
-
-      # A table using the hint from the server:
-      psk_table = { 'ServerId_1': bytes.fromhex('c0ffee'),
-                    'ServerId_2': bytes.fromhex('facade')
-      }
-      def callback(hint):
-          return 'ClientId_1', psk_table.get(hint, b'')
-      context.set_psk_client_callback(callback)
-
-   This method will raise :exc:`NotImplementedError` if :data:`HAS_PSK` is
-   ``False``.
-
-   .. versionadded:: 3.13
-
-.. method:: SSLContext.set_psk_server_callback(callback, identity_hint=None)
-
-   Enables TLS-PSK (pre-shared key) authentication on a server-side connection.
-
-   In general, certificate based authentication should be preferred over this method.
-
-   The parameter ``callback`` is a callable object with the signature:
-   ``def callback(identity: str | None) -> bytes``.
-   The ``identity`` parameter is an optional identity sent by the client which can
-   be used to select a corresponding PSK.
-   The return value is a :term:`bytes-like object` representing the pre-shared key.
-   Return a zero length PSK to reject the connection.
-
-   Setting ``callback`` to :const:`None` removes any existing callback.
-
-   The parameter ``identity_hint`` is an optional identity hint string sent to
-   the client. The string must be less than or equal to ``256`` octets when
-   UTF-8 encoded.
-
-   .. note::
-      When using TLS 1.3 the ``identity_hint`` parameter is not sent to the client.
-
-   Example usage::
-
-      context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-      context.maximum_version = ssl.TLSVersion.TLSv1_2
-      context.set_ciphers('PSK')
-
-      # A simple lambda:
-      psk = bytes.fromhex('c0ffee')
-      context.set_psk_server_callback(lambda identity: psk)
-
-      # A table using the identity of the client:
-      psk_table = { 'ClientId_1': bytes.fromhex('c0ffee'),
-                    'ClientId_2': bytes.fromhex('facade')
-      }
-      def callback(identity):
-          return psk_table.get(identity, b'')
-      context.set_psk_server_callback(callback, 'ServerId_1')
-
-   This method will raise :exc:`NotImplementedError` if :data:`HAS_PSK` is
-   ``False``.
-
-   .. versionadded:: 3.13
 
 .. index:: single: certificates
 
@@ -2569,8 +2417,6 @@ provided.
    - :meth:`~SSLSocket.read`
    - :meth:`~SSLSocket.write`
    - :meth:`~SSLSocket.getpeercert`
-   - :meth:`~SSLSocket.get_verified_chain`
-   - :meth:`~SSLSocket.get_unverified_chain`
    - :meth:`~SSLSocket.selected_alpn_protocol`
    - :meth:`~SSLSocket.selected_npn_protocol`
    - :meth:`~SSLSocket.cipher`
@@ -2710,7 +2556,7 @@ Verifying certificates
 
 When calling the :class:`SSLContext` constructor directly,
 :const:`CERT_NONE` is the default.  Since it does not authenticate the other
-peer, it can be insecure, especially in client mode where most of the time you
+peer, it can be insecure, especially in client mode where most of time you
 would like to ensure the authenticity of the server you're talking to.
 Therefore, when in client mode, it is highly recommended to use
 :const:`CERT_REQUIRED`.  However, it is in itself not sufficient; you also

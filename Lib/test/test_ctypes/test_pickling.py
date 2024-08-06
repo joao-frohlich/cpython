@@ -1,14 +1,8 @@
-import pickle
 import unittest
-from ctypes import (CDLL, Structure, CFUNCTYPE, pointer,
-                    c_void_p, c_char_p, c_wchar_p,
-                    c_char, c_wchar, c_int, c_double)
-from test.support import import_helper
-_ctypes_test = import_helper.import_module("_ctypes_test")
-
-
+import pickle
+from ctypes import *
+import _ctypes_test
 dll = CDLL(_ctypes_test.__file__)
-
 
 class X(Structure):
     _fields_ = [("a", c_int), ("b", c_double)]
@@ -17,10 +11,8 @@ class X(Structure):
         X.init_called += 1
         self.x = 42
 
-
 class Y(X):
     _fields_ = [("str", c_char_p)]
-
 
 class PickleTest:
     def dumps(self, item):
@@ -79,13 +71,11 @@ class PickleTest:
         # Issue 5049
         self.dumps(c_wchar("x"))
 
-
 for proto in range(pickle.HIGHEST_PROTOCOL + 1):
     name = 'PickleTest_%s' % proto
     globals()[name] = type(name,
                            (PickleTest, unittest.TestCase),
                            {'proto': proto})
-
 
 if __name__ == "__main__":
     unittest.main()

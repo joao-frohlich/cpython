@@ -17,7 +17,6 @@
 #  define Py_BUILD_CORE_MODULE 1
 #endif
 
-#include <stdbool.h>
 #include "Python.h"
 #include "pycore_strhex.h"       // _Py_strhex()
 
@@ -43,8 +42,7 @@ typedef struct {
     PyObject_HEAD
     blake2b_param    param;
     blake2b_state    state;
-    bool use_mutex;
-    PyMutex mutex;
+    PyThread_type_lock lock;
 } BLAKE2bObject;
 
 #include "clinic/blake2b_impl.c.h"
@@ -61,11 +59,9 @@ new_BLAKE2bObject(PyTypeObject *type)
 {
     BLAKE2bObject *self;
     self = (BLAKE2bObject *)type->tp_alloc(type, 0);
-    if (self == NULL) {
-        return NULL;
+    if (self != NULL) {
+        self->lock = NULL;
     }
-    HASHLIB_INIT_MUTEX(self);
-
     return self;
 }
 
@@ -282,19 +278,18 @@ _blake2_blake2b_update(BLAKE2bObject *self, PyObject *data)
 
     GET_BUFFER_VIEW_OR_ERROUT(data, &buf);
 
-    if (!self->use_mutex && buf.len >= HASHLIB_GIL_MINSIZE) {
-        self->use_mutex = true;
-    }
-    if (self->use_mutex) {
-        Py_BEGIN_ALLOW_THREADS
-        PyMutex_Lock(&self->mutex);
-        blake2b_update(&self->state, buf.buf, buf.len);
-        PyMutex_Unlock(&self->mutex);
-        Py_END_ALLOW_THREADS
+    if (self->lock == NULL && buf.len >= HASHLIB_GIL_MINSIZE)
+        self->lock = PyThread_allocate_lock();
+
+    if (self->lock != NULL) {
+       Py_BEGIN_ALLOW_THREADS
+       PyThread_acquire_lock(self->lock, 1);
+       blake2b_update(&self->state, buf.buf, buf.len);
+       PyThread_release_lock(self->lock);
+       Py_END_ALLOW_THREADS
     } else {
         blake2b_update(&self->state, buf.buf, buf.len);
     }
-
     PyBuffer_Release(&buf);
 
     Py_RETURN_NONE;
@@ -394,6 +389,10 @@ py_blake2b_dealloc(PyObject *self)
     /* Try not to leave state in memory. */
     secure_zero_memory(&obj->param, sizeof(obj->param));
     secure_zero_memory(&obj->state, sizeof(obj->state));
+    if (obj->lock) {
+        PyThread_free_lock(obj->lock);
+        obj->lock = NULL;
+    }
 
     PyTypeObject *type = Py_TYPE(self);
     PyObject_Free(self);

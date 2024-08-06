@@ -279,9 +279,7 @@ class Server(events.AbstractServer):
                  ssl_handshake_timeout, ssl_shutdown_timeout=None):
         self._loop = loop
         self._sockets = sockets
-        # Weak references so we don't break Transport's ability to
-        # detect abandoned transports
-        self._clients = weakref.WeakSet()
+        self._active_count = 0
         self._waiters = []
         self._protocol_factory = protocol_factory
         self._backlog = backlog
@@ -294,13 +292,14 @@ class Server(events.AbstractServer):
     def __repr__(self):
         return f'<{self.__class__.__name__} sockets={self.sockets!r}>'
 
-    def _attach(self, transport):
+    def _attach(self):
         assert self._sockets is not None
-        self._clients.add(transport)
+        self._active_count += 1
 
-    def _detach(self, transport):
-        self._clients.discard(transport)
-        if len(self._clients) == 0 and self._sockets is None:
+    def _detach(self):
+        assert self._active_count > 0
+        self._active_count -= 1
+        if self._active_count == 0 and self._sockets is None:
             self._wakeup()
 
     def _wakeup(self):
@@ -349,16 +348,8 @@ class Server(events.AbstractServer):
             self._serving_forever_fut.cancel()
             self._serving_forever_fut = None
 
-        if len(self._clients) == 0:
+        if self._active_count == 0:
             self._wakeup()
-
-    def close_clients(self):
-        for transport in self._clients.copy():
-            transport.close()
-
-    def abort_clients(self):
-        for transport in self._clients.copy():
-            transport.abort()
 
     async def start_serving(self):
         self._start_serving()
@@ -431,8 +422,6 @@ class BaseEventLoop(events.AbstractEventLoop):
         self._clock_resolution = time.get_clock_info('monotonic').resolution
         self._exception_handler = None
         self.set_debug(coroutines._is_debug_mode())
-        # The preserved state of async generator hooks.
-        self._old_agen_hooks = None
         # In debug mode, if the execution of a callback or a step of a task
         # exceed this duration in seconds, the slow callback/task is logged.
         self.slow_callback_duration = 0.1
@@ -476,7 +465,7 @@ class BaseEventLoop(events.AbstractEventLoop):
             else:
                 task = self._task_factory(self, coro, context=context)
 
-            task.set_name(name)
+            tasks._set_task_name(task, name)
 
         return task
 
@@ -635,52 +624,29 @@ class BaseEventLoop(events.AbstractEventLoop):
             raise RuntimeError(
                 'Cannot run the event loop while another loop is running')
 
-    def _run_forever_setup(self):
-        """Prepare the run loop to process events.
-
-        This method exists so that custom custom event loop subclasses (e.g., event loops
-        that integrate a GUI event loop with Python's event loop) have access to all the
-        loop setup logic.
-        """
+    def run_forever(self):
+        """Run until stop() is called."""
         self._check_closed()
         self._check_running()
         self._set_coroutine_origin_tracking(self._debug)
 
-        self._old_agen_hooks = sys.get_asyncgen_hooks()
-        self._thread_id = threading.get_ident()
-        sys.set_asyncgen_hooks(
-            firstiter=self._asyncgen_firstiter_hook,
-            finalizer=self._asyncgen_finalizer_hook
-        )
-
-        events._set_running_loop(self)
-
-    def _run_forever_cleanup(self):
-        """Clean up after an event loop finishes the looping over events.
-
-        This method exists so that custom custom event loop subclasses (e.g., event loops
-        that integrate a GUI event loop with Python's event loop) have access to all the
-        loop cleanup logic.
-        """
-        self._stopping = False
-        self._thread_id = None
-        events._set_running_loop(None)
-        self._set_coroutine_origin_tracking(False)
-        # Restore any pre-existing async generator hooks.
-        if self._old_agen_hooks is not None:
-            sys.set_asyncgen_hooks(*self._old_agen_hooks)
-            self._old_agen_hooks = None
-
-    def run_forever(self):
-        """Run until stop() is called."""
+        old_agen_hooks = sys.get_asyncgen_hooks()
         try:
-            self._run_forever_setup()
+            self._thread_id = threading.get_ident()
+            sys.set_asyncgen_hooks(firstiter=self._asyncgen_firstiter_hook,
+                                   finalizer=self._asyncgen_finalizer_hook)
+
+            events._set_running_loop(self)
             while True:
                 self._run_once()
                 if self._stopping:
                     break
         finally:
-            self._run_forever_cleanup()
+            self._stopping = False
+            self._thread_id = None
+            events._set_running_loop(None)
+            self._set_coroutine_origin_tracking(False)
+            sys.set_asyncgen_hooks(*old_agen_hooks)
 
     def run_until_complete(self, future):
         """Run until the Future is done.
@@ -1028,7 +994,8 @@ class BaseEventLoop(events.AbstractEventLoop):
                     except OSError as exc:
                         msg = (
                             f'error while attempting to bind on '
-                            f'address {laddr!r}: {str(exc).lower()}'
+                            f'address {laddr!r}: '
+                            f'{exc.strerror.lower()}'
                         )
                         exc = OSError(exc.errno, msg)
                         my_exceptions.append(exc)
@@ -1507,7 +1474,6 @@ class BaseEventLoop(events.AbstractEventLoop):
             ssl=None,
             reuse_address=None,
             reuse_port=None,
-            keep_alive=None,
             ssl_handshake_timeout=None,
             ssl_shutdown_timeout=None,
             start_serving=True):
@@ -1581,9 +1547,6 @@ class BaseEventLoop(events.AbstractEventLoop):
                             socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
                     if reuse_port:
                         _set_reuseport(sock)
-                    if keep_alive:
-                        sock.setsockopt(
-                            socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
                     # Disable IPv4/IPv6 dual stack support (enabled by
                     # default on Linux) which makes a single socket
                     # listen on both address families.
@@ -1598,7 +1561,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                     except OSError as err:
                         msg = ('error while attempting '
                                'to bind on address %r: %s'
-                               % (sa, str(err).lower()))
+                               % (sa, err.strerror.lower()))
                         if err.errno == errno.EADDRNOTAVAIL:
                             # Assume the family is not enabled (bpo-30945)
                             sockets.pop()
@@ -1980,11 +1943,8 @@ class BaseEventLoop(events.AbstractEventLoop):
             timeout = 0
         elif self._scheduled:
             # Compute the desired timeout.
-            timeout = self._scheduled[0]._when - self.time()
-            if timeout > MAXIMUM_SELECT_TIMEOUT:
-                timeout = MAXIMUM_SELECT_TIMEOUT
-            elif timeout < 0:
-                timeout = 0
+            when = self._scheduled[0]._when
+            timeout = min(max(0, when - self.time()), MAXIMUM_SELECT_TIMEOUT)
 
         event_list = self._selector.select(timeout)
         self._process_events(event_list)

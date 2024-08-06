@@ -2,12 +2,10 @@
 
 #include "Python.h"
 #include "pycore_abstract.h"      // _PyIndex_Check()
-#include "pycore_ceval.h"         // _PyEval_GetBuiltin()
-#include "pycore_long.h"          // _PyLong_GetZero()
-#include "pycore_modsupport.h"    // _PyArg_NoKwnames()
 #include "pycore_range.h"
+#include "pycore_long.h"          // _PyLong_GetZero()
 #include "pycore_tuple.h"         // _PyTuple_ITEMS()
-
+#include "structmember.h"         // PyMemberDef
 
 /* Support objects whose length is > PY_SSIZE_T_MAX.
 
@@ -83,7 +81,7 @@ range_from_array(PyTypeObject *type, PyObject *const *args, Py_ssize_t num_args)
     switch (num_args) {
         case 3:
             step = args[2];
-            _Py_FALLTHROUGH;
+            /* fallthrough */
         case 2:
             /* Convert borrowed refs to owned refs */
             start = PyNumber_Index(args[0]);
@@ -107,8 +105,8 @@ range_from_array(PyTypeObject *type, PyObject *const *args, Py_ssize_t num_args)
             if (!stop) {
                 return NULL;
             }
-            start = _PyLong_GetZero();
-            step = _PyLong_GetOne();
+            start = Py_NewRef(_PyLong_GetZero());
+            step = Py_NewRef(_PyLong_GetOne());
             break;
         case 0:
             PyErr_SetString(PyExc_TypeError,
@@ -655,7 +653,7 @@ range_index(rangeobject *r, PyObject *ob)
     }
 
     /* object is not in the range */
-    PyErr_SetString(PyExc_ValueError, "range.index(x): x not in range");
+    PyErr_Format(PyExc_ValueError, "%R is not in range", ob);
     return NULL;
 }
 
@@ -751,16 +749,16 @@ PyDoc_STRVAR(index_doc,
 
 static PyMethodDef range_methods[] = {
     {"__reversed__",    range_reverse,              METH_NOARGS, reverse_doc},
-    {"__reduce__",      (PyCFunction)range_reduce,  METH_NOARGS},
+    {"__reduce__",      (PyCFunction)range_reduce,  METH_VARARGS},
     {"count",           (PyCFunction)range_count,   METH_O,      count_doc},
     {"index",           (PyCFunction)range_index,   METH_O,      index_doc},
     {NULL,              NULL}           /* sentinel */
 };
 
 static PyMemberDef range_members[] = {
-    {"start",   Py_T_OBJECT_EX,    offsetof(rangeobject, start),   Py_READONLY},
-    {"stop",    Py_T_OBJECT_EX,    offsetof(rangeobject, stop),    Py_READONLY},
-    {"step",    Py_T_OBJECT_EX,    offsetof(rangeobject, step),    Py_READONLY},
+    {"start",   T_OBJECT_EX,    offsetof(rangeobject, start),   READONLY},
+    {"stop",    T_OBJECT_EX,    offsetof(rangeobject, stop),    READONLY},
+    {"step",    T_OBJECT_EX,    offsetof(rangeobject, step),    READONLY},
     {0}
 };
 
@@ -899,7 +897,7 @@ PyTypeObject PyRangeIter_Type = {
         sizeof(_PyRangeIterObject),             /* tp_basicsize */
         0,                                      /* tp_itemsize */
         /* methods */
-        (destructor)PyObject_Free,              /* tp_dealloc */
+        (destructor)PyObject_Del,               /* tp_dealloc */
         0,                                      /* tp_vectorcall_offset */
         0,                                      /* tp_getattr */
         0,                                      /* tp_setattr */

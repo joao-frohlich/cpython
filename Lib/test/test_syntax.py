@@ -59,18 +59,6 @@ SyntaxError: cannot assign to __debug__
 Traceback (most recent call last):
 SyntaxError: cannot assign to __debug__
 
->>> def __debug__(): pass
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
->>> async def __debug__(): pass
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
->>> class __debug__: pass
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
 >>> del __debug__
 Traceback (most recent call last):
 SyntaxError: cannot delete __debug__
@@ -270,36 +258,6 @@ SyntaxError: expected ':'
 >>> p = p =
 Traceback (most recent call last):
 SyntaxError: invalid syntax
-
-Comprehensions without 'in' keyword:
-
->>> [x for x if range(1)]
-Traceback (most recent call last):
-SyntaxError: 'in' expected after for-loop variables
-
->>> tuple(x for x if range(1))
-Traceback (most recent call last):
-SyntaxError: 'in' expected after for-loop variables
-
->>> [x for x() in a]
-Traceback (most recent call last):
-SyntaxError: cannot assign to function call
-
->>> [x for a, b, (c + 1, d()) in y]
-Traceback (most recent call last):
-SyntaxError: cannot assign to expression
-
->>> [x for a, b, (c + 1, d()) if y]
-Traceback (most recent call last):
-SyntaxError: 'in' expected after for-loop variables
-
->>> [x for x+1 in y]
-Traceback (most recent call last):
-SyntaxError: cannot assign to expression
-
->>> [x for x+1, x() in y]
-Traceback (most recent call last):
-SyntaxError: cannot assign to expression
 
 Comprehensions creating tuples without parentheses
 should produce a specialized error message:
@@ -798,9 +756,6 @@ SyntaxError: cannot assign to __debug__
 >>> __debug__: int
 Traceback (most recent call last):
 SyntaxError: cannot assign to __debug__
->>> x.__debug__: int
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
 >>> f(a=)
 Traceback (most recent call last):
 SyntaxError: expected argument value expression
@@ -1197,24 +1152,6 @@ Missing ':' before suites:
    Traceback (most recent call last):
    SyntaxError: expected ':'
 
-   >>> match x:
-   ...   case a, __debug__, b:
-   ...       pass
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
-
-   >>> match x:
-   ...   case a, b, *__debug__:
-   ...       pass
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
-
-   >>> match x:
-   ...   case Foo(a, __debug__=1, b=2):
-   ...       pass
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
-
    >>> if x = 3:
    ...    pass
    Traceback (most recent call last):
@@ -1243,22 +1180,6 @@ Missing parens after function definition
    SyntaxError: expected '('
 
    >>> async def f:
-   Traceback (most recent call last):
-   SyntaxError: expected '('
-
-   >>> def f -> int:
-   Traceback (most recent call last):
-   SyntaxError: expected '('
-
-   >>> async def f -> int:  # type: int
-   Traceback (most recent call last):
-   SyntaxError: expected '('
-
-   >>> async def f[T]:
-   Traceback (most recent call last):
-   SyntaxError: expected '('
-
-   >>> def f[T] -> str:
    Traceback (most recent call last):
    SyntaxError: expected '('
 
@@ -1307,15 +1228,6 @@ Custom error messages for try blocks that are not followed by except/finally
    ...
    Traceback (most recent call last):
    SyntaxError: expected 'except' or 'finally' block
-
-Custom error message for __debug__ as exception variable
-
-   >>> try:
-   ...    pass
-   ... except TypeError as __debug__:
-   ...    pass
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
 
 Custom error message for try block mixing except and except*
 
@@ -1564,19 +1476,6 @@ Specialized indentation errors:
    Traceback (most recent call last):
    IndentationError: expected an indented block after class definition on line 1
 
-   >>> class C(__debug__=42): ...
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
-
-   >>> class Meta(type):
-   ...     def __new__(*args, **kwargs):
-   ...         pass
-
-   >>> class C(metaclass=Meta, __debug__=42):
-   ...     pass
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
-
    >>> match something:
    ... pass
    Traceback (most recent call last):
@@ -1763,44 +1662,12 @@ SyntaxError: Did you mean to use 'from ... import ...' instead?
 Traceback (most recent call last):
 SyntaxError: Did you mean to use 'from ... import ...' instead?
 
->>> import __debug__
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
->>> import a as __debug__
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
->>> import a.b.c as __debug__
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
->>> from a import __debug__
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
->>> from a import b as __debug__
-Traceback (most recent call last):
-SyntaxError: cannot assign to __debug__
-
 # Check that we dont raise the "trailing comma" error if there is more
 # input to the left of the valid part that we parsed.
 
 >>> from t import x,y, and 3
 Traceback (most recent call last):
 SyntaxError: invalid syntax
-
->>> from i import
-Traceback (most recent call last):
-SyntaxError: Expected one or more names after 'import'
-
->>> from .. import
-Traceback (most recent call last):
-SyntaxError: Expected one or more names after 'import'
-
->>> import
-Traceback (most recent call last):
-SyntaxError: Expected one or more names after 'import'
 
 >>> (): int
 Traceback (most recent call last):
@@ -1814,49 +1681,6 @@ SyntaxError: only single target (not tuple) can be annotated
 >>> ([]): int
 Traceback (most recent call last):
 SyntaxError: only single target (not list) can be annotated
-
-# 'not' after operators:
-
->>> 3 + not 3
-Traceback (most recent call last):
-SyntaxError: 'not' after an operator must be parenthesized
-
->>> 3 * not 3
-Traceback (most recent call last):
-SyntaxError: 'not' after an operator must be parenthesized
-
->>> + not 3
-Traceback (most recent call last):
-SyntaxError: 'not' after an operator must be parenthesized
-
->>> - not 3
-Traceback (most recent call last):
-SyntaxError: 'not' after an operator must be parenthesized
-
->>> ~ not 3
-Traceback (most recent call last):
-SyntaxError: 'not' after an operator must be parenthesized
-
->>> 3 + - not 3
-Traceback (most recent call last):
-SyntaxError: 'not' after an operator must be parenthesized
-
->>> 3 + not -1
-Traceback (most recent call last):
-SyntaxError: 'not' after an operator must be parenthesized
-
-# Check that we don't introduce misleading errors
->>> not 1 */ 2
-Traceback (most recent call last):
-SyntaxError: invalid syntax
-
->>> not 1 +
-Traceback (most recent call last):
-SyntaxError: invalid syntax
-
->>> not + 1 +
-Traceback (most recent call last):
-SyntaxError: invalid syntax
 
 Corner-cases that used to fail to raise the correct error:
 
@@ -2096,115 +1920,15 @@ Invalid bytes literals:
 
 Invalid expressions in type scopes:
 
-   >>> type A[] = int
-   Traceback (most recent call last):
-   ...
-   SyntaxError: Type parameter list cannot be empty
-
-   >>> class A[]: ...
-   Traceback (most recent call last):
-   ...
-   SyntaxError: Type parameter list cannot be empty
-
-   >>> def some[](): ...
-   Traceback (most recent call last):
-   ...
-   SyntaxError: Type parameter list cannot be empty
-
-   >>> def some[]()
-   Traceback (most recent call last):
-   ...
-   SyntaxError: Type parameter list cannot be empty
-
-   >>> async def some[]:  # type: int
-   Traceback (most recent call last):
-   ...
-   SyntaxError: Type parameter list cannot be empty
-
-   >>> def f[T: (x:=3)](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar bound
-
-   >>> def f[T: ((x:= 3), int)](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar constraint
-
-   >>> def f[T = ((x:=3))](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar default
-
-   >>> async def f[T: (x:=3)](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar bound
-
-   >>> async def f[T: ((x:= 3), int)](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar constraint
-
-   >>> async def f[T = ((x:=3))](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar default
-
    >>> type A[T: (x:=3)] = int
    Traceback (most recent call last):
       ...
    SyntaxError: named expression cannot be used within a TypeVar bound
 
-   >>> type A[T: ((x:= 3), int)] = int
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar constraint
-
-   >>> type A[T = ((x:=3))] = int
-   Traceback (most recent call last):
-      ...
-   SyntaxError: named expression cannot be used within a TypeVar default
-
-   >>> def f[T: (yield)](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar bound
-
-   >>> def f[T: (int, (yield))](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar constraint
-
-   >>> def f[T = (yield)](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar default
-
-   >>> def f[*Ts = (yield)](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVarTuple default
-
-   >>> def f[**P = [(yield), int]](): pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a ParamSpec default
-
    >>> type A[T: (yield 3)] = int
    Traceback (most recent call last):
       ...
    SyntaxError: yield expression cannot be used within a TypeVar bound
-
-   >>> type A[T: (int, (yield 3))] = int
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar constraint
-
-   >>> type A[T = (yield 3)] = int
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar default
 
    >>> type A[T: (await 3)] = int
    Traceback (most recent call last):
@@ -2215,31 +1939,6 @@ Invalid expressions in type scopes:
    Traceback (most recent call last):
       ...
    SyntaxError: yield expression cannot be used within a TypeVar bound
-
-   >>> class A[T: (yield 3)]: pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar bound
-
-   >>> class A[T: (int, (yield 3))]: pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar constraint
-
-   >>> class A[T = (yield)]: pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVar default
-
-   >>> class A[*Ts = (yield)]: pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a TypeVarTuple default
-
-   >>> class A[**P = [(yield), int]]: pass
-   Traceback (most recent call last):
-      ...
-   SyntaxError: yield expression cannot be used within a ParamSpec default
 
    >>> type A = (x := 3)
    Traceback (most recent call last):
@@ -2260,14 +1959,6 @@ Invalid expressions in type scopes:
    Traceback (most recent call last):
       ...
    SyntaxError: yield expression cannot be used within a type alias
-
-   >>> type __debug__ = int
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
-
-   >>> class A[__debug__]: pass
-   Traceback (most recent call last):
-   SyntaxError: cannot assign to __debug__
 
    >>> class A[T]((x := 3)): ...
    Traceback (most recent call last):
@@ -2678,14 +2369,8 @@ func(
 
     def test_error_string_literal(self):
 
-        self._check_error("'blech", r"unterminated string literal \(.*\)$")
-        self._check_error('"blech', r"unterminated string literal \(.*\)$")
-        self._check_error(
-            r'"blech\"', r"unterminated string literal \(.*\); perhaps you escaped the end quote"
-        )
-        self._check_error(
-            r'r"blech\"', r"unterminated string literal \(.*\); perhaps you escaped the end quote"
-        )
+        self._check_error("'blech", "unterminated string literal")
+        self._check_error('"blech', "unterminated string literal")
         self._check_error("'''blech", "unterminated triple-quoted string literal")
         self._check_error('"""blech', "unterminated triple-quoted string literal")
 

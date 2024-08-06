@@ -1,6 +1,3 @@
-// clinic/watchers.c.h uses internal pycore_modsupport.h API
-#define PYTESTCAPI_NEED_INTERNAL_API
-
 #include "parts.h"
 
 #include "clinic/watchers.c.h"
@@ -15,8 +12,8 @@ module _testcapi
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=6361033e795369fc]*/
 
 // Test dict watching
-static PyObject *g_dict_watch_events = NULL;
-static int g_dict_watchers_installed = 0;
+static PyObject *g_dict_watch_events;
+static int g_dict_watchers_installed;
 
 static int
 dict_watch_callback(PyDict_WatchEvent event,
@@ -527,7 +524,13 @@ static PyFunction_WatchCallback func_watcher_callbacks[NUM_TEST_FUNC_WATCHERS] =
 static int
 add_func_event(PyObject *module, const char *name, PyFunction_WatchEvent event)
 {
-    return PyModule_Add(module, name, PyLong_FromLong(event));
+    PyObject *value = PyLong_FromLong(event);
+    if (value == NULL) {
+        return -1;
+    }
+    int ok = PyModule_AddObjectRef(module, name, value);
+    Py_DECREF(value);
+    return ok;
 }
 
 static PyObject *

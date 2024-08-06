@@ -508,7 +508,7 @@ Functions
    `C14N 2.0 <https://www.w3.org/TR/xml-c14n2/>`_ transformation function.
 
    Canonicalization is a way to normalise XML output in a way that allows
-   byte-by-byte comparisons and digital signatures.  It reduces the freedom
+   byte-by-byte comparisons and digital signatures.  It reduced the freedom
    that XML serializers have and instead generates a more constrained XML
    representation.  The main restrictions regard the placement of namespace
    declarations, the ordering of attributes, and ignorable whitespace.
@@ -630,8 +630,6 @@ Functions
    target. Returns an :term:`iterator` providing ``(event, elem)`` pairs;
    it has a ``root`` attribute that references the root element of the
    resulting XML tree once *source* is fully read.
-   The iterator has the :meth:`!close` method that closes the internal
-   file object if *source* is a filename.
 
    Note that while :func:`iterparse` builds the tree incrementally, it issues
    blocking reads on *source* (or the file it names).  As such, it's unsuitable
@@ -653,9 +651,6 @@ Functions
 
    .. versionchanged:: 3.8
       The ``comment`` and ``pi`` events were added.
-
-   .. versionchanged:: 3.13
-      Added the :meth:`!close` method.
 
 
 .. function:: parse(source, parser=None)
@@ -874,7 +869,6 @@ Element Objects
 
 .. module:: xml.etree.ElementTree
    :noindex:
-   :no-index:
 
 .. class:: Element(tag, attrib={}, **extra)
 
@@ -1059,10 +1053,9 @@ Element Objects
    :meth:`~object.__getitem__`, :meth:`~object.__setitem__`,
    :meth:`~object.__len__`.
 
-   Caution: Elements with no subelements will test as ``False``.  In a future
-   release of Python, all elements will test as ``True`` regardless of whether
-   subelements exist.  Instead, prefer explicit ``len(elem)`` or
-   ``elem is not None`` tests.::
+   Caution: Elements with no subelements will test as ``False``.  Testing the
+   truth value of an Element is deprecated and will raise an exception in
+   Python 3.14.  Use specific ``len(elem)`` or ``elem is None`` test instead.::
 
      element = root.find('foo')
 
@@ -1404,7 +1397,7 @@ XMLParser Objects
       using :func:`hasattr` if used in code running across a variety of Python
       versions.
 
-      .. versionadded:: 3.13
+      .. versionadded:: 3.12.3
 
 
    :meth:`XMLParser.feed` calls *target*\'s ``start(tag, attrs_dict)`` method
@@ -1482,7 +1475,7 @@ XMLPullParser Objects
       using :func:`hasattr` if used in code running across a variety of Python
       versions.
 
-      .. versionadded:: 3.13
+      .. versionadded:: 3.12.3
 
    .. method:: close()
 

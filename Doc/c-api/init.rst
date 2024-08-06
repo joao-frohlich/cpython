@@ -29,8 +29,12 @@ The following functions can be safely called before Python is initialized:
   * :c:func:`PyMem_SetAllocator`
   * :c:func:`PyMem_SetupDebugHooks`
   * :c:func:`PyObject_SetArenaAllocator`
+  * :c:func:`Py_SetPath`
   * :c:func:`Py_SetProgramName`
   * :c:func:`Py_SetPythonHome`
+  * :c:func:`Py_SetStandardStreamEncoding`
+  * :c:func:`PySys_AddWarnOption`
+  * :c:func:`PySys_AddXOption`
   * :c:func:`PySys_ResetWarnOptions`
 
 * Informative functions:
@@ -54,11 +58,6 @@ The following functions can be safely called before Python is initialized:
   * :c:func:`PyMem_RawRealloc`
   * :c:func:`PyMem_RawCalloc`
   * :c:func:`PyMem_RawFree`
-
-* Synchronization:
-
-  * :c:func:`PyMutex_Lock`
-  * :c:func:`PyMutex_Unlock`
 
 .. note::
 
@@ -94,7 +93,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    Set by the :option:`-b` option.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_DebugFlag
 
@@ -108,7 +107,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    Set by the :option:`-d` option and the :envvar:`PYTHONDEBUG` environment
    variable.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_DontWriteBytecodeFlag
 
@@ -122,7 +121,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    Set by the :option:`-B` option and the :envvar:`PYTHONDONTWRITEBYTECODE`
    environment variable.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_FrozenFlag
 
@@ -135,7 +134,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    Private flag used by ``_freeze_module`` and ``frozenmain`` programs.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_HashRandomizationFlag
 
@@ -150,7 +149,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    If the flag is non-zero, read the :envvar:`PYTHONHASHSEED` environment
    variable to initialize the secret hash seed.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_IgnoreEnvironmentFlag
 
@@ -163,7 +162,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    Set by the :option:`-E` and :option:`-I` options.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_InspectFlag
 
@@ -178,7 +177,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    Set by the :option:`-i` option and the :envvar:`PYTHONINSPECT` environment
    variable.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_InteractiveFlag
 
@@ -203,7 +202,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    .. versionadded:: 3.4
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_LegacyWindowsFSEncodingFlag
 
@@ -222,7 +221,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    .. availability:: Windows.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_LegacyWindowsStdioFlag
 
@@ -240,7 +239,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    .. availability:: Windows.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_NoSiteFlag
 
@@ -255,7 +254,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    Set by the :option:`-S` option.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_NoUserSiteDirectory
 
@@ -269,7 +268,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    Set by the :option:`-s` and :option:`-I` options, and the
    :envvar:`PYTHONNOUSERSITE` environment variable.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_OptimizeFlag
 
@@ -280,7 +279,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    Set by the :option:`-O` option and the :envvar:`PYTHONOPTIMIZE` environment
    variable.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_QuietFlag
 
@@ -294,7 +293,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
 
    .. versionadded:: 3.2
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_UnbufferedStdioFlag
 
@@ -307,7 +306,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    Set by the :option:`-u` option and the :envvar:`PYTHONUNBUFFERED`
    environment variable.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 .. c:var:: int Py_VerboseFlag
 
@@ -323,7 +322,7 @@ to 1 and ``-bb`` sets :c:data:`Py_BytesWarningFlag` to 2.
    Set by the :option:`-v` option and the :envvar:`PYTHONVERBOSE` environment
    variable.
 
-   .. deprecated-removed:: 3.12 3.14
+   .. deprecated:: 3.12
 
 
 Initializing and finalizing the interpreter
@@ -333,6 +332,7 @@ Initializing and finalizing the interpreter
 .. c:function:: void Py_Initialize()
 
    .. index::
+      single: Py_SetProgramName()
       single: PyEval_InitThreads()
       single: modules (in module sys)
       single: path (in module sys)
@@ -340,6 +340,8 @@ Initializing and finalizing the interpreter
       pair: module; __main__
       pair: module; sys
       triple: module; search; path
+      single: PySys_SetArgv (C function)
+      single: PySys_SetArgvEx (C function)
       single: Py_FinalizeEx (C function)
 
    Initialize the Python interpreter.  In an application embedding  Python,
@@ -350,9 +352,7 @@ Initializing and finalizing the interpreter
    the table of loaded modules (``sys.modules``), and creates the fundamental
    modules :mod:`builtins`, :mod:`__main__` and :mod:`sys`.  It also initializes
    the module search path (``sys.path``). It does not set ``sys.argv``; use
-   the new :c:type:`PyConfig` API of the :ref:`Python Initialization
-   Configuration <init-config>` for that.  This is a no-op when called for a
-   second time
+   :c:func:`PySys_SetArgvEx` for that.  This is a no-op when called for a second time
    (without calling :c:func:`Py_FinalizeEx` first).  There is no return value; it is a
    fatal error if the initialization fails.
 
@@ -381,14 +381,6 @@ Initializing and finalizing the interpreter
    :c:func:`Py_Initialize` is called again.
 
 
-.. c:function:: int Py_IsFinalizing()
-
-   Return true (non-zero) if the main Python interpreter is
-   :term:`shutting down <interpreter shutdown>`. Return false (zero) otherwise.
-
-   .. versionadded:: 3.13
-
-
 .. c:function:: int Py_FinalizeEx()
 
    Undo all initializations made by :c:func:`Py_Initialize` and subsequent use of
@@ -396,16 +388,9 @@ Initializing and finalizing the interpreter
    :c:func:`Py_NewInterpreter` below) that were created and not yet destroyed since
    the last call to :c:func:`Py_Initialize`.  Ideally, this frees all memory
    allocated by the Python interpreter.  This is a no-op when called for a second
-   time (without calling :c:func:`Py_Initialize` again first).
-
-   Since this is the reverse of :c:func:`Py_Initialize`, it should be called
-   in the same thread with the same interpreter active.  That means
-   the main thread and the main interpreter.
-   This should never be called while :c:func:`Py_RunMain` is running.
-
-   Normally the return value is ``0``.
-   If there were errors during finalization (flushing buffered data),
-   ``-1`` is returned.
+   time (without calling :c:func:`Py_Initialize` again first).  Normally the
+   return value is ``0``.  If there were errors during finalization
+   (flushing buffered data), ``-1`` is returned.
 
    This function is provided for a number of reasons.  An embedding application
    might want to restart Python without having to restart the application itself.
@@ -440,6 +425,43 @@ Process-wide parameters
 =======================
 
 
+.. c:function:: int Py_SetStandardStreamEncoding(const char *encoding, const char *errors)
+
+   .. index::
+      single: Py_Initialize()
+      single: main()
+      triple: stdin; stdout; sdterr
+
+   This API is kept for backward compatibility: setting
+   :c:member:`PyConfig.stdio_encoding` and :c:member:`PyConfig.stdio_errors`
+   should be used instead, see :ref:`Python Initialization Configuration
+   <init-config>`.
+
+   This function should be called before :c:func:`Py_Initialize`, if it is
+   called at all. It specifies which encoding and error handling to use
+   with standard IO, with the same meanings as in :func:`str.encode`.
+
+   It overrides :envvar:`PYTHONIOENCODING` values, and allows embedding code
+   to control IO encoding when the environment variable does not work.
+
+   *encoding* and/or *errors* may be ``NULL`` to use
+   :envvar:`PYTHONIOENCODING` and/or default values (depending on other
+   settings).
+
+   Note that :data:`sys.stderr` always uses the "backslashreplace" error
+   handler, regardless of this (or any other) setting.
+
+   If :c:func:`Py_FinalizeEx` is called, this function will need to be called
+   again in order to affect subsequent calls to :c:func:`Py_Initialize`.
+
+   Returns ``0`` if successful, a nonzero value on error (e.g. calling after the
+   interpreter has already been initialized).
+
+   .. versionadded:: 3.4
+
+   .. deprecated:: 3.11
+
+
 .. c:function:: void Py_SetProgramName(const wchar_t *name)
 
    .. index::
@@ -463,14 +485,16 @@ Process-wide parameters
    interpreter will change the contents of this storage.
 
    Use :c:func:`Py_DecodeLocale` to decode a bytes string to get a
-   :c:expr:`wchar_*` string.
+   :c:expr:`wchar_t *` string.
 
    .. deprecated:: 3.11
 
 
 .. c:function:: wchar_t* Py_GetProgramName()
 
-   Return the program name set with :c:member:`PyConfig.program_name`, or the default.
+   .. index:: single: Py_SetProgramName()
+
+   Return the program name set with :c:func:`Py_SetProgramName`, or the default.
    The returned string points into static storage; the caller should not modify its
    value.
 
@@ -480,15 +504,12 @@ Process-wide parameters
    .. versionchanged:: 3.10
       It now returns ``NULL`` if called before :c:func:`Py_Initialize`.
 
-   .. deprecated-removed:: 3.13 3.15
-      Get :data:`sys.executable` instead.
-
 
 .. c:function:: wchar_t* Py_GetPrefix()
 
    Return the *prefix* for installed platform-independent files. This is derived
    through a number of complicated rules from the program name set with
-   :c:member:`PyConfig.program_name` and some environment variables; for example, if the
+   :c:func:`Py_SetProgramName` and some environment variables; for example, if the
    program name is ``'/usr/local/bin/python'``, the prefix is ``'/usr/local'``. The
    returned string points into static storage; the caller should not modify its
    value.  This corresponds to the :makevar:`prefix` variable in the top-level
@@ -502,15 +523,12 @@ Process-wide parameters
    .. versionchanged:: 3.10
       It now returns ``NULL`` if called before :c:func:`Py_Initialize`.
 
-   .. deprecated-removed:: 3.13 3.15
-      Get :data:`sys.prefix` instead.
-
 
 .. c:function:: wchar_t* Py_GetExecPrefix()
 
    Return the *exec-prefix* for installed platform-*dependent* files.  This is
    derived through a number of complicated rules from the program name set with
-   :c:member:`PyConfig.program_name` and some environment variables; for example, if the
+   :c:func:`Py_SetProgramName` and some environment variables; for example, if the
    program name is ``'/usr/local/bin/python'``, the exec-prefix is
    ``'/usr/local'``.  The returned string points into static storage; the caller
    should not modify its value.  This corresponds to the :makevar:`exec_prefix`
@@ -546,18 +564,16 @@ Process-wide parameters
    .. versionchanged:: 3.10
       It now returns ``NULL`` if called before :c:func:`Py_Initialize`.
 
-   .. deprecated-removed:: 3.13 3.15
-      Get :data:`sys.exec_prefix` instead.
-
 
 .. c:function:: wchar_t* Py_GetProgramFullPath()
 
    .. index::
+      single: Py_SetProgramName()
       single: executable (in module sys)
 
    Return the full program name of the Python executable; this is  computed as a
    side-effect of deriving the default module search path  from the program name
-   (set by :c:member:`PyConfig.program_name`). The returned string points into
+   (set by :c:func:`Py_SetProgramName` above). The returned string points into
    static storage; the caller should not modify its value.  The value is available
    to Python code as ``sys.executable``.
 
@@ -567,18 +583,16 @@ Process-wide parameters
    .. versionchanged:: 3.10
       It now returns ``NULL`` if called before :c:func:`Py_Initialize`.
 
-   .. deprecated-removed:: 3.13 3.15
-      Get :data:`sys.executable` instead.
-
 
 .. c:function:: wchar_t* Py_GetPath()
 
    .. index::
       triple: module; search; path
       single: path (in module sys)
+      single: Py_SetPath()
 
    Return the default module search path; this is computed from the program name
-   (set by :c:member:`PyConfig.program_name`) and some environment variables.
+   (set by :c:func:`Py_SetProgramName` above) and some environment variables.
    The returned string consists of a series of directory names separated by a
    platform dependent delimiter character.  The delimiter character is ``':'``
    on Unix and macOS, ``';'`` on Windows.  The returned string points into
@@ -595,8 +609,43 @@ Process-wide parameters
    .. versionchanged:: 3.10
       It now returns ``NULL`` if called before :c:func:`Py_Initialize`.
 
-   .. deprecated-removed:: 3.13 3.15
-      Get :data:`sys.path` instead.
+
+.. c:function::  void Py_SetPath(const wchar_t *)
+
+   .. index::
+      triple: module; search; path
+      single: path (in module sys)
+      single: Py_GetPath()
+
+   This API is kept for backward compatibility: setting
+   :c:member:`PyConfig.module_search_paths` and
+   :c:member:`PyConfig.module_search_paths_set` should be used instead, see
+   :ref:`Python Initialization Configuration <init-config>`.
+
+   Set the default module search path.  If this function is called before
+   :c:func:`Py_Initialize`, then :c:func:`Py_GetPath` won't attempt to compute a
+   default search path but uses the one provided instead.  This is useful if
+   Python is embedded by an application that has full knowledge of the location
+   of all modules.  The path components should be separated by the platform
+   dependent delimiter character, which is ``':'`` on Unix and macOS, ``';'``
+   on Windows.
+
+   This also causes :data:`sys.executable` to be set to the program
+   full path (see :c:func:`Py_GetProgramFullPath`) and for :data:`sys.prefix` and
+   :data:`sys.exec_prefix` to be empty.  It is up to the caller to modify these
+   if required after calling :c:func:`Py_Initialize`.
+
+   Use :c:func:`Py_DecodeLocale` to decode a bytes string to get a
+   :c:expr:`wchar_*` string.
+
+   The path argument is copied internally, so the caller may free it after the
+   call completes.
+
+   .. versionchanged:: 3.8
+      The program full path is now used for :data:`sys.executable`, instead
+      of the program name.
+
+   .. deprecated:: 3.11
 
 
 .. c:function:: const char* Py_GetVersion()
@@ -771,8 +820,8 @@ Process-wide parameters
 
 .. c:function:: wchar_t* Py_GetPythonHome()
 
-   Return the default "home", that is, the value set by
-   :c:member:`PyConfig.home`, or the value of the :envvar:`PYTHONHOME`
+   Return the default "home", that is, the value set by a previous call to
+   :c:func:`Py_SetPythonHome`, or the value of the :envvar:`PYTHONHOME`
    environment variable if it is set.
 
    This function should not be called before :c:func:`Py_Initialize`, otherwise
@@ -780,10 +829,6 @@ Process-wide parameters
 
    .. versionchanged:: 3.10
       It now returns ``NULL`` if called before :c:func:`Py_Initialize`.
-
-   .. deprecated-removed:: 3.13 3.15
-      Get :c:member:`PyConfig.home` or :envvar:`PYTHONHOME` environment
-      variable instead.
 
 
 .. _threads:
@@ -1011,6 +1056,18 @@ code, or when embedding the Python interpreter:
    .. index:: pair: module; _thread
 
 
+.. c:function:: int PyEval_ThreadsInitialized()
+
+   Returns a non-zero value if :c:func:`PyEval_InitThreads` has been called.  This
+   function can be called without holding the GIL, and therefore can be used to
+   avoid calls to the locking API when running single-threaded.
+
+   .. versionchanged:: 3.7
+      The :term:`GIL` is now initialized by :c:func:`Py_Initialize()`.
+
+   .. deprecated:: 3.9
+
+
 .. c:function:: PyThreadState* PyEval_SaveThread()
 
    Release the global interpreter lock (if it has been created) and reset the
@@ -1029,7 +1086,7 @@ code, or when embedding the Python interpreter:
    .. note::
       Calling this function from a thread when the runtime is finalizing
       will terminate the thread, even if the thread was not created by Python.
-      You can use :c:func:`Py_IsFinalizing` or :func:`sys.is_finalizing` to
+      You can use :c:func:`!_Py_IsFinalizing` or :func:`sys.is_finalizing` to
       check if the interpreter is in process of being finalized before calling
       this function to avoid unwanted termination.
 
@@ -1038,19 +1095,6 @@ code, or when embedding the Python interpreter:
    Return the current thread state.  The global interpreter lock must be held.
    When the current thread state is ``NULL``, this issues a fatal error (so that
    the caller needn't check for ``NULL``).
-
-   See also :c:func:`PyThreadState_GetUnchecked`.
-
-
-.. c:function:: PyThreadState* PyThreadState_GetUnchecked()
-
-   Similar to :c:func:`PyThreadState_Get`, but don't kill the process with a
-   fatal error if it is NULL. The caller is responsible to check if the result
-   is NULL.
-
-   .. versionadded:: 3.13
-      In Python 3.5 to 3.12, the function was private and known as
-      ``_PyThreadState_UncheckedGet()``.
 
 
 .. c:function:: PyThreadState* PyThreadState_Swap(PyThreadState *tstate)
@@ -1088,7 +1132,7 @@ with sub-interpreters:
    .. note::
       Calling this function from a thread when the runtime is finalizing
       will terminate the thread, even if the thread was not created by Python.
-      You can use :c:func:`Py_IsFinalizing` or :func:`sys.is_finalizing` to
+      You can use :c:func:`!_Py_IsFinalizing` or :func:`sys.is_finalizing` to
       check if the interpreter is in process of being finalized before calling
       this function to avoid unwanted termination.
 
@@ -1370,7 +1414,7 @@ All of the following functions must be called after :c:func:`Py_Initialize`.
    .. note::
       Calling this function from a thread when the runtime is finalizing
       will terminate the thread, even if the thread was not created by Python.
-      You can use :c:func:`Py_IsFinalizing` or :func:`sys.is_finalizing` to
+      You can use :c:func:`!_Py_IsFinalizing` or :func:`sys.is_finalizing` to
       check if the interpreter is in process of being finalized before calling
       this function to avoid unwanted termination.
 
@@ -1393,6 +1437,39 @@ All of the following functions must be called after :c:func:`Py_Initialize`.
 
    :c:func:`PyEval_SaveThread` is a higher-level function which is always
    available (even when threads have not been initialized).
+
+
+.. c:function:: void PyEval_AcquireLock()
+
+   Acquire the global interpreter lock.  The lock must have been created earlier.
+   If this thread already has the lock, a deadlock ensues.
+
+   .. deprecated:: 3.2
+      This function does not update the current thread state.  Please use
+      :c:func:`PyEval_RestoreThread` or :c:func:`PyEval_AcquireThread`
+      instead.
+
+   .. note::
+      Calling this function from a thread when the runtime is finalizing
+      will terminate the thread, even if the thread was not created by Python.
+      You can use :c:func:`_Py_IsFinalizing` or :func:`sys.is_finalizing` to
+      check if the interpreter is in process of being finalized before calling
+      this function to avoid unwanted termination.
+
+   .. versionchanged:: 3.8
+      Updated to be consistent with :c:func:`PyEval_RestoreThread`,
+      :c:func:`Py_END_ALLOW_THREADS`, and :c:func:`PyGILState_Ensure`,
+      and terminate the current thread if called while the interpreter is finalizing.
+
+
+.. c:function:: void PyEval_ReleaseLock()
+
+   Release the global interpreter lock.  The lock must have been created earlier.
+
+   .. deprecated:: 3.2
+      This function does not update the current thread state.  Please use
+      :c:func:`PyEval_SaveThread` or :c:func:`PyEval_ReleaseThread`
+      instead.
 
 
 .. _sub-interpreter-support:
@@ -1654,7 +1731,7 @@ otherwise immutable (e.g. ``None``, ``(1, 5)``) can't normally be shared
 because of the refcount.  One simple but less-efficient approach around
 this is to use a global lock around all use of some state (or object).
 Alternately, effectively immutable objects (like integers or strings)
-can be made safe in spite of their refcounts by making them :term:`immortal`.
+can be made safe in spite of their refcounts by making them "immortal".
 In fact, this has been done for the builtin singletons, small integers,
 and a number of other builtin objects.
 
@@ -1916,58 +1993,6 @@ Python-level trace functions in previous versions.
 
 .. versionadded:: 3.12
 
-Reference tracing
-=================
-
-.. versionadded:: 3.13
-
-.. c:type:: int (*PyRefTracer)(PyObject *, int event, void* data)
-
-   The type of the trace function registered using :c:func:`PyRefTracer_SetTracer`.
-   The first parameter is a Python object that has been just created (when **event**
-   is set to :c:data:`PyRefTracer_CREATE`) or about to be destroyed (when **event**
-   is set to :c:data:`PyRefTracer_DESTROY`). The **data** argument is the opaque pointer
-   that was provided when :c:func:`PyRefTracer_SetTracer` was called.
-
-.. versionadded:: 3.13
-
-.. c:var:: int PyRefTracer_CREATE
-
-   The value for the *event* parameter to :c:type:`PyRefTracer` functions when a Python
-   object has been created.
-
-.. c:var:: int PyRefTracer_DESTROY
-
-   The value for the *event* parameter to :c:type:`PyRefTracer` functions when a Python
-   object has been destroyed.
-
-.. c:function:: int PyRefTracer_SetTracer(PyRefTracer tracer, void *data)
-
-   Register a reference tracer function. The function will be called when a new
-   Python has been created or when an object is going to be destroyed. If
-   **data** is provided it must be an opaque pointer that will be provided when
-   the tracer function is called. Return ``0`` on success. Set an exception and
-   return ``-1`` on error.
-
-   Not that tracer functions **must not** create Python objects inside or
-   otherwise the call will be re-entrant. The tracer also **must not** clear
-   any existing exception or set an exception.  The GIL will be held every time
-   the tracer function is called.
-
-   The GIL must be held when calling this function.
-
-.. versionadded:: 3.13
-
-.. c:function:: PyRefTracer PyRefTracer_GetTracer(void** data)
-
-   Get the registered reference tracer function and the value of the opaque data
-   pointer that was registered when :c:func:`PyRefTracer_SetTracer` was called.
-   If no tracer was registered this function will return NULL and will set the
-   **data** pointer to NULL.
-
-   The GIL must be held when calling this function.
-
-.. versionadded:: 3.13
 
 .. _advanced-debugging:
 
@@ -2164,145 +2189,3 @@ be used in new code.
 .. c:function:: void PyThread_delete_key_value(int key)
 .. c:function:: void PyThread_ReInitTLS()
 
-Synchronization Primitives
-==========================
-
-The C-API provides a basic mutual exclusion lock.
-
-.. c:type:: PyMutex
-
-   A mutual exclusion lock.  The :c:type:`!PyMutex` should be initialized to
-   zero to represent the unlocked state.  For example::
-
-      PyMutex mutex = {0};
-
-   Instances of :c:type:`!PyMutex` should not be copied or moved.  Both the
-   contents and address of a :c:type:`!PyMutex` are meaningful, and it must
-   remain at a fixed, writable location in memory.
-
-   .. note::
-
-      A :c:type:`!PyMutex` currently occupies one byte, but the size should be
-      considered unstable.  The size may change in future Python releases
-      without a deprecation period.
-
-   .. versionadded:: 3.13
-
-.. c:function:: void PyMutex_Lock(PyMutex *m)
-
-   Lock mutex *m*.  If another thread has already locked it, the calling
-   thread will block until the mutex is unlocked.  While blocked, the thread
-   will temporarily release the :term:`GIL` if it is held.
-
-   .. versionadded:: 3.13
-
-.. c:function:: void PyMutex_Unlock(PyMutex *m)
-
-   Unlock mutex *m*. The mutex must be locked --- otherwise, the function will
-   issue a fatal error.
-
-   .. versionadded:: 3.13
-
-.. _python-critical-section-api:
-
-Python Critical Section API
----------------------------
-
-The critical section API provides a deadlock avoidance layer on top of
-per-object locks for :term:`free-threaded <free threading>` CPython.  They are
-intended to replace reliance on the :term:`global interpreter lock`, and are
-no-ops in versions of Python with the global interpreter lock.
-
-Critical sections avoid deadlocks by implicitly suspending active critical
-sections and releasing the locks during calls to :c:func:`PyEval_SaveThread`.
-When :c:func:`PyEval_RestoreThread` is called, the most recent critical section
-is resumed, and its locks reacquired.  This means the critical section API
-provides weaker guarantees than traditional locks -- they are useful because
-their behavior is similar to the :term:`GIL`.
-
-The functions and structs used by the macros are exposed for cases
-where C macros are not available. They should only be used as in the
-given macro expansions. Note that the sizes and contents of the structures may
-change in future Python versions.
-
-.. note::
-
-   Operations that need to lock two objects at once must use
-   :c:macro:`Py_BEGIN_CRITICAL_SECTION2`.  You *cannot* use nested critical
-   sections to lock more than one object at once, because the inner critical
-   section may suspend the outer critical sections.  This API does not provide
-   a way to lock more than two objects at once.
-
-Example usage::
-
-   static PyObject *
-   set_field(MyObject *self, PyObject *value)
-   {
-      Py_BEGIN_CRITICAL_SECTION(self);
-      Py_SETREF(self->field, Py_XNewRef(value));
-      Py_END_CRITICAL_SECTION();
-      Py_RETURN_NONE;
-   }
-
-In the above example, :c:macro:`Py_SETREF` calls :c:macro:`Py_DECREF`, which
-can call arbitrary code through an object's deallocation function.  The critical
-section API avoids potentital deadlocks due to reentrancy and lock ordering
-by allowing the runtime to temporarily suspend the critical section if the
-code triggered by the finalizer blocks and calls :c:func:`PyEval_SaveThread`.
-
-.. c:macro:: Py_BEGIN_CRITICAL_SECTION(op)
-
-   Acquires the per-object lock for the object *op* and begins a
-   critical section.
-
-   In the free-threaded build, this macro expands to::
-
-      {
-          PyCriticalSection _py_cs;
-          PyCriticalSection_Begin(&_py_cs, (PyObject*)(op))
-
-   In the default build, this macro expands to ``{``.
-
-   .. versionadded:: 3.13
-
-.. c:macro:: Py_END_CRITICAL_SECTION()
-
-   Ends the critical section and releases the per-object lock.
-
-   In the free-threaded build, this macro expands to::
-
-          PyCriticalSection_End(&_py_cs);
-      }
-
-   In the default build, this macro expands to ``}``.
-
-   .. versionadded:: 3.13
-
-.. c:macro:: Py_BEGIN_CRITICAL_SECTION2(a, b)
-
-   Acquires the per-objects locks for the objects *a* and *b* and begins a
-   critical section.  The locks are acquired in a consistent order (lowest
-   address first) to avoid lock ordering deadlocks.
-
-   In the free-threaded build, this macro expands to::
-
-      {
-          PyCriticalSection2 _py_cs2;
-          PyCriticalSection_Begin2(&_py_cs2, (PyObject*)(a), (PyObject*)(b))
-
-   In the default build, this macro expands to ``{``.
-
-   .. versionadded:: 3.13
-
-.. c:macro:: Py_END_CRITICAL_SECTION2()
-
-   Ends the critical section and releases the per-object locks.
-
-   In the free-threaded build, this macro expands to::
-
-          PyCriticalSection_End2(&_py_cs2);
-      }
-
-   In the default build, this macro expands to ``}``.
-
-   .. versionadded:: 3.13

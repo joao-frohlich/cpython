@@ -595,7 +595,7 @@ Add asyncio.get_running_loop() function.
 .. section: Library
 
 All class and static methods of builtin types now are correctly classified
-by inspect.classify_class_attrs() and grouped in pydoc output. Added
+by inspect.classify_class_attrs() and grouped in pydoc ouput. Added
 types.ClassMethodDescriptorType for unbound class methods of builtin types.
 
 ..
@@ -842,5 +842,5 @@ Moved the pygetopt.h header into internal/, since it has no public APIs.
 .. nonce: LbyQt6
 .. section: C API
 
-:c:func:`!Py_SetProgramName` and :c:func:`!Py_SetPythonHome` now take the
+:c:func:`Py_SetProgramName` and :c:func:`Py_SetPythonHome` now take the
 ``const wchar *`` arguments instead of ``wchar *``.

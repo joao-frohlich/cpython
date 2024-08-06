@@ -1,12 +1,11 @@
+import unittest
+import unittest.mock
 import os.path
 import sys
 import test.support
-import unittest
-import unittest.mock
-from ctypes import CDLL, RTLD_GLOBAL
-from ctypes.util import find_library
 from test.support import os_helper
-
+from ctypes import *
+from ctypes.util import find_library
 
 # On some systems, loading the OpenGL libraries needs the RTLD_GLOBAL mode.
 class Test_OpenGL_libs(unittest.TestCase):
@@ -23,7 +22,7 @@ class Test_OpenGL_libs(unittest.TestCase):
             lib_glu = find_library("GLU")
             lib_gle = find_library("gle")
 
-        # print, for debugging
+        ## print, for debugging
         if test.support.verbose:
             print("OpenGL libraries:")
             for item in (("GL", lib_gl),
@@ -37,13 +36,11 @@ class Test_OpenGL_libs(unittest.TestCase):
                 cls.gl = CDLL(lib_gl, mode=RTLD_GLOBAL)
             except OSError:
                 pass
-
         if lib_glu:
             try:
                 cls.glu = CDLL(lib_glu, RTLD_GLOBAL)
             except OSError:
                 pass
-
         if lib_gle:
             try:
                 cls.gle = CDLL(lib_gle)
@@ -127,29 +124,6 @@ class FindLibraryLinux(unittest.TestCase):
 
     def test_gh114257(self):
         self.assertIsNone(find_library("libc"))
-
-
-@unittest.skipUnless(sys.platform == 'android', 'Test only valid for Android')
-class FindLibraryAndroid(unittest.TestCase):
-    def test_find(self):
-        for name in [
-            "c", "m",  # POSIX
-            "z",  # Non-POSIX, but present on Linux
-            "log",  # Not present on Linux
-        ]:
-            with self.subTest(name=name):
-                path = find_library(name)
-                self.assertIsInstance(path, str)
-                self.assertEqual(
-                    os.path.dirname(path),
-                    "/system/lib64" if "64" in os.uname().machine
-                    else "/system/lib")
-                self.assertEqual(os.path.basename(path), f"lib{name}.so")
-                self.assertTrue(os.path.isfile(path), path)
-
-        for name in ["libc", "nonexistent"]:
-            with self.subTest(name=name):
-                self.assertIsNone(find_library(name))
 
 
 if __name__ == "__main__":

@@ -1,11 +1,5 @@
 /* statistics accelerator C extension: _statistics module. */
 
-// Need limited C API version 3.13 for Py_mod_gil
-#include "pyconfig.h"   // Py_GIL_DISABLED
-#ifndef Py_GIL_DISABLED
-#  define Py_LIMITED_API 0x030d0000
-#endif
-
 #include "Python.h"
 #include "clinic/_statisticsmodule.c.h"
 
@@ -136,7 +130,6 @@ PyDoc_STRVAR(statistics_doc,
 
 static struct PyModuleDef_Slot _statisticsmodule_slots[] = {
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
 

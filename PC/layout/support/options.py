@@ -32,10 +32,6 @@ OPTIONS = {
     "nuspec": {"help": "a python.nuspec file"},
     "chm": {"help": "the CHM documentation"},
     "html-doc": {"help": "the HTML documentation"},
-    "freethreaded": {"help": "freethreaded binaries", "not-in-all": True},
-    "alias": {"help": "aliased python.exe entry-point binaries"},
-    "alias3": {"help": "aliased python3.exe entry-point binaries"},
-    "alias3x": {"help": "aliased python3.x.exe entry-point binaries"},
 }
 
 
@@ -51,8 +47,6 @@ PRESETS = {
             "dev",
             "launchers",
             "appxmanifest",
-            "alias",
-            "alias3x",
             # XXX: Disabled for now "precompile",
         ],
     },
@@ -65,10 +59,9 @@ PRESETS = {
             "venv",
             "props",
             "nuspec",
-            "alias",
         ],
     },
-    "iot": {"help": "Windows IoT Core", "options": ["alias", "stable", "pip"]},
+    "iot": {"help": "Windows IoT Core", "options": ["stable", "pip"]},
     "default": {
         "help": "development kit package",
         "options": [
@@ -81,19 +74,11 @@ PRESETS = {
             "dev",
             "symbols",
             "html-doc",
-            "alias",
         ],
     },
     "embed": {
         "help": "embeddable package",
-        "options": [
-            "alias",
-            "stable",
-            "zip-lib",
-            "flat-dlls",
-            "underpth",
-            "precompile",
-        ],
+        "options": ["stable", "zip-lib", "flat-dlls", "underpth", "precompile"],
     },
 }
 

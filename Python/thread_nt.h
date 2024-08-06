@@ -1,5 +1,4 @@
-#include "pycore_interp.h"        // _PyInterpreterState.threads.stacksize
-#include "pycore_time.h"          // _PyTime_AsMicroseconds()
+#include "pycore_interp.h"    // _PyInterpreterState.threads.stacksize
 
 /* This code implemented by Dag.Gruneau@elsa.preseco.comm.se */
 /* Fast NonRecursiveMutex support by Yakov Markovitch, markovitch@iso.ru */
@@ -77,18 +76,17 @@ EnterNonRecursiveMutex(PNRMUTEX mutex, DWORD milliseconds)
         }
     } else if (milliseconds != 0) {
         /* wait at least until the deadline */
-        PyTime_t timeout = (PyTime_t)milliseconds * (1000 * 1000);
-        PyTime_t deadline = _PyDeadline_Init(timeout);
+        _PyTime_t nanoseconds = _PyTime_FromNanoseconds((_PyTime_t)milliseconds * 1000000);
+        _PyTime_t deadline = _PyTime_Add(_PyTime_GetPerfCounter(), nanoseconds);
         while (mutex->locked) {
-            PyTime_t microseconds = _PyTime_AsMicroseconds(timeout,
-                                                           _PyTime_ROUND_TIMEOUT);
+            _PyTime_t microseconds = _PyTime_AsMicroseconds(nanoseconds,
+                                                            _PyTime_ROUND_TIMEOUT);
             if (PyCOND_TIMEDWAIT(&mutex->cv, &mutex->cs, microseconds) < 0) {
                 result = WAIT_FAILED;
                 break;
             }
-
-            timeout = _PyDeadline_Get(deadline);
-            if (timeout <= 0) {
+            nanoseconds = deadline - _PyTime_GetPerfCounter();
+            if (nanoseconds <= 0) {
                 break;
             }
         }
@@ -184,9 +182,9 @@ bootstrap(void *call)
     return 0;
 }
 
-int
-PyThread_start_joinable_thread(void (*func)(void *), void *arg,
-                               PyThread_ident_t* ident, PyThread_handle_t* handle) {
+unsigned long
+PyThread_start_new_thread(void (*func)(void *), void *arg)
+{
     HANDLE hThread;
     unsigned threadID;
     callobj *obj;
@@ -196,7 +194,7 @@ PyThread_start_joinable_thread(void (*func)(void *), void *arg,
 
     obj = (callobj*)HeapAlloc(GetProcessHeap(), 0, sizeof(*obj));
     if (!obj)
-        return -1;
+        return PYTHREAD_INVALID_THREAD_ID;
     obj->func = func;
     obj->arg = arg;
     PyThreadState *tstate = _PyThreadState_GET();
@@ -209,60 +207,28 @@ PyThread_start_joinable_thread(void (*func)(void *), void *arg,
         /* I've seen errno == EAGAIN here, which means "there are
          * too many threads".
          */
+        int e = errno;
+        threadID = (unsigned)-1;
         HeapFree(GetProcessHeap(), 0, obj);
-        return -1;
     }
-    *ident = threadID;
-    // The cast is safe since HANDLE is pointer-sized
-    *handle = (PyThread_handle_t) hThread;
-    return 0;
-}
-
-unsigned long
-PyThread_start_new_thread(void (*func)(void *), void *arg) {
-    PyThread_handle_t handle;
-    PyThread_ident_t ident;
-    if (PyThread_start_joinable_thread(func, arg, &ident, &handle)) {
-        return PYTHREAD_INVALID_THREAD_ID;
+    else {
+        CloseHandle(hThread);
     }
-    CloseHandle((HANDLE) handle);
-    // The cast is safe since the ident is really an unsigned int
-    return (unsigned long) ident;
-}
-
-int
-PyThread_join_thread(PyThread_handle_t handle) {
-    HANDLE hThread = (HANDLE) handle;
-    int errored = (WaitForSingleObject(hThread, INFINITE) != WAIT_OBJECT_0);
-    CloseHandle(hThread);
-    return errored;
-}
-
-int
-PyThread_detach_thread(PyThread_handle_t handle) {
-    HANDLE hThread = (HANDLE) handle;
-    return (CloseHandle(hThread) == 0);
+    return threadID;
 }
 
 /*
  * Return the thread Id instead of a handle. The Id is said to uniquely identify the
  * thread in the system
  */
-PyThread_ident_t
-PyThread_get_thread_ident_ex(void)
+unsigned long
+PyThread_get_thread_ident(void)
 {
     if (!initialized)
         PyThread_init_thread();
 
     return GetCurrentThreadId();
 }
-
-unsigned long
-PyThread_get_thread_ident(void)
-{
-    return (unsigned long) PyThread_get_thread_ident_ex();
-}
-
 
 #ifdef PY_HAVE_THREAD_NATIVE_ID
 /*
@@ -442,7 +408,16 @@ PyThread_set_key_value(int key, void *value)
 void *
 PyThread_get_key_value(int key)
 {
-    return TlsGetValue(key);
+    /* because TLS is used in the Py_END_ALLOW_THREAD macro,
+     * it is necessary to preserve the windows error state, because
+     * it is assumed to be preserved across the call to the macro.
+     * Ideally, the macro should be fixed, but it is simpler to
+     * do it here.
+     */
+    DWORD error = GetLastError();
+    void *result = TlsGetValue(key);
+    SetLastError(error);
+    return result;
 }
 
 void
@@ -514,10 +489,14 @@ void *
 PyThread_tss_get(Py_tss_t *key)
 {
     assert(key != NULL);
-    int err = GetLastError();
-    void *r = TlsGetValue(key->_key);
-    if (r || !GetLastError()) {
-        SetLastError(err);
-    }
-    return r;
+    /* because TSS is used in the Py_END_ALLOW_THREAD macro,
+     * it is necessary to preserve the windows error state, because
+     * it is assumed to be preserved across the call to the macro.
+     * Ideally, the macro should be fixed, but it is simpler to
+     * do it here.
+     */
+    DWORD error = GetLastError();
+    void *result = TlsGetValue(key->_key);
+    SetLastError(error);
+    return result;
 }

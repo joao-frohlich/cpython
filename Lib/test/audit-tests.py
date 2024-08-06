@@ -289,7 +289,7 @@ def test_excepthook():
 
 
 def test_unraisablehook():
-    from _testcapi import err_formatunraisable
+    from _testcapi import write_unraisable_exc
 
     def unraisablehook(hookargs):
         pass
@@ -302,8 +302,7 @@ def test_unraisablehook():
 
     sys.addaudithook(hook)
     sys.unraisablehook = unraisablehook
-    err_formatunraisable(RuntimeError("nonfatal-error"),
-                         "Exception ignored for audit hook test")
+    write_unraisable_exc(RuntimeError("nonfatal-error"), "for audit hook test", None)
 
 
 def test_winreg():
@@ -399,18 +398,15 @@ def test_sqlite3():
     cx2 = sqlite3.Connection(":memory:")
 
     # Configured without --enable-loadable-sqlite-extensions
-    try:
-        if hasattr(sqlite3.Connection, "enable_load_extension"):
-            cx1.enable_load_extension(False)
-            try:
-                cx1.load_extension("test")
-            except sqlite3.OperationalError:
-                pass
-            else:
-                raise RuntimeError("Expected sqlite3.load_extension to fail")
-    finally:
-        cx1.close()
-        cx2.close()
+    if hasattr(sqlite3.Connection, "enable_load_extension"):
+        cx1.enable_load_extension(False)
+        try:
+            cx1.load_extension("test")
+        except sqlite3.OperationalError:
+            pass
+        else:
+            raise RuntimeError("Expected sqlite3.load_extension to fail")
+
 
 def test_sys_getframe():
     import sys
@@ -455,9 +451,6 @@ def test_threading():
     i = _thread.start_new_thread(test_func(), ())
     lock.acquire()
 
-    handle = _thread.start_joinable_thread(test_func())
-    handle.join()
-
 
 def test_threading_abort():
     # Ensures that aborting PyThreadState_New raises the correct exception
@@ -487,13 +480,7 @@ def test_wmi_exec_query():
             print(event, args[0])
 
     sys.addaudithook(hook)
-    try:
-        _wmi.exec_query("SELECT * FROM Win32_OperatingSystem")
-    except WindowsError as e:
-        # gh-112278: WMI may be slow response when first called, but we still
-        # get the audit event, so just ignore the timeout
-        if e.winerror != 258:
-            raise
+    _wmi.exec_query("SELECT * FROM Win32_OperatingSystem")
 
 def test_syslog():
     import syslog
@@ -526,24 +513,6 @@ def test_not_in_gc():
         if isinstance(o, list):
             assert hook not in o
 
-
-def test_time(mode):
-    import time
-
-    def hook(event, args):
-        if event.startswith("time."):
-            if mode == 'print':
-                print(event, *args)
-            elif mode == 'fail':
-                raise AssertionError('hook failed')
-    sys.addaudithook(hook)
-
-    time.sleep(0)
-    time.sleep(0.0625)  # 1/16, a small exact float
-    try:
-        time.sleep(-1)
-    except ValueError:
-        pass
 
 def test_sys_monitoring_register_callback():
     import sys

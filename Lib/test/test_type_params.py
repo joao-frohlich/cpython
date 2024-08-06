@@ -1,4 +1,3 @@
-import annotationlib
 import asyncio
 import textwrap
 import types
@@ -7,7 +6,7 @@ import pickle
 import weakref
 from test.support import requires_working_socket, check_syntax_error, run_code
 
-from typing import Generic, NoDefault, Sequence, TypeAliasType, TypeVar, TypeVarTuple, ParamSpec, get_args
+from typing import Generic, Sequence, TypeVar, TypeVarTuple, ParamSpec, get_args
 
 
 class TypeParamsInvalidTest(unittest.TestCase):
@@ -413,14 +412,6 @@ class TypeParamsAccessTest(unittest.TestCase):
         func, = T.__bound__
         self.assertEqual(func(), 1)
 
-    def test_comprehension_03(self):
-        def F[T: [lambda: T for T in (T, [1])[1]]](): return [lambda: T for T in T.__name__]
-        func, = F()
-        self.assertEqual(func(), "T")
-        T, = F.__type_params__
-        func, = T.__bound__
-        self.assertEqual(func(), 1)
-
     def test_gen_exp_in_nested_class(self):
         code = """
             from test.test_type_params import make_base
@@ -445,11 +436,9 @@ class TypeParamsAccessTest(unittest.TestCase):
                 class Inner[U](make_base(T for _ in (1,)), make_base(T)):
                     pass
         """
-        ns = run_code(code)
-        inner = ns["C"].Inner
-        base1, base2, _ = inner.__bases__
-        self.assertEqual(list(base1.__arg__), [ns["C"].__type_params__[0]])
-        self.assertEqual(base2.__arg__, "class")
+        with self.assertRaisesRegex(SyntaxError,
+                                    "Cannot use comprehension in annotation scope within class scope"):
+            run_code(code)
 
     def test_listcomp_in_nested_class(self):
         code = """
@@ -475,11 +464,9 @@ class TypeParamsAccessTest(unittest.TestCase):
                 class Inner[U](make_base([T for _ in (1,)]), make_base(T)):
                     pass
         """
-        ns = run_code(code)
-        inner = ns["C"].Inner
-        base1, base2, _ = inner.__bases__
-        self.assertEqual(base1.__arg__, [ns["C"].__type_params__[0]])
-        self.assertEqual(base2.__arg__, "class")
+        with self.assertRaisesRegex(SyntaxError,
+                                    "Cannot use comprehension in annotation scope within class scope"):
+            run_code(code)
 
     def test_gen_exp_in_generic_method(self):
         code = """
@@ -488,81 +475,29 @@ class TypeParamsAccessTest(unittest.TestCase):
                 def meth[U](x: (T for _ in (1,)), y: T):
                     pass
         """
-        ns = run_code(code)
-        meth = ns["C"].meth
-        self.assertEqual(list(meth.__annotations__["x"]), [ns["C"].__type_params__[0]])
-        self.assertEqual(meth.__annotations__["y"], "class")
+        with self.assertRaisesRegex(SyntaxError,
+                                    "Cannot use comprehension in annotation scope within class scope"):
+            run_code(code)
 
     def test_nested_scope_in_generic_alias(self):
         code = """
-            T = "global"
-            class C:
+            class C[T]:
                 T = "class"
                 {}
         """
-        cases = [
-            "type Alias[T] = (T for _ in (1,))",
-            "type Alias = (T for _ in (1,))",
-            "type Alias[T] = [T for _ in (1,)]",
-            "type Alias = [T for _ in (1,)]",
+        error_cases = [
+            "type Alias1[T] = lambda: T",
+            "type Alias2 = lambda: T",
+            "type Alias3[T] = (T for _ in (1,))",
+            "type Alias4 = (T for _ in (1,))",
+            "type Alias5[T] = [T for _ in (1,)]",
+            "type Alias6 = [T for _ in (1,)]",
         ]
-        for case in cases:
+        for case in error_cases:
             with self.subTest(case=case):
-                ns = run_code(code.format(case))
-                alias = ns["C"].Alias
-                value = list(alias.__value__)[0]
-                if alias.__type_params__:
-                    self.assertIs(value, alias.__type_params__[0])
-                else:
-                    self.assertEqual(value, "global")
-
-    def test_lambda_in_alias_in_class(self):
-        code = """
-            T = "global"
-            class C:
-                T = "class"
-                type Alias = lambda: T
-        """
-        C = run_code(code)["C"]
-        self.assertEqual(C.Alias.__value__(), "global")
-
-    def test_lambda_in_alias_in_generic_class(self):
-        code = """
-            class C[T]:
-                T = "class"
-                type Alias = lambda: T
-        """
-        C = run_code(code)["C"]
-        self.assertIs(C.Alias.__value__(), C.__type_params__[0])
-
-    def test_lambda_in_generic_alias_in_class(self):
-        # A lambda nested in the alias cannot see the class scope, but can see
-        # a surrounding annotation scope.
-        code = """
-            T = U = "global"
-            class C:
-                T = "class"
-                U = "class"
-                type Alias[T] = lambda: (T, U)
-        """
-        C = run_code(code)["C"]
-        T, U = C.Alias.__value__()
-        self.assertIs(T, C.Alias.__type_params__[0])
-        self.assertEqual(U, "global")
-
-    def test_lambda_in_generic_alias_in_generic_class(self):
-        # A lambda nested in the alias cannot see the class scope, but can see
-        # a surrounding annotation scope.
-        code = """
-            class C[T, U]:
-                T = "class"
-                U = "class"
-                type Alias[T] = lambda: (T, U)
-        """
-        C = run_code(code)["C"]
-        T, U = C.Alias.__value__()
-        self.assertIs(T, C.Alias.__type_params__[0])
-        self.assertIs(U, C.__type_params__[1])
+                with self.assertRaisesRegex(SyntaxError,
+                                            r"Cannot use [a-z]+ in annotation scope within class scope"):
+                    run_code(code.format(case))
 
     def test_type_special_case(self):
         # https://github.com/python/cpython/issues/119011
@@ -605,12 +540,10 @@ class TypeParamsLazyEvaluationTest(unittest.TestCase):
         self.assertEqual(type_params[0].__name__, "T")
         self.assertIs(type_params[0].__bound__, Foo)
         self.assertEqual(type_params[0].__constraints__, ())
-        self.assertIs(type_params[0].__default__, NoDefault)
 
         self.assertEqual(type_params[1].__name__, "U")
         self.assertIs(type_params[1].__bound__, None)
         self.assertEqual(type_params[1].__constraints__, (Foo, Foo))
-        self.assertIs(type_params[1].__default__, NoDefault)
 
     def test_evaluation_error(self):
         class Foo[T: Undefined, U: (Undefined,)]:
@@ -621,8 +554,6 @@ class TypeParamsLazyEvaluationTest(unittest.TestCase):
             type_params[0].__bound__
         self.assertEqual(type_params[0].__constraints__, ())
         self.assertIs(type_params[1].__bound__, None)
-        self.assertIs(type_params[0].__default__, NoDefault)
-        self.assertIs(type_params[1].__default__, NoDefault)
         with self.assertRaises(NameError):
             type_params[1].__constraints__
 
@@ -1295,143 +1226,3 @@ class TypeParamsRuntimeTest(unittest.TestCase):
         """
         with self.assertRaises(RuntimeError):
             run_code(code)
-
-
-class DefaultsTest(unittest.TestCase):
-    def test_defaults_on_func(self):
-        ns = run_code("""
-            def func[T=int, **U=float, *V=None]():
-                pass
-        """)
-
-        T, U, V = ns["func"].__type_params__
-        self.assertIs(T.__default__, int)
-        self.assertIs(U.__default__, float)
-        self.assertIs(V.__default__, None)
-
-    def test_defaults_on_class(self):
-        ns = run_code("""
-            class C[T=int, **U=float, *V=None]:
-                pass
-        """)
-
-        T, U, V = ns["C"].__type_params__
-        self.assertIs(T.__default__, int)
-        self.assertIs(U.__default__, float)
-        self.assertIs(V.__default__, None)
-
-    def test_defaults_on_type_alias(self):
-        ns = run_code("""
-            type Alias[T = int, **U = float, *V = None] = int
-        """)
-
-        T, U, V = ns["Alias"].__type_params__
-        self.assertIs(T.__default__, int)
-        self.assertIs(U.__default__, float)
-        self.assertIs(V.__default__, None)
-
-    def test_starred_invalid(self):
-        check_syntax_error(self, "type Alias[T = *int] = int")
-        check_syntax_error(self, "type Alias[**P = *int] = int")
-
-    def test_starred_typevartuple(self):
-        ns = run_code("""
-            default = tuple[int, str]
-            type Alias[*Ts = *default] = Ts
-        """)
-
-        Ts, = ns["Alias"].__type_params__
-        self.assertEqual(Ts.__default__, next(iter(ns["default"])))
-
-    def test_nondefault_after_default(self):
-        check_syntax_error(self, "def func[T=int, U](): pass", "non-default type parameter 'U' follows default type parameter")
-        check_syntax_error(self, "class C[T=int, U]: pass", "non-default type parameter 'U' follows default type parameter")
-        check_syntax_error(self, "type A[T=int, U] = int", "non-default type parameter 'U' follows default type parameter")
-
-    def test_lazy_evaluation(self):
-        ns = run_code("""
-            type Alias[T = Undefined, *U = Undefined, **V = Undefined] = int
-        """)
-
-        T, U, V = ns["Alias"].__type_params__
-
-        with self.assertRaises(NameError):
-            T.__default__
-        with self.assertRaises(NameError):
-            U.__default__
-        with self.assertRaises(NameError):
-            V.__default__
-
-        ns["Undefined"] = "defined"
-        self.assertEqual(T.__default__, "defined")
-        self.assertEqual(U.__default__, "defined")
-        self.assertEqual(V.__default__, "defined")
-
-        # Now it is cached
-        ns["Undefined"] = "redefined"
-        self.assertEqual(T.__default__, "defined")
-        self.assertEqual(U.__default__, "defined")
-        self.assertEqual(V.__default__, "defined")
-
-    def test_symtable_key_regression_default(self):
-        # Test against the bugs that would happen if we used .default_
-        # as the key in the symtable.
-        ns = run_code("""
-            type X[T = [T for T in [T]]] = T
-        """)
-
-        T, = ns["X"].__type_params__
-        self.assertEqual(T.__default__, [T])
-
-    def test_symtable_key_regression_name(self):
-        # Test against the bugs that would happen if we used .name
-        # as the key in the symtable.
-        ns = run_code("""
-            type X1[T = A] = T
-            type X2[T = B] = T
-            A = "A"
-            B = "B"
-        """)
-
-        self.assertEqual(ns["X1"].__type_params__[0].__default__, "A")
-        self.assertEqual(ns["X2"].__type_params__[0].__default__, "B")
-
-
-class TestEvaluateFunctions(unittest.TestCase):
-    def test_general(self):
-        type Alias = int
-        Alias2 = TypeAliasType("Alias2", int)
-        def f[T: int = int, **P = int, *Ts = int](): pass
-        T, P, Ts = f.__type_params__
-        T2 = TypeVar("T2", bound=int, default=int)
-        P2 = ParamSpec("P2", default=int)
-        Ts2 = TypeVarTuple("Ts2", default=int)
-        cases = [
-            Alias.evaluate_value,
-            Alias2.evaluate_value,
-            T.evaluate_bound,
-            T.evaluate_default,
-            P.evaluate_default,
-            Ts.evaluate_default,
-            T2.evaluate_bound,
-            T2.evaluate_default,
-            P2.evaluate_default,
-            Ts2.evaluate_default,
-        ]
-        for case in cases:
-            with self.subTest(case=case):
-                self.assertIs(case(1), int)
-                self.assertIs(annotationlib.call_evaluate_function(case, annotationlib.Format.VALUE), int)
-                self.assertIs(annotationlib.call_evaluate_function(case, annotationlib.Format.FORWARDREF), int)
-                self.assertEqual(annotationlib.call_evaluate_function(case, annotationlib.Format.SOURCE), 'int')
-
-    def test_constraints(self):
-        def f[T: (int, str)](): pass
-        T, = f.__type_params__
-        T2 = TypeVar("T2", int, str)
-        for case in [T, T2]:
-            with self.subTest(case=case):
-                self.assertEqual(case.evaluate_constraints(1), (int, str))
-                self.assertEqual(annotationlib.call_evaluate_function(case.evaluate_constraints, annotationlib.Format.VALUE), (int, str))
-                self.assertEqual(annotationlib.call_evaluate_function(case.evaluate_constraints, annotationlib.Format.FORWARDREF), (int, str))
-                self.assertEqual(annotationlib.call_evaluate_function(case.evaluate_constraints, annotationlib.Format.SOURCE), '(int, str)')

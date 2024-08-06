@@ -49,7 +49,7 @@ import multiprocessing.heap
 import multiprocessing.managers
 import multiprocessing.pool
 import multiprocessing.queues
-from multiprocessing.connection import wait
+from multiprocessing.connection import wait, AuthenticationError
 
 from multiprocessing import util
 
@@ -1331,23 +1331,6 @@ class _TestQueue(BaseTestCase):
         # Assert that the serialization and the hook have been called correctly
         self.assertTrue(not_serializable_obj.reduce_was_called)
         self.assertTrue(not_serializable_obj.on_queue_feeder_error_was_called)
-
-    def test_closed_queue_empty_exceptions(self):
-        # Assert that checking the emptiness of an unused closed queue
-        # does not raise an OSError. The rationale is that q.close() is
-        # a no-op upon construction and becomes effective once the queue
-        # has been used (e.g., by calling q.put()).
-        for q in multiprocessing.Queue(), multiprocessing.JoinableQueue():
-            q.close()  # this is a no-op since the feeder thread is None
-            q.join_thread()  # this is also a no-op
-            self.assertTrue(q.empty())
-
-        for q in multiprocessing.Queue(), multiprocessing.JoinableQueue():
-            q.put('foo')  # make sure that the queue is 'used'
-            q.close()  # close the feeder thread
-            q.join_thread()  # make sure to join the feeder thread
-            with self.assertRaisesRegex(OSError, 'is closed'):
-                q.empty()
 
     def test_closed_queue_put_get_exceptions(self):
         for q in multiprocessing.Queue(), multiprocessing.JoinableQueue():
@@ -2829,8 +2812,8 @@ class _TestPool(BaseTestCase):
         self.pool.map(identity, objs)
 
         del objs
+        gc.collect()  # For PyPy or other GCs.
         time.sleep(DELTA)  # let threaded cleanup code run
-        support.gc_collect()  # For PyPy or other GCs.
         self.assertEqual(set(wr() for wr in refs), {None})
         # With a process pool, copies of the objects are returned, check
         # they were released too.
@@ -3190,44 +3173,6 @@ class _TestManagerRestart(BaseTestCase):
                 shutdown_timeout=SHUTDOWN_TIMEOUT)
             if hasattr(manager, "shutdown"):
                 self.addCleanup(manager.shutdown)
-
-
-class FakeConnection:
-    def send(self, payload):
-        pass
-
-    def recv(self):
-        return '#ERROR', pyqueue.Empty()
-
-class TestManagerExceptions(unittest.TestCase):
-    # Issue 106558: Manager exceptions avoids creating cyclic references.
-    def setUp(self):
-        self.mgr = multiprocessing.Manager()
-
-    def tearDown(self):
-        self.mgr.shutdown()
-        self.mgr.join()
-
-    def test_queue_get(self):
-        queue = self.mgr.Queue()
-        if gc.isenabled():
-            gc.disable()
-            self.addCleanup(gc.enable)
-        try:
-            queue.get_nowait()
-        except pyqueue.Empty as e:
-            wr = weakref.ref(e)
-        self.assertEqual(wr(), None)
-
-    def test_dispatch(self):
-        if gc.isenabled():
-            gc.disable()
-            self.addCleanup(gc.enable)
-        try:
-            multiprocessing.managers.dispatch(FakeConnection(), None, None)
-        except pyqueue.Empty as e:
-            wr = weakref.ref(e)
-        self.assertEqual(wr(), None)
 
 #
 #
@@ -4517,59 +4462,6 @@ class _TestSharedMemory(BaseTestCase):
                     "resource_tracker: There appear to be 1 leaked "
                     "shared_memory objects to clean up at shutdown", err)
 
-    @unittest.skipIf(os.name != "posix", "resource_tracker is posix only")
-    def test_shared_memory_untracking(self):
-        # gh-82300: When a separate Python process accesses shared memory
-        # with track=False, it must not cause the memory to be deleted
-        # when terminating.
-        cmd = '''if 1:
-            import sys
-            from multiprocessing.shared_memory import SharedMemory
-            mem = SharedMemory(create=False, name=sys.argv[1], track=False)
-            mem.close()
-        '''
-        mem = shared_memory.SharedMemory(create=True, size=10)
-        # The resource tracker shares pipes with the subprocess, and so
-        # err existing means that the tracker process has terminated now.
-        try:
-            rc, out, err = script_helper.assert_python_ok("-c", cmd, mem.name)
-            self.assertNotIn(b"resource_tracker", err)
-            self.assertEqual(rc, 0)
-            mem2 = shared_memory.SharedMemory(create=False, name=mem.name)
-            mem2.close()
-        finally:
-            try:
-                mem.unlink()
-            except OSError:
-                pass
-            mem.close()
-
-    @unittest.skipIf(os.name != "posix", "resource_tracker is posix only")
-    def test_shared_memory_tracking(self):
-        # gh-82300: When a separate Python process accesses shared memory
-        # with track=True, it must cause the memory to be deleted when
-        # terminating.
-        cmd = '''if 1:
-            import sys
-            from multiprocessing.shared_memory import SharedMemory
-            mem = SharedMemory(create=False, name=sys.argv[1], track=True)
-            mem.close()
-        '''
-        mem = shared_memory.SharedMemory(create=True, size=10)
-        try:
-            rc, out, err = script_helper.assert_python_ok("-c", cmd, mem.name)
-            self.assertEqual(rc, 0)
-            self.assertIn(
-                b"resource_tracker: There appear to be 1 leaked "
-                b"shared_memory objects to clean up at shutdown", err)
-        finally:
-            try:
-                mem.unlink()
-            except OSError:
-                pass
-            resource_tracker.unregister(mem._name, "shared_memory")
-            mem.close()
-
 #
 # Test to verify that `Finalize` works.
 #
@@ -4679,7 +4571,7 @@ class _TestFinalize(BaseTestCase):
         old_interval = sys.getswitchinterval()
         old_threshold = gc.get_threshold()
         try:
-            support.setswitchinterval(1e-6)
+            sys.setswitchinterval(1e-6)
             gc.set_threshold(5, 5, 5)
             threads = [threading.Thread(target=run_finalizers),
                        threading.Thread(target=make_finalizers)]
@@ -5665,9 +5557,8 @@ class TestResourceTracker(unittest.TestCase):
         '''
         for rtype in resource_tracker._CLEANUP_FUNCS:
             with self.subTest(rtype=rtype):
-                if rtype in ("noop", "dummy"):
+                if rtype == "noop":
                     # Artefact resource type used by the resource_tracker
-                    # or tests
                     continue
                 r, w = os.pipe()
                 p = subprocess.Popen([sys.executable,
@@ -5787,38 +5678,6 @@ class TestResourceTracker(unittest.TestCase):
         with self.assertRaises(ValueError):
             resource_tracker.register(too_long_name_resource, rtype)
 
-    def _test_resource_tracker_leak_resources(self, cleanup):
-        # We use a separate instance for testing, since the main global
-        # _resource_tracker may be used to watch test infrastructure.
-        from multiprocessing.resource_tracker import ResourceTracker
-        tracker = ResourceTracker()
-        tracker.ensure_running()
-        self.assertTrue(tracker._check_alive())
-
-        self.assertIsNone(tracker._exitcode)
-        tracker.register('somename', 'dummy')
-        if cleanup:
-            tracker.unregister('somename', 'dummy')
-            expected_exit_code = 0
-        else:
-            expected_exit_code = 1
-
-        self.assertTrue(tracker._check_alive())
-        self.assertIsNone(tracker._exitcode)
-        tracker._stop()
-        self.assertEqual(tracker._exitcode, expected_exit_code)
-
-    def test_resource_tracker_exit_code(self):
-        """
-        Test the exit code of the resource tracker.
-
-        If no leaked resources were found, exit code should be 0, otherwise 1
-        """
-        for cleanup in [True, False]:
-            with self.subTest(cleanup=cleanup):
-                self._test_resource_tracker_leak_resources(
-                    cleanup=cleanup,
-                )
 
 class TestSimpleQueue(unittest.TestCase):
 
@@ -5831,15 +5690,6 @@ class TestSimpleQueue(unittest.TestCase):
             queue.put(queue.empty())
         finally:
             parent_can_continue.set()
-
-    def test_empty_exceptions(self):
-        # Assert that checking emptiness of a closed queue raises
-        # an OSError, independently of whether the queue was used
-        # or not. This differs from Queue and JoinableQueue.
-        q = multiprocessing.SimpleQueue()
-        q.close()  # close the pipe
-        with self.assertRaisesRegex(OSError, 'is closed'):
-            q.empty()
 
     def test_empty(self):
         queue = multiprocessing.SimpleQueue()
@@ -6090,30 +5940,12 @@ class TestSyncManagerTypes(unittest.TestCase):
         case.assertEqual(obj[0], 5)
         case.assertEqual(obj.count(5), 1)
         case.assertEqual(obj.index(5), 0)
-        obj += [7]
-        case.assertIsInstance(obj, multiprocessing.managers.ListProxy)
-        case.assertListEqual(list(obj), [5, 7])
-        obj *= 2
-        case.assertIsInstance(obj, multiprocessing.managers.ListProxy)
-        case.assertListEqual(list(obj), [5, 7, 5, 7])
-        double_obj = obj * 2
-        case.assertIsInstance(double_obj, list)
-        case.assertListEqual(list(double_obj), [5, 7, 5, 7, 5, 7, 5, 7])
-        double_obj = 2 * obj
-        case.assertIsInstance(double_obj, list)
-        case.assertListEqual(list(double_obj), [5, 7, 5, 7, 5, 7, 5, 7])
-        copied_obj = obj.copy()
-        case.assertIsInstance(copied_obj, list)
-        case.assertListEqual(list(copied_obj), [5, 7, 5, 7])
-        obj.extend(double_obj + copied_obj)
         obj.sort()
         obj.reverse()
         for x in obj:
             pass
-        case.assertEqual(len(obj), 16)
-        case.assertEqual(obj.pop(0), 7)
-        obj.clear()
-        case.assertEqual(len(obj), 0)
+        case.assertEqual(len(obj), 1)
+        case.assertEqual(obj.pop(0), 5)
 
     def test_list(self):
         o = self.manager.list()
@@ -6132,29 +5964,7 @@ class TestSyncManagerTypes(unittest.TestCase):
         case.assertListEqual(list(obj.keys()), ['foo'])
         case.assertListEqual(list(obj.values()), [5])
         case.assertDictEqual(obj.copy(), {'foo': 5})
-        obj |= {'bar': 6}
-        case.assertIsInstance(obj, multiprocessing.managers.DictProxy)
-        case.assertDictEqual(dict(obj), {'foo': 5, 'bar': 6})
-        x = reversed(obj)
-        case.assertIsInstance(x, type(iter([])))
-        case.assertListEqual(list(x), ['bar', 'foo'])
-        x = {'bar': 7, 'baz': 7} | obj
-        case.assertIsInstance(x, dict)
-        case.assertDictEqual(dict(x), {'foo': 5, 'bar': 6, 'baz': 7})
-        x = obj | {'bar': 7, 'baz': 7}
-        case.assertIsInstance(x, dict)
-        case.assertDictEqual(dict(x), {'foo': 5, 'bar': 7, 'baz': 7})
-        x = obj.fromkeys(['bar'], 6)
-        case.assertIsInstance(x, dict)
-        case.assertDictEqual(x, {'bar': 6})
-        x = obj.popitem()
-        case.assertIsInstance(x, tuple)
-        case.assertTupleEqual(x, ('bar', 6))
-        obj.setdefault('bar', 0)
-        obj.update({'bar': 7})
-        case.assertEqual(obj.pop('bar'), 7)
-        obj.clear()
-        case.assertEqual(len(obj), 0)
+        case.assertTupleEqual(obj.popitem(), ('foo', 5))
 
     def test_dict(self):
         o = self.manager.dict()
@@ -6227,29 +6037,6 @@ class TestNamedResource(unittest.TestCase):
         self.assertFalse(err, msg=err.decode('utf-8'))
 
 
-class _TestAtExit(BaseTestCase):
-
-    ALLOWED_TYPES = ('processes',)
-
-    @classmethod
-    def _write_file_at_exit(self, output_path):
-        import atexit
-        def exit_handler():
-            with open(output_path, 'w') as f:
-                f.write("deadbeef")
-        atexit.register(exit_handler)
-
-    def test_atexit(self):
-        # gh-83856
-        with os_helper.temp_dir() as temp_dir:
-            output_path = os.path.join(temp_dir, 'output.txt')
-            p = self.Process(target=self._write_file_at_exit, args=(output_path,))
-            p.start()
-            p.join()
-            with open(output_path) as f:
-                self.assertEqual(f.read(), 'deadbeef')
-
-
 class MiscTestCase(unittest.TestCase):
     def test__all__(self):
         # Just make sure names in not_exported are excluded
@@ -6272,24 +6059,6 @@ class MiscTestCase(unittest.TestCase):
             import multiprocessing.spawn  # This should not fail\n""",
         )
         self.assertEqual(rc, 0)
-        self.assertFalse(err, msg=err.decode('utf-8'))
-
-    def test_large_pool(self):
-        #
-        # gh-89240: Check that large pools are always okay
-        #
-        testfn = os_helper.TESTFN
-        self.addCleanup(os_helper.unlink, testfn)
-        with open(testfn, 'w', encoding='utf-8') as f:
-            f.write(textwrap.dedent('''\
-                import multiprocessing
-                def f(x): return x*x
-                if __name__ == '__main__':
-                    with multiprocessing.Pool(200) as p:
-                        print(sum(p.map(f, range(1000))))
-            '''))
-        rc, out, err = script_helper.assert_python_ok(testfn)
-        self.assertEqual("332833500", out.decode('utf-8').strip())
         self.assertFalse(err, msg=err.decode('utf-8'))
 
 

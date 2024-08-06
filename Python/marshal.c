@@ -6,19 +6,14 @@
    Version 3 of this protocol properly supports circular links
    and sharing. */
 
-#include "Python.h"
-#include "pycore_call.h"             // _PyObject_CallNoArgs()
-#include "pycore_code.h"             // _PyCode_New()
-#include "pycore_critical_section.h" // Py_BEGIN_CRITICAL_SECTION()
-#include "pycore_hashtable.h"        // _Py_hashtable_t
-#include "pycore_long.h"             // _PyLong_DigitCount
-#include "pycore_setobject.h"        // _PySet_NextEntry()
-#include "marshal.h"                 // Py_MARSHAL_VERSION
-#include "pycore_pystate.h"          // _PyInterpreterState_GET()
+#define PY_SSIZE_T_CLEAN
 
-#ifdef __APPLE__
-#  include "TargetConditionals.h"
-#endif /* __APPLE__ */
+#include "Python.h"
+#include "pycore_call.h"          // _PyObject_CallNoArgs()
+#include "pycore_code.h"          // _PyCode_New()
+#include "pycore_long.h"          // _PyLong_DigitCount
+#include "pycore_hashtable.h"     // _Py_hashtable_t
+#include "marshal.h"              // Py_MARSHAL_VERSION
 
 /*[clinic input]
 module marshal
@@ -39,15 +34,11 @@ module marshal
  * #if defined(MS_WINDOWS) && defined(_DEBUG)
  */
 #if defined(MS_WINDOWS)
-#  define MAX_MARSHAL_STACK_DEPTH 1000
+#define MAX_MARSHAL_STACK_DEPTH 1000
 #elif defined(__wasi__)
-#  define MAX_MARSHAL_STACK_DEPTH 1500
-// TARGET_OS_IPHONE covers any non-macOS Apple platform.
-// It won't be defined on older macOS SDKs
-#elif defined(__APPLE__) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-#  define MAX_MARSHAL_STACK_DEPTH 1500
+#define MAX_MARSHAL_STACK_DEPTH 1500
 #else
-#  define MAX_MARSHAL_STACK_DEPTH 2000
+#define MAX_MARSHAL_STACK_DEPTH 2000
 #endif
 
 #define TYPE_NULL               '0'
@@ -88,7 +79,6 @@ module marshal
 #define WFERR_UNMARSHALLABLE 1
 #define WFERR_NESTEDTOODEEP 2
 #define WFERR_NOMEMORY 3
-#define WFERR_CODE_NOT_ALLOWED 4
 
 typedef struct {
     FILE *fp;
@@ -100,7 +90,6 @@ typedef struct {
     char *buf;
     _Py_hashtable_t *hashtable;
     int version;
-    int allow_code;
 } WFILE;
 
 #define w_byte(c, p) do {                               \
@@ -236,9 +225,6 @@ w_short_pstring(const void *s, Py_ssize_t n, WFILE *p)
 #define W_TYPE(t, p) do { \
     w_byte((t) | flag, (p)); \
 } while(0)
-
-static PyObject *
-_PyMarshal_WriteObjectToString(PyObject *x, int version, int allow_code);
 
 static void
 w_PyLong(const PyLongObject *ob, char flag, WFILE *p)
@@ -534,28 +520,21 @@ w_complex_object(PyObject *v, char flag, WFILE *p)
             return;
         }
         Py_ssize_t i = 0;
-        Py_BEGIN_CRITICAL_SECTION(v);
-        while (_PySet_NextEntryRef(v, &pos, &value, &hash)) {
-            PyObject *dump = _PyMarshal_WriteObjectToString(value,
-                                    p->version, p->allow_code);
+        while (_PySet_NextEntry(v, &pos, &value, &hash)) {
+            PyObject *dump = PyMarshal_WriteObjectToString(value, p->version);
             if (dump == NULL) {
                 p->error = WFERR_UNMARSHALLABLE;
-                Py_DECREF(value);
-                break;
+                Py_DECREF(pairs);
+                return;
             }
             PyObject *pair = PyTuple_Pack(2, dump, value);
             Py_DECREF(dump);
-            Py_DECREF(value);
             if (pair == NULL) {
                 p->error = WFERR_NOMEMORY;
-                break;
+                Py_DECREF(pairs);
+                return;
             }
             PyList_SET_ITEM(pairs, i++, pair);
-        }
-        Py_END_CRITICAL_SECTION();
-        if (p->error == WFERR_UNMARSHALLABLE || p->error == WFERR_NOMEMORY) {
-            Py_DECREF(pairs);
-            return;
         }
         assert(i == n);
         if (PyList_Sort(pairs)) {
@@ -571,10 +550,6 @@ w_complex_object(PyObject *v, char flag, WFILE *p)
         Py_DECREF(pairs);
     }
     else if (PyCode_Check(v)) {
-        if (!p->allow_code) {
-            p->error = WFERR_CODE_NOT_ALLOWED;
-            return;
-        }
         PyCodeObject *co = (PyCodeObject *)v;
         PyObject *co_code = _PyCode_GetCode(co);
         if (co_code == NULL) {
@@ -683,7 +658,6 @@ PyMarshal_WriteObjectToFile(PyObject *x, FILE *fp, int version)
     wf.end = wf.ptr + sizeof(buf);
     wf.error = WFERR_OK;
     wf.version = version;
-    wf.allow_code = 1;
     if (w_init_refs(&wf, version)) {
         return; /* caller must check PyErr_Occurred() */
     }
@@ -701,7 +675,6 @@ typedef struct {
     char *buf;
     Py_ssize_t buf_size;
     PyObject *refs;  /* a list */
-    int allow_code;
 } RFILE;
 
 static const char *
@@ -1043,7 +1016,7 @@ r_object(RFILE *p)
         break;
 
     case TYPE_NONE:
-        retval = Py_None;
+        retval = Py_NewRef(Py_None);
         break;
 
     case TYPE_STOPITER:
@@ -1051,15 +1024,15 @@ r_object(RFILE *p)
         break;
 
     case TYPE_ELLIPSIS:
-        retval = Py_Ellipsis;
+        retval = Py_NewRef(Py_Ellipsis);
         break;
 
     case TYPE_FALSE:
-        retval = Py_False;
+        retval = Py_NewRef(Py_False);
         break;
 
     case TYPE_TRUE:
-        retval = Py_True;
+        retval = Py_NewRef(Py_True);
         break;
 
     case TYPE_INT:
@@ -1156,7 +1129,7 @@ r_object(RFILE *p)
 
     case TYPE_ASCII_INTERNED:
         is_interned = 1;
-        _Py_FALLTHROUGH;
+        /* fall through */
     case TYPE_ASCII:
         n = r_long(p);
         if (n < 0 || n > SIZE32_MAX) {
@@ -1170,7 +1143,7 @@ r_object(RFILE *p)
 
     case TYPE_SHORT_ASCII_INTERNED:
         is_interned = 1;
-        _Py_FALLTHROUGH;
+        /* fall through */
     case TYPE_SHORT_ASCII:
         n = r_byte(p);
         if (n == EOF) {
@@ -1185,12 +1158,8 @@ r_object(RFILE *p)
             v = PyUnicode_FromKindAndData(PyUnicode_1BYTE_KIND, ptr, n);
             if (v == NULL)
                 break;
-            if (is_interned) {
-                // marshal is meant to serialize .pyc files with code
-                // objects, and code-related strings are currently immortal.
-                PyInterpreterState *interp = _PyInterpreterState_GET();
-                _PyUnicode_InternImmortal(interp, &v);
-            }
+            if (is_interned)
+                PyUnicode_InternInPlace(&v);
             retval = v;
             R_REF(retval);
             break;
@@ -1198,7 +1167,7 @@ r_object(RFILE *p)
 
     case TYPE_INTERNED:
         is_interned = 1;
-        _Py_FALLTHROUGH;
+        /* fall through */
     case TYPE_UNICODE:
         {
         const char *buffer;
@@ -1222,12 +1191,8 @@ r_object(RFILE *p)
         }
         if (v == NULL)
             break;
-        if (is_interned) {
-            // marshal is meant to serialize .pyc files with code
-            // objects, and code-related strings are currently immortal.
-            PyInterpreterState *interp = _PyInterpreterState_GET();
-            _PyUnicode_InternImmortal(interp, &v);
-        }
+        if (is_interned)
+            PyUnicode_InternInPlace(&v);
         retval = v;
         R_REF(retval);
         break;
@@ -1400,11 +1365,6 @@ r_object(RFILE *p)
             PyObject* linetable = NULL;
             PyObject *exceptiontable = NULL;
 
-            if (!p->allow_code) {
-                PyErr_SetString(PyExc_ValueError,
-                                "unmarshalling code objects is disallowed");
-                break;
-            }
             idx = r_ref_reserve(flag, p);
             if (idx < 0)
                 break;
@@ -1650,7 +1610,6 @@ PyMarshal_ReadObjectFromFile(FILE *fp)
 {
     RFILE rf;
     PyObject *result;
-    rf.allow_code = 1;
     rf.fp = fp;
     rf.readable = NULL;
     rf.depth = 0;
@@ -1671,7 +1630,6 @@ PyMarshal_ReadObjectFromString(const char *str, Py_ssize_t len)
 {
     RFILE rf;
     PyObject *result;
-    rf.allow_code = 1;
     rf.fp = NULL;
     rf.readable = NULL;
     rf.ptr = str;
@@ -1688,8 +1646,8 @@ PyMarshal_ReadObjectFromString(const char *str, Py_ssize_t len)
     return result;
 }
 
-static PyObject *
-_PyMarshal_WriteObjectToString(PyObject *x, int version, int allow_code)
+PyObject *
+PyMarshal_WriteObjectToString(PyObject *x, int version)
 {
     WFILE wf;
 
@@ -1704,7 +1662,6 @@ _PyMarshal_WriteObjectToString(PyObject *x, int version, int allow_code)
     wf.end = wf.ptr + PyBytes_GET_SIZE(wf.str);
     wf.error = WFERR_OK;
     wf.version = version;
-    wf.allow_code = allow_code;
     if (w_init_refs(&wf, version)) {
         Py_DECREF(wf.str);
         return NULL;
@@ -1718,33 +1675,15 @@ _PyMarshal_WriteObjectToString(PyObject *x, int version, int allow_code)
     }
     if (wf.error != WFERR_OK) {
         Py_XDECREF(wf.str);
-        switch (wf.error) {
-        case WFERR_NOMEMORY:
+        if (wf.error == WFERR_NOMEMORY)
             PyErr_NoMemory();
-            break;
-        case WFERR_NESTEDTOODEEP:
+        else
             PyErr_SetString(PyExc_ValueError,
-                            "object too deeply nested to marshal");
-            break;
-        case WFERR_CODE_NOT_ALLOWED:
-            PyErr_SetString(PyExc_ValueError,
-                            "marshalling code objects is disallowed");
-            break;
-        default:
-        case WFERR_UNMARSHALLABLE:
-            PyErr_SetString(PyExc_ValueError,
-                            "unmarshallable object");
-            break;
-        }
+              (wf.error==WFERR_UNMARSHALLABLE)?"unmarshallable object"
+               :"object too deeply nested to marshal");
         return NULL;
     }
     return wf.str;
-}
-
-PyObject *
-PyMarshal_WriteObjectToString(PyObject *x, int version)
-{
-    return _PyMarshal_WriteObjectToString(x, version, 1);
 }
 
 /* And an interface for Python programs... */
@@ -1758,9 +1697,6 @@ marshal.dump
     version: int(c_default="Py_MARSHAL_VERSION") = version
         Indicates the data format that dump should use.
     /
-    *
-    allow_code: bool = True
-        Allow to write code objects.
 
 Write the value on the open file.
 
@@ -1771,17 +1707,17 @@ to the file. The object will not be properly read back by load().
 
 static PyObject *
 marshal_dump_impl(PyObject *module, PyObject *value, PyObject *file,
-                  int version, int allow_code)
-/*[clinic end generated code: output=429e5fd61c2196b9 input=041f7f6669b0aafb]*/
+                  int version)
+/*[clinic end generated code: output=aaee62c7028a7cb2 input=6c7a3c23c6fef556]*/
 {
     /* XXX Quick hack -- need to do this differently */
     PyObject *s;
     PyObject *res;
 
-    s = _PyMarshal_WriteObjectToString(value, version, allow_code);
+    s = PyMarshal_WriteObjectToString(value, version);
     if (s == NULL)
         return NULL;
-    res = PyObject_CallMethodOneArg(file, &_Py_ID(write), s);
+    res = _PyObject_CallMethodOneArg(file, &_Py_ID(write), s);
     Py_DECREF(s);
     return res;
 }
@@ -1792,9 +1728,6 @@ marshal.load
     file: object
         Must be readable binary file.
     /
-    *
-    allow_code: bool = True
-        Allow to load code objects.
 
 Read one value from the open file and return it.
 
@@ -1807,8 +1740,8 @@ dump(), load() will substitute None for the unmarshallable type.
 [clinic start generated code]*/
 
 static PyObject *
-marshal_load_impl(PyObject *module, PyObject *file, int allow_code)
-/*[clinic end generated code: output=0c1aaf3546ae3ed3 input=2dca7b570653b82f]*/
+marshal_load(PyObject *module, PyObject *file)
+/*[clinic end generated code: output=f8e5c33233566344 input=c85c2b594cd8124a]*/
 {
     PyObject *data, *result;
     RFILE rf;
@@ -1830,7 +1763,6 @@ marshal_load_impl(PyObject *module, PyObject *file, int allow_code)
         result = NULL;
     }
     else {
-        rf.allow_code = allow_code;
         rf.depth = 0;
         rf.fp = NULL;
         rf.readable = file;
@@ -1856,9 +1788,6 @@ marshal.dumps
     version: int(c_default="Py_MARSHAL_VERSION") = version
         Indicates the data format that dumps should use.
     /
-    *
-    allow_code: bool = True
-        Allow to write code objects.
 
 Return the bytes object that would be written to a file by dump(value, file).
 
@@ -1867,11 +1796,10 @@ unsupported type.
 [clinic start generated code]*/
 
 static PyObject *
-marshal_dumps_impl(PyObject *module, PyObject *value, int version,
-                   int allow_code)
-/*[clinic end generated code: output=115f90da518d1d49 input=167eaecceb63f0a8]*/
+marshal_dumps_impl(PyObject *module, PyObject *value, int version)
+/*[clinic end generated code: output=9c200f98d7256cad input=a2139ea8608e9b27]*/
 {
-    return _PyMarshal_WriteObjectToString(value, version, allow_code);
+    return PyMarshal_WriteObjectToString(value, version);
 }
 
 /*[clinic input]
@@ -1879,9 +1807,6 @@ marshal.loads
 
     bytes: Py_buffer
     /
-    *
-    allow_code: bool = True
-        Allow to load code objects.
 
 Convert the bytes-like object to a value.
 
@@ -1890,14 +1815,13 @@ bytes in the input are ignored.
 [clinic start generated code]*/
 
 static PyObject *
-marshal_loads_impl(PyObject *module, Py_buffer *bytes, int allow_code)
-/*[clinic end generated code: output=62c0c538d3edc31f input=14de68965b45aaa7]*/
+marshal_loads_impl(PyObject *module, Py_buffer *bytes)
+/*[clinic end generated code: output=9fc65985c93d1bb1 input=6f426518459c8495]*/
 {
     RFILE rf;
     char *s = bytes->buf;
     Py_ssize_t n = bytes->len;
     PyObject* result;
-    rf.allow_code = allow_code;
     rf.fp = NULL;
     rf.readable = NULL;
     rf.ptr = s;
@@ -1927,7 +1851,7 @@ machine architecture issues.\n\
 Not all Python object types are supported; in general, only objects\n\
 whose value is independent from a particular invocation of Python can be\n\
 written and read by this module. The following types are supported:\n\
-None, integers, floating-point numbers, strings, bytes, bytearrays,\n\
+None, integers, floating point numbers, strings, bytes, bytearrays,\n\
 tuples, lists, sets, dictionaries, and code objects, where it\n\
 should be understood that tuples, lists and dictionaries are only\n\
 supported as long as the values contained therein are themselves\n\
@@ -1938,7 +1862,7 @@ Variables:\n\
 \n\
 version -- indicates the format that the module uses. Version 0 is the\n\
     historical format, version 1 shares interned strings and version 2\n\
-    uses a binary format for floating-point numbers.\n\
+    uses a binary format for floating point numbers.\n\
     Version 3 shares common object references (New in version 3.4).\n\
 \n\
 Functions:\n\
@@ -1961,7 +1885,6 @@ marshal_module_exec(PyObject *mod)
 static PyModuleDef_Slot marshalmodule_slots[] = {
     {Py_mod_exec, marshal_module_exec},
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
 

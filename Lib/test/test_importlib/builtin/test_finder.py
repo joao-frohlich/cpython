@@ -4,6 +4,7 @@ machinery = util.import_importlib('importlib.machinery')
 
 import sys
 import unittest
+import warnings
 
 
 @unittest.skipIf(util.BUILTINS.good_name is None, 'no reasonable builtin module')

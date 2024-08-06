@@ -5,14 +5,15 @@
 #include "Python.h"
 #include "pycore_bitutils.h"      // _Py_popcount32()
 #include "pycore_initconfig.h"    // _PyStatus_OK()
-#include "pycore_call.h"          // _PyObject_MakeTpCall
 #include "pycore_long.h"          // _Py_SmallInts
 #include "pycore_object.h"        // _PyObject_Init()
 #include "pycore_runtime.h"       // _PY_NSMALLPOSINTS
 #include "pycore_structseq.h"     // _PyStructSequence_FiniBuiltin()
 
-#include <float.h>                // DBL_MANT_DIG
-#include <stddef.h>               // offsetof
+#include <ctype.h>
+#include <float.h>
+#include <stddef.h>
+#include <stdlib.h>               // abs()
 
 #include "clinic/longobject.c.h"
 /*[clinic input]
@@ -173,7 +174,7 @@ _PyLong_FromDigits(int negative, Py_ssize_t digit_count, digit *digits)
 {
     assert(digit_count >= 0);
     if (digit_count == 0) {
-        return (PyLongObject *)_PyLong_GetZero();
+        return (PyLongObject *)Py_NewRef(_PyLong_GetZero());
     }
     PyLongObject *result = _PyLong_New(digit_count);
     if (result == NULL) {
@@ -401,12 +402,12 @@ PyLong_FromDouble(double dval)
     double frac;
     int i, ndig, expo, neg;
     neg = 0;
-    if (isinf(dval)) {
+    if (Py_IS_INFINITY(dval)) {
         PyErr_SetString(PyExc_OverflowError,
                         "cannot convert float infinity to integer");
         return NULL;
     }
-    if (isnan(dval)) {
+    if (Py_IS_NAN(dval)) {
         PyErr_SetString(PyExc_ValueError,
                         "cannot convert float NaN to integer");
         return NULL;
@@ -483,18 +484,11 @@ PyLong_AsLongAndOverflow(PyObject *vv, int *overflow)
         do_decref = 1;
     }
     if (_PyLong_IsCompact(v)) {
-#if SIZEOF_LONG < SIZEOF_SIZE_T
-        Py_ssize_t tmp = _PyLong_CompactValue(v);
-        if (tmp < LONG_MIN) {
-            *overflow = -1;
-            res = -1;
-        }
-        else if (tmp > LONG_MAX) {
-            *overflow = 1;
-            res = -1;
-        }
-        else {
-            res = (long)tmp;
+#if SIZEOF_LONG < SIZEOF_VOID_P
+        intptr_t tmp = _PyLong_CompactValue(v);
+        res = (long)tmp;
+        if (res != tmp) {
+            *overflow = tmp < 0 ? -1 : 1;
         }
 #else
         res = _PyLong_CompactValue(v);
@@ -555,7 +549,7 @@ PyLong_AsLong(PyObject *obj)
    method.  Return -1 and set an error if overflow occurs. */
 
 int
-PyLong_AsInt(PyObject *obj)
+_PyLong_AsInt(PyObject *obj)
 {
     int overflow;
     long result = PyLong_AsLongAndOverflow(obj, &overflow);
@@ -639,15 +633,14 @@ PyLong_AsUnsignedLong(PyObject *vv)
 
     v = (PyLongObject *)vv;
     if (_PyLong_IsNonNegativeCompact(v)) {
-#if SIZEOF_LONG < SIZEOF_SIZE_T
-        size_t tmp = (size_t)_PyLong_CompactValue(v);
+#if SIZEOF_LONG < SIZEOF_VOID_P
+        intptr_t tmp = _PyLong_CompactValue(v);
         unsigned long res = (unsigned long)tmp;
         if (res != tmp) {
             goto overflow;
         }
-        return res;
 #else
-        return (unsigned long)(size_t)_PyLong_CompactValue(v);
+        return _PyLong_CompactValue(v);
 #endif
     }
     if (_PyLong_IsNegative(v)) {
@@ -693,7 +686,7 @@ PyLong_AsSize_t(PyObject *vv)
 
     v = (PyLongObject *)vv;
     if (_PyLong_IsNonNegativeCompact(v)) {
-        return (size_t)_PyLong_CompactValue(v);
+        return _PyLong_CompactValue(v);
     }
     if (_PyLong_IsNegative(v)) {
         PyErr_SetString(PyExc_OverflowError,
@@ -730,11 +723,7 @@ _PyLong_AsUnsignedLongMask(PyObject *vv)
     }
     v = (PyLongObject *)vv;
     if (_PyLong_IsCompact(v)) {
-#if SIZEOF_LONG < SIZEOF_SIZE_T
-        return (unsigned long)(size_t)_PyLong_CompactValue(v);
-#else
-        return (unsigned long)(long)_PyLong_CompactValue(v);
-#endif
+        return (unsigned long)_PyLong_CompactValue(v);
     }
     i = _PyLong_DigitCount(v);
     int sign = _PyLong_NonCompactSign(v);
@@ -780,18 +769,6 @@ _PyLong_Sign(PyObject *vv)
         return _PyLong_CompactSign(v);
     }
     return _PyLong_NonCompactSign(v);
-}
-
-int
-PyLong_GetSign(PyObject *vv, int *sign)
-{
-    if (!PyLong_Check(vv)) {
-        PyErr_Format(PyExc_TypeError, "expect int, got %T", vv);
-        return -1;
-    }
-
-    *sign = _PyLong_Sign(vv);
-    return 0;
 }
 
 static int
@@ -952,8 +929,7 @@ _PyLong_FromByteArray(const unsigned char* bytes, size_t n,
 int
 _PyLong_AsByteArray(PyLongObject* v,
                     unsigned char* bytes, size_t n,
-                    int little_endian, int is_signed,
-                    int with_exceptions)
+                    int little_endian, int is_signed)
 {
     Py_ssize_t i;               /* index into v->long_value.ob_digit */
     Py_ssize_t ndigits;         /* number of digits */
@@ -970,10 +946,8 @@ _PyLong_AsByteArray(PyLongObject* v,
     ndigits = _PyLong_DigitCount(v);
     if (_PyLong_IsNegative(v)) {
         if (!is_signed) {
-            if (with_exceptions) {
-                PyErr_SetString(PyExc_OverflowError,
-                                "can't convert negative int to unsigned");
-            }
+            PyErr_SetString(PyExc_OverflowError,
+                            "can't convert negative int to unsigned");
             return -1;
         }
         do_twos_comp = 1;
@@ -994,12 +968,7 @@ _PyLong_AsByteArray(PyLongObject* v,
     /* Copy over all the Python digits.
        It's crucial that every Python digit except for the MSD contribute
        exactly PyLong_SHIFT bits to the total, so first assert that the int is
-       normalized.
-       NOTE: PyLong_AsNativeBytes() assumes that this function will fill in 'n'
-       bytes even if it eventually fails to convert the whole number. Make sure
-       you account for that if you are changing this algorithm to return without
-       doing that.
-       */
+       normalized. */
     assert(ndigits == 0 || v->long_value.ob_digit[ndigits - 1] != 0);
     j = 0;
     accum = 0;
@@ -1084,264 +1053,10 @@ _PyLong_AsByteArray(PyLongObject* v,
     return 0;
 
   Overflow:
-    if (with_exceptions) {
-        PyErr_SetString(PyExc_OverflowError, "int too big to convert");
-    }
+    PyErr_SetString(PyExc_OverflowError, "int too big to convert");
     return -1;
 
 }
-
-// Refactored out for readability, not reuse
-static inline int
-_fits_in_n_bits(Py_ssize_t v, Py_ssize_t n)
-{
-    if (n >= (Py_ssize_t)sizeof(Py_ssize_t) * 8) {
-        return 1;
-    }
-    // If all bits above n are the same, we fit.
-    // (Use n-1 if we require the sign bit to be consistent.)
-    Py_ssize_t v_extended = v >> ((int)n - 1);
-    return v_extended == 0 || v_extended == -1;
-}
-
-static inline int
-_resolve_endianness(int *endianness)
-{
-    if (*endianness == -1 || (*endianness & 2)) {
-        *endianness = PY_LITTLE_ENDIAN;
-    } else {
-        *endianness &= 1;
-    }
-    assert(*endianness == 0 || *endianness == 1);
-    return 0;
-}
-
-Py_ssize_t
-PyLong_AsNativeBytes(PyObject* vv, void* buffer, Py_ssize_t n, int flags)
-{
-    PyLongObject *v;
-    union {
-        Py_ssize_t v;
-        unsigned char b[sizeof(Py_ssize_t)];
-    } cv;
-    int do_decref = 0;
-    Py_ssize_t res = 0;
-
-    if (vv == NULL || n < 0) {
-        PyErr_BadInternalCall();
-        return -1;
-    }
-
-    int little_endian = flags;
-    if (_resolve_endianness(&little_endian) < 0) {
-        return -1;
-    }
-
-    if (PyLong_Check(vv)) {
-        v = (PyLongObject *)vv;
-    }
-    else if (flags != -1 && (flags & Py_ASNATIVEBYTES_ALLOW_INDEX)) {
-        v = (PyLongObject *)_PyNumber_Index(vv);
-        if (v == NULL) {
-            return -1;
-        }
-        do_decref = 1;
-    }
-    else {
-        PyErr_Format(PyExc_TypeError, "expect int, got %T", vv);
-        return -1;
-    }
-
-    if ((flags != -1 && (flags & Py_ASNATIVEBYTES_REJECT_NEGATIVE))
-        && _PyLong_IsNegative(v)) {
-        PyErr_SetString(PyExc_ValueError, "Cannot convert negative int");
-        if (do_decref) {
-            Py_DECREF(v);
-        }
-        return -1;
-    }
-
-    if (_PyLong_IsCompact(v)) {
-        res = 0;
-        cv.v = _PyLong_CompactValue(v);
-        /* Most paths result in res = sizeof(compact value). Only the case
-         * where 0 < n < sizeof(compact value) do we need to check and adjust
-         * our return value. */
-        res = sizeof(cv.b);
-        if (n <= 0) {
-            // nothing to do!
-        }
-        else if (n <= (Py_ssize_t)sizeof(cv.b)) {
-#if PY_LITTLE_ENDIAN
-            if (little_endian) {
-                memcpy(buffer, cv.b, n);
-            }
-            else {
-                for (Py_ssize_t i = 0; i < n; ++i) {
-                    ((unsigned char*)buffer)[n - i - 1] = cv.b[i];
-                }
-            }
-#else
-            if (little_endian) {
-                for (Py_ssize_t i = 0; i < n; ++i) {
-                    ((unsigned char*)buffer)[i] = cv.b[sizeof(cv.b) - i - 1];
-                }
-            }
-            else {
-                memcpy(buffer, &cv.b[sizeof(cv.b) - n], n);
-            }
-#endif
-
-            /* If we fit, return the requested number of bytes */
-            if (_fits_in_n_bits(cv.v, n * 8)) {
-                res = n;
-            } else if (cv.v > 0 && _fits_in_n_bits(cv.v, n * 8 + 1)) {
-                /* Positive values with the MSB set do not require an
-                 * additional bit when the caller's intent is to treat them
-                 * as unsigned. */
-                if (flags == -1 || (flags & Py_ASNATIVEBYTES_UNSIGNED_BUFFER)) {
-                    res = n;
-                } else {
-                    res = n + 1;
-                }
-            }
-        }
-        else {
-            unsigned char fill = cv.v < 0 ? 0xFF : 0x00;
-#if PY_LITTLE_ENDIAN
-            if (little_endian) {
-                memcpy(buffer, cv.b, sizeof(cv.b));
-                memset((char *)buffer + sizeof(cv.b), fill, n - sizeof(cv.b));
-            }
-            else {
-                unsigned char *b = (unsigned char *)buffer;
-                for (Py_ssize_t i = 0; i < n - (int)sizeof(cv.b); ++i) {
-                    *b++ = fill;
-                }
-                for (Py_ssize_t i = sizeof(cv.b); i > 0; --i) {
-                    *b++ = cv.b[i - 1];
-                }
-            }
-#else
-            if (little_endian) {
-                unsigned char *b = (unsigned char *)buffer;
-                for (Py_ssize_t i = sizeof(cv.b); i > 0; --i) {
-                    *b++ = cv.b[i - 1];
-                }
-                for (Py_ssize_t i = 0; i < n - (int)sizeof(cv.b); ++i) {
-                    *b++ = fill;
-                }
-            }
-            else {
-                memset(buffer, fill, n - sizeof(cv.b));
-                memcpy((char *)buffer + n - sizeof(cv.b), cv.b, sizeof(cv.b));
-            }
-#endif
-        }
-    }
-    else {
-        if (n > 0) {
-            _PyLong_AsByteArray(v, buffer, (size_t)n, little_endian, 1, 0);
-        }
-
-        /* Calculates the number of bits required for the *absolute* value
-         * of v. This does not take sign into account, only magnitude. */
-        size_t nb = _PyLong_NumBits((PyObject *)v);
-        if (nb == (size_t)-1) {
-            res = -1;
-        } else {
-            /* Normally this would be((nb - 1) / 8) + 1 to avoid rounding up
-             * multiples of 8 to the next byte, but we add an implied bit for
-             * the sign and it cancels out. */
-            res = (Py_ssize_t)(nb / 8) + 1;
-        }
-
-        /* Two edge cases exist that are best handled after extracting the
-         * bits. These may result in us reporting overflow when the value
-         * actually fits.
-         */
-        if (n > 0 && res == n + 1 && nb % 8 == 0) {
-            if (_PyLong_IsNegative(v)) {
-                /* Values of 0x80...00 from negative values that use every
-                 * available bit in the buffer do not require an additional
-                 * bit to store the sign. */
-                int is_edge_case = 1;
-                unsigned char *b = (unsigned char *)buffer;
-                for (Py_ssize_t i = 0; i < n && is_edge_case; ++i, ++b) {
-                    if (i == 0) {
-                        is_edge_case = (*b == (little_endian ? 0 : 0x80));
-                    } else if (i < n - 1) {
-                        is_edge_case = (*b == 0);
-                    } else {
-                        is_edge_case = (*b == (little_endian ? 0x80 : 0));
-                    }
-                }
-                if (is_edge_case) {
-                    res = n;
-                }
-            }
-            else {
-                /* Positive values with the MSB set do not require an
-                 * additional bit when the caller's intent is to treat them
-                 * as unsigned. */
-                unsigned char *b = (unsigned char *)buffer;
-                if (b[little_endian ? n - 1 : 0] & 0x80) {
-                    if (flags == -1 || (flags & Py_ASNATIVEBYTES_UNSIGNED_BUFFER)) {
-                        res = n;
-                    } else {
-                        res = n + 1;
-                    }
-                }
-            }
-        }
-    }
-
-    if (do_decref) {
-        Py_DECREF(v);
-    }
-
-    return res;
-}
-
-
-PyObject *
-PyLong_FromNativeBytes(const void* buffer, size_t n, int flags)
-{
-    if (!buffer) {
-        PyErr_BadInternalCall();
-        return NULL;
-    }
-
-    int little_endian = flags;
-    if (_resolve_endianness(&little_endian) < 0) {
-        return NULL;
-    }
-
-    return _PyLong_FromByteArray(
-        (const unsigned char *)buffer,
-        n,
-        little_endian,
-        (flags == -1 || !(flags & Py_ASNATIVEBYTES_UNSIGNED_BUFFER)) ? 1 : 0
-    );
-}
-
-
-PyObject *
-PyLong_FromUnsignedNativeBytes(const void* buffer, size_t n, int flags)
-{
-    if (!buffer) {
-        PyErr_BadInternalCall();
-        return NULL;
-    }
-
-    int little_endian = flags;
-    if (_resolve_endianness(&little_endian) < 0) {
-        return NULL;
-    }
-
-    return _PyLong_FromByteArray((const unsigned char *)buffer, n, little_endian, 0);
-}
-
 
 /* Create a new int object from a C pointer */
 
@@ -1517,7 +1232,7 @@ PyLong_AsLongLong(PyObject *vv)
     }
     else {
         res = _PyLong_AsByteArray((PyLongObject *)v, (unsigned char *)&bytes,
-                                  SIZEOF_LONG_LONG, PY_LITTLE_ENDIAN, 1, 1);
+                                  SIZEOF_LONG_LONG, PY_LITTLE_ENDIAN, 1);
     }
     if (do_decref) {
         Py_DECREF(v);
@@ -1552,22 +1267,11 @@ PyLong_AsUnsignedLongLong(PyObject *vv)
     v = (PyLongObject*)vv;
     if (_PyLong_IsNonNegativeCompact(v)) {
         res = 0;
-#if SIZEOF_LONG_LONG < SIZEOF_SIZE_T
-        size_t tmp = (size_t)_PyLong_CompactValue(v);
-        bytes = (unsigned long long)tmp;
-        if (bytes != tmp) {
-            PyErr_SetString(PyExc_OverflowError,
-                            "Python int too large to convert "
-                            "to C unsigned long long");
-            res = -1;
-        }
-#else
-        bytes = (unsigned long long)(size_t)_PyLong_CompactValue(v);
-#endif
+        bytes = _PyLong_CompactValue(v);
     }
     else {
         res = _PyLong_AsByteArray((PyLongObject *)vv, (unsigned char *)&bytes,
-                              SIZEOF_LONG_LONG, PY_LITTLE_ENDIAN, 0, 1);
+                              SIZEOF_LONG_LONG, PY_LITTLE_ENDIAN, 0);
     }
 
     /* Plan 9 can't handle long long in ? : expressions */
@@ -1594,11 +1298,7 @@ _PyLong_AsUnsignedLongLongMask(PyObject *vv)
     }
     v = (PyLongObject *)vv;
     if (_PyLong_IsCompact(v)) {
-#if SIZEOF_LONG_LONG < SIZEOF_SIZE_T
-        return (unsigned long long)(size_t)_PyLong_CompactValue(v);
-#else
-        return (unsigned long long)(long long)_PyLong_CompactValue(v);
-#endif
+        return (unsigned long long)(signed long long)_PyLong_CompactValue(v);
     }
     i = _PyLong_DigitCount(v);
     sign = _PyLong_NonCompactSign(v);
@@ -1670,22 +1370,7 @@ PyLong_AsLongLongAndOverflow(PyObject *vv, int *overflow)
         do_decref = 1;
     }
     if (_PyLong_IsCompact(v)) {
-#if SIZEOF_LONG_LONG < SIZEOF_SIZE_T
-        Py_ssize_t tmp = _PyLong_CompactValue(v);
-        if (tmp < LLONG_MIN) {
-            *overflow = -1;
-            res = -1;
-        }
-        else if (tmp > LLONG_MAX) {
-            *overflow = 1;
-            res = -1;
-        }
-        else {
-            res = (long long)tmp;
-        }
-#else
         res = _PyLong_CompactValue(v);
-#endif
     }
     else {
         i = _PyLong_DigitCount(v);
@@ -3167,7 +2852,8 @@ long_divrem(PyLongObject *a, PyLongObject *b,
     PyLongObject *z;
 
     if (size_b == 0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+        PyErr_SetString(PyExc_ZeroDivisionError,
+                        "integer division or modulo by zero");
         return -1;
     }
     if (size_a < size_b ||
@@ -3178,7 +2864,8 @@ long_divrem(PyLongObject *a, PyLongObject *b,
         if (*prem == NULL) {
             return -1;
         }
-        *pdiv = (PyLongObject*)_PyLong_GetZero();
+        PyObject *zero = _PyLong_GetZero();
+        *pdiv = (PyLongObject*)Py_NewRef(zero);
         return 0;
     }
     if (size_b == 1) {
@@ -3230,7 +2917,7 @@ long_rem(PyLongObject *a, PyLongObject *b, PyLongObject **prem)
 
     if (size_b == 0) {
         PyErr_SetString(PyExc_ZeroDivisionError,
-                        "division by zero");
+                        "integer modulo by zero");
         return -1;
     }
     if (size_a < size_b ||
@@ -3621,7 +3308,7 @@ long_hash(PyLongObject *v)
     int sign;
 
     if (_PyLong_IsCompact(v)) {
-        x = (Py_uhash_t)_PyLong_CompactValue(v);
+        x = _PyLong_CompactValue(v);
         if (x == (Py_uhash_t)-1) {
             x = (Py_uhash_t)-2;
         }
@@ -3852,7 +3539,7 @@ x_mul(PyLongObject *a, PyLongObject *b)
     memset(z->long_value.ob_digit, 0, _PyLong_DigitCount(z) * sizeof(digit));
     if (a == b) {
         /* Efficient squaring per HAC, Algorithm 14.16:
-         * https://cacr.uwaterloo.ca/hac/about/chap14.pdf
+         * http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf
          * Gives slightly less than a 2x speedup when a == b,
          * via exploiting that each entry in the multiplication
          * pyramid appears twice (except for the size_a squares).
@@ -5060,7 +4747,7 @@ long_pow(PyObject *v, PyObject *w, PyObject *x)
     }
     else if (i <= HUGE_EXP_CUTOFF / PyLong_SHIFT ) {
         /* Left-to-right binary exponentiation (HAC Algorithm 14.79) */
-        /* https://cacr.uwaterloo.ca/hac/about/chap14.pdf            */
+        /* http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf    */
 
         /* Find the first significant exponent bit. Search right to left
          * because we're primarily trying to cut overhead for small powers.
@@ -6091,7 +5778,7 @@ _PyLong_DivmodNear(PyObject *a, PyObject *b)
 /*[clinic input]
 int.__round__
 
-    ndigits as o_ndigits: object = None
+    ndigits as o_ndigits: object = NULL
     /
 
 Rounding an Integral returns itself.
@@ -6101,7 +5788,7 @@ Rounding with an ndigits argument also returns an integer.
 
 static PyObject *
 int___round___impl(PyObject *self, PyObject *o_ndigits)
-/*[clinic end generated code: output=954fda6b18875998 input=30c2aec788263144]*/
+/*[clinic end generated code: output=954fda6b18875998 input=1614cf23ec9e18c3]*/
 {
     PyObject *temp, *result, *ndigits;
 
@@ -6119,7 +5806,7 @@ int___round___impl(PyObject *self, PyObject *o_ndigits)
      *
      *   m - divmod_near(m, 10**n)[1].
      */
-    if (o_ndigits == Py_None)
+    if (o_ndigits == NULL)
         return long_long(self);
 
     ndigits = _PyNumber_Index(o_ndigits);
@@ -6348,7 +6035,7 @@ int.to_bytes
         the most significant byte is at the beginning of the byte array.  If
         byteorder is 'little', the most significant byte is at the end of the
         byte array.  To request the native byte order of the host system, use
-        sys.byteorder as the byte order value.  Default is to use 'big'.
+        `sys.byteorder' as the byte order value.  Default is to use 'big'.
     *
     signed as is_signed: bool = False
         Determines whether two's complement is used to represent the integer.
@@ -6361,7 +6048,7 @@ Return an array of bytes representing an integer.
 static PyObject *
 int_to_bytes_impl(PyObject *self, Py_ssize_t length, PyObject *byteorder,
                   int is_signed)
-/*[clinic end generated code: output=89c801df114050a3 input=a0103d0e9ad85c2b]*/
+/*[clinic end generated code: output=89c801df114050a3 input=d42ecfb545039d71]*/
 {
     int little_endian;
     PyObject *bytes;
@@ -6390,7 +6077,7 @@ int_to_bytes_impl(PyObject *self, Py_ssize_t length, PyObject *byteorder,
 
     if (_PyLong_AsByteArray((PyLongObject *)self,
                             (unsigned char *)PyBytes_AS_STRING(bytes),
-                            length, little_endian, is_signed, 1) < 0) {
+                            length, little_endian, is_signed) < 0) {
         Py_DECREF(bytes);
         return NULL;
     }
@@ -6412,7 +6099,7 @@ int.from_bytes
         the most significant byte is at the beginning of the byte array.  If
         byteorder is 'little', the most significant byte is at the end of the
         byte array.  To request the native byte order of the host system, use
-        sys.byteorder as the byte order value.  Default is to use 'big'.
+        `sys.byteorder' as the byte order value.  Default is to use 'big'.
     *
     signed as is_signed: bool = False
         Indicates whether two's complement is used to represent the integer.
@@ -6423,7 +6110,7 @@ Return the integer represented by the given array of bytes.
 static PyObject *
 int_from_bytes_impl(PyTypeObject *type, PyObject *bytes_obj,
                     PyObject *byteorder, int is_signed)
-/*[clinic end generated code: output=efc5d68e31f9314f input=2ff527997fe7b0c5]*/
+/*[clinic end generated code: output=efc5d68e31f9314f input=33326dccdd655553]*/
 {
     int little_endian;
     PyObject *long_obj, *bytes;
@@ -6475,29 +6162,6 @@ int_is_integer_impl(PyObject *self)
     Py_RETURN_TRUE;
 }
 
-static PyObject *
-long_vectorcall(PyObject *type, PyObject * const*args,
-                 size_t nargsf, PyObject *kwnames)
-{
-    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
-    if (kwnames != NULL) {
-        PyThreadState *tstate = PyThreadState_GET();
-        return _PyObject_MakeTpCall(tstate, type, args, nargs, kwnames);
-    }
-    switch (nargs) {
-        case 0:
-            return _PyLong_GetZero();
-        case 1:
-            return PyNumber_Long(args[0]);
-        case 2:
-            return long_new_impl(_PyType_CAST(type), args[0], args[1]);
-        default:
-            return PyErr_Format(PyExc_TypeError,
-                                "int expected at most 2 arguments, got %zd",
-                                nargs);
-    }
-}
-
 static PyMethodDef long_methods[] = {
     {"conjugate",       long_long_meth, METH_NOARGS,
      "Returns self, the complex conjugate of any int."},
@@ -6545,7 +6209,7 @@ PyDoc_STRVAR(long_doc,
 int(x, base=10) -> integer\n\
 \n\
 Convert a number or string to an integer, or return 0 if no arguments\n\
-are given.  If x is a number, return x.__int__().  For floating-point\n\
+are given.  If x is a number, return x.__int__().  For floating point\n\
 numbers, this truncates towards zero.\n\
 \n\
 If x is not a number or if base is given, then x must be a string,\n\
@@ -6635,7 +6299,6 @@ PyTypeObject PyLong_Type = {
     0,                                          /* tp_alloc */
     long_new,                                   /* tp_new */
     PyObject_Free,                              /* tp_free */
-    .tp_vectorcall = long_vectorcall,
 };
 
 static PyTypeObject Int_InfoType;
@@ -6718,12 +6381,12 @@ _PyLong_FiniTypes(PyInterpreterState *interp)
 
 int
 PyUnstable_Long_IsCompact(const PyLongObject* op) {
-    return _PyLong_IsCompact((PyLongObject*)op);
+    return _PyLong_IsCompact(op);
 }
 
 #undef PyUnstable_Long_CompactValue
 
 Py_ssize_t
 PyUnstable_Long_CompactValue(const PyLongObject* op) {
-    return _PyLong_CompactValue((PyLongObject*)op);
+    return _PyLong_CompactValue(op);
 }

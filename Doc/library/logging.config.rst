@@ -685,8 +685,7 @@ resolve to ``'dev_team@domain.tld'`` and the string
 ``'support_team@domain.tld'``. The ``subject`` value could be accessed
 using either ``'cfg://handlers.email.subject'`` or, equivalently,
 ``'cfg://handlers.email[subject]'``.  The latter form only needs to be
-used if the key contains spaces or non-alphanumeric characters. Please note
-that the characters ``[`` and ``]`` are not allowed in the keys. If an
+used if the key contains spaces or non-alphanumeric characters.  If an
 index value consists only of decimal digits, access will be attempted
 using the corresponding integer value, falling back to the string
 value if needed.
@@ -753,12 +752,9 @@ The ``queue`` and ``listener`` keys are optional.
 
 If the ``queue`` key is present, the corresponding value can be one of the following:
 
-* An object implementing the :class:`queue.Queue` public API. For instance,
-  this may be an actual instance of :class:`queue.Queue` or a subclass thereof,
-  or a proxy obtained by :meth:`multiprocessing.managers.SyncManager.Queue`.
-
-  This is of course only possible if you are constructing or modifying
-  the configuration dictionary in code.
+* An actual instance of :class:`queue.Queue` or a subclass thereof. This is of course
+  only possible if you are constructing or modifying the configuration dictionary in
+  code.
 
 * A string that resolves to a callable which, when called with no arguments, returns
   the :class:`queue.Queue` instance to use. That callable could be a

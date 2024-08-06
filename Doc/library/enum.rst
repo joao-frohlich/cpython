@@ -165,7 +165,7 @@ Data Types
    to subclass *EnumType* -- see :ref:`Subclassing EnumType <enumtype-examples>`
    for details.
 
-   ``EnumType`` is responsible for setting the correct :meth:`!__repr__`,
+   *EnumType* is responsible for setting the correct :meth:`!__repr__`,
    :meth:`!__str__`, :meth:`!__format__`, and :meth:`!__reduce__` methods on the
    final *enum*, as well as creating the enum members, properly handling
    duplicates, providing iteration over the enum class, etc.
@@ -246,19 +246,9 @@ Data Types
         >>> list(reversed(Color))
         [<Color.BLUE: 3>, <Color.GREEN: 2>, <Color.RED: 1>]
 
-   .. method:: EnumType._add_alias_
-
-      Adds a new name as an alias to an existing member.  Raises a
-      :exc:`NameError` if the name is already assigned to a different member.
-
-   .. method:: EnumType._add_value_alias_
-
-      Adds a new value as an alias to an existing member.  Raises a
-      :exc:`ValueError` if the value is already linked with a different member.
-
    .. versionadded:: 3.11
 
-      Before 3.11 ``EnumType`` was called ``EnumMeta``, which is still available as an alias.
+      Before 3.11 ``enum`` used ``EnumMeta`` type, which is kept as an alias.
 
 
 .. class:: Enum
@@ -468,7 +458,7 @@ Data Types
 
 .. class:: IntEnum
 
-   *IntEnum* is the same as :class:`Enum`, but its members are also integers and can be
+   *IntEnum* is the same as *Enum*, but its members are also integers and can be
    used anywhere that an integer can be used.  If any integer operation is performed
    with an *IntEnum* member, the resulting value loses its enumeration status.
 
@@ -499,7 +489,7 @@ Data Types
 
 .. class:: StrEnum
 
-   ``StrEnum`` is the same as :class:`Enum`, but its members are also strings and can be used
+   *StrEnum* is the same as *Enum*, but its members are also strings and can be used
    in most of the same places that a string can be used.  The result of any string
    operation performed on or with a *StrEnum* member is not part of the enumeration.
 
@@ -527,7 +517,7 @@ Data Types
 
    ``Flag`` is the same as :class:`Enum`, but its members support the bitwise
    operators ``&`` (*AND*), ``|`` (*OR*), ``^`` (*XOR*), and ``~`` (*INVERT*);
-   the results of those operations are (aliases of) members of the enumeration.
+   the results of those operators are members of the enumeration.
 
    .. method:: __contains__(self, value)
 
@@ -609,7 +599,7 @@ Data Types
 
    .. method:: __invert__(self):
 
-      Returns all the flags in *type(self)* that are not in *self*::
+      Returns all the flags in *type(self)* that are not in self::
 
          >>> ~white
          <Color: 0>
@@ -629,14 +619,14 @@ Data Types
       of two, starting with ``1``.
 
    .. versionchanged:: 3.11 The *repr()* of zero-valued flags has changed.  It
-      is now:
+      is now::
 
          >>> Color(0) # doctest: +SKIP
          <Color: 0>
 
 .. class:: IntFlag
 
-   ``IntFlag`` is the same as :class:`Flag`, but its members are also integers and can be
+   *IntFlag* is the same as *Flag*, but its members are also integers and can be
    used anywhere that an integer can be used.
 
       >>> from enum import IntFlag, auto
@@ -656,12 +646,12 @@ Data Types
         >>> Color.RED + 2
         3
 
-   If a :class:`Flag` operation is performed with an *IntFlag* member and:
+   If a *Flag* operation is performed with an *IntFlag* member and:
 
    * the result is a valid *IntFlag*: an *IntFlag* is returned
-   * the result is not a valid *IntFlag*: the result depends on the :class:`FlagBoundary` setting
+   * the result is not a valid *IntFlag*: the result depends on the *FlagBoundary* setting
 
-   The :func:`repr()` of unnamed zero-valued flags has changed.  It is now:
+   The *repr()* of unnamed zero-valued flags has changed.  It is now:
 
       >>> Color(0)
       <Color: 0>
@@ -757,7 +747,7 @@ Data Types
 
 .. class:: FlagBoundary
 
-   ``FlagBoundary`` controls how out-of-range values are handled in :class:`Flag` and its
+   *FlagBoundary* controls how out-of-range values are handled in *Flag* and its
    subclasses.
 
    .. attribute:: STRICT
@@ -780,7 +770,7 @@ Data Types
 
    .. attribute:: CONFORM
 
-      Out-of-range values have invalid values removed, leaving a valid :class:`Flag`
+      Out-of-range values have invalid values removed, leaving a valid *Flag*
       value::
 
          >>> from enum import Flag, CONFORM, auto
@@ -794,7 +784,7 @@ Data Types
 
    .. attribute:: EJECT
 
-      Out-of-range values lose their :class:`Flag` membership and revert to :class:`int`.
+      Out-of-range values lose their *Flag* membership and revert to :class:`int`.
 
          >>> from enum import Flag, EJECT, auto
          >>> class EjectFlag(Flag, boundary=EJECT):
@@ -807,7 +797,7 @@ Data Types
 
    .. attribute:: KEEP
 
-      Out-of-range values are kept, and the :class:`Flag` membership is kept.
+      Out-of-range values are kept, and the *Flag* membership is kept.
       This is the default for :class:`IntFlag`::
 
          >>> from enum import Flag, KEEP, auto
@@ -829,18 +819,14 @@ Supported ``__dunder__`` names
 :attr:`~EnumType.__members__` is a read-only ordered mapping of ``member_name``:``member``
 items.  It is only available on the class.
 
-:meth:`~Enum.__new__`, if specified, must create and return the enum members;
-it is also a very good idea to set the member's :attr:`!_value_` appropriately.
-Once all the members are created it is no longer used.
+:meth:`~Enum.__new__`, if specified, must create and return the enum members; it is
+also a very good idea to set the member's :attr:`!_value_` appropriately.  Once
+all the members are created it is no longer used.
 
 
 Supported ``_sunder_`` names
 """"""""""""""""""""""""""""
 
-- :meth:`~EnumType._add_alias_` -- adds a new name as an alias to an existing
-  member.
-- :meth:`~EnumType._add_value_alias_` -- adds a new value as an alias to an
-  existing member.
 - :attr:`~Enum._name_` -- name of the member
 - :attr:`~Enum._value_` -- value of the member; can be set in ``__new__``
 - :meth:`~Enum._missing_` -- a lookup function used when a value is not found;
@@ -855,21 +841,14 @@ Supported ``_sunder_`` names
 
   .. note::
 
-     For standard :class:`Enum` classes the next value chosen is the highest
-     value seen incremented by one.
+     For standard :class:`Enum` classes the next value chosen is the last value seen
+     incremented by one.
 
      For :class:`Flag` classes the next value chosen will be the next highest
-     power-of-two.
-
-- While ``_sunder_`` names are generally reserved for the further development
-  of the :class:`Enum` class and can not be used, some are explicitly allowed:
-
-  - ``_repr_*`` (e.g. ``_repr_html_``), as used in `IPython's rich display`_
+     power-of-two, regardless of the last value seen.
 
 .. versionadded:: 3.6 ``_missing_``, ``_order_``, ``_generate_next_value_``
 .. versionadded:: 3.7 ``_ignore_``
-.. versionadded:: 3.13 ``_add_alias_``, ``_add_value_alias_``, ``_repr_*``
-.. _`IPython's rich display`: https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
 
 ---------------
 
@@ -879,10 +858,10 @@ Utilities and Decorators
 .. class:: auto
 
    *auto* can be used in place of a value.  If used, the *Enum* machinery will
-   call an :class:`Enum`'s :meth:`~Enum._generate_next_value_` to get an appropriate value.
-   For :class:`Enum` and :class:`IntEnum` that appropriate value will be the last value plus
-   one; for :class:`Flag` and :class:`IntFlag` it will be the first power-of-two greater
-   than the highest value; for :class:`StrEnum` it will be the lower-cased version of
+   call an *Enum*'s :meth:`~Enum._generate_next_value_` to get an appropriate value.
+   For *Enum* and *IntEnum* that appropriate value will be the last value plus
+   one; for *Flag* and *IntFlag* it will be the first power-of-two greater
+   than the highest value; for *StrEnum* it will be the lower-cased version of
    the member's name.  Care must be taken if mixing *auto()* with manually
    specified values.
 

@@ -1571,14 +1571,6 @@ Test cases
 
    .. versionadded:: 3.8
 
-   .. attribute:: loop_factory
-
-      The *loop_factory* passed to :class:`asyncio.Runner`. Override
-      in subclasses with :class:`asyncio.EventLoop` to avoid using the
-      asyncio policy system.
-
-      .. versionadded:: 3.13
-
    .. coroutinemethod:: asyncSetUp()
 
       Method called to prepare the test fixture. This is called after :meth:`setUp`.
@@ -1932,7 +1924,7 @@ Loading and running tests
          *start_dir* can not be a :term:`namespace packages <namespace package>`.
          It has been broken since Python 3.7 and Python 3.11 officially remove it.
 
-      .. versionchanged:: 3.13
+      .. versionchanged:: 3.12.4
          *top_level_dir* is only stored for the duration of *discover* call.
 
 
@@ -2316,8 +2308,8 @@ Loading and running tests
    (see :ref:`Warning control <using-on-warnings>`),
    otherwise it will be set to ``'default'``.
 
-   Calling ``main`` returns an object with the ``result`` attribute that contains
-   the result of the tests run as a :class:`unittest.TestResult`.
+   Calling ``main`` actually returns an instance of the ``TestProgram`` class.
+   This stores the result of the tests run as the ``result`` attribute.
 
    .. versionchanged:: 3.1
       The *exit* parameter was added.

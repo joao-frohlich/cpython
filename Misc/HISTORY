@@ -3952,7 +3952,7 @@ Library
 - Issue #18626: the inspect module now offers a basic command line
   introspection interface (Initial patch by Claudiu Popa)
 
-- Issue #3015: Fixed tkinter with ``wantobjects=False``.  Any Tcl command call
+- Issue #3015: Fixed tkinter with wantobject=False.  Any Tcl command call
   returned empty string.
 
 - Issue #19037: The mailbox module now makes all changes to maildir files
@@ -16169,7 +16169,7 @@ Core and Builtins
   codec subsystem, for example UTF-8 is turned into utf-8.
 
 - Issue #4200: Changed the atexit module to store its state in its
-  PyModuleDef atexitmodule. This fixes a bug with multiple subinterpreters.
+  PyModuleDef atexitmodule. This fixes a bug with multiple subinterpeters.
 
 - Issue #4237: io.FileIO() was raising invalid warnings caused by
   insufficient initialization of PyFileIOObject struct members.

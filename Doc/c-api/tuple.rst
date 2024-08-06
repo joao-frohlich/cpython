@@ -95,21 +95,12 @@ Tuple Objects
    Like :c:func:`PyTuple_SetItem`, but does no error checking, and should *only* be
    used to fill in brand new tuples.
 
-   Bounds checking is performed as an assertion if Python is built in
-   :ref:`debug mode <debug-build>` or :option:`with assertions <--with-assertions>`.
-
    .. note::
 
       This function "steals" a reference to *o*, and, unlike
       :c:func:`PyTuple_SetItem`, does *not* discard a reference to any item that
       is being replaced; any reference in the tuple at position *pos* will be
       leaked.
-
-   .. warning::
-
-      This macro should *only* be used on tuples that are newly created.
-      Using this macro on a tuple that is already in use (or in other words, has
-      a refcount > 1) could lead to undefined behavior.
 
 
 .. c:function:: int _PyTuple_Resize(PyObject **p, Py_ssize_t newsize)
@@ -211,17 +202,12 @@ type.
 .. c:function:: PyObject* PyStructSequence_GetItem(PyObject *p, Py_ssize_t pos)
 
    Return the object at position *pos* in the struct sequence pointed to by *p*.
-
-   Bounds checking is performed as an assertion if Python is built in
-   :ref:`debug mode <debug-build>` or :option:`with assertions <--with-assertions>`.
+   No bounds checking is performed.
 
 
 .. c:function:: PyObject* PyStructSequence_GET_ITEM(PyObject *p, Py_ssize_t pos)
 
-   Alias to :c:func:`PyStructSequence_GetItem`.
-
-   .. versionchanged:: 3.13
-      Now implemented as an alias to :c:func:`PyStructSequence_GetItem`.
+   Macro equivalent of :c:func:`PyStructSequence_GetItem`.
 
 
 .. c:function:: void PyStructSequence_SetItem(PyObject *p, Py_ssize_t pos, PyObject *o)
@@ -230,9 +216,6 @@ type.
    :c:func:`PyTuple_SET_ITEM`, this should only be used to fill in brand new
    instances.
 
-   Bounds checking is performed as an assertion if Python is built in
-   :ref:`debug mode <debug-build>` or :option:`with assertions <--with-assertions>`.
-
    .. note::
 
       This function "steals" a reference to *o*.
@@ -240,7 +223,9 @@ type.
 
 .. c:function:: void PyStructSequence_SET_ITEM(PyObject *p, Py_ssize_t *pos, PyObject *o)
 
-   Alias to :c:func:`PyStructSequence_SetItem`.
+   Similar to :c:func:`PyStructSequence_SetItem`, but implemented as a static
+   inlined function.
 
-   .. versionchanged:: 3.13
-      Now implemented as an alias to :c:func:`PyStructSequence_SetItem`.
+   .. note::
+
+      This function "steals" a reference to *o*.

@@ -131,31 +131,29 @@ xxlimited_35
 The following sub-projects are for individual modules of the standard
 library which are implemented in C; each one builds a DLL (renamed to
 .pyd) of the same name as the project:
- * _asyncio
- * _ctypes
- * _ctypes_test
- * _zoneinfo
- * _decimal
- * _elementtree
- * _hashlib
- * _multiprocessing
- * _overlapped
- * _socket
- * _testbuffer
- * _testcapi
- * _testlimitedcapi
- * _testinternalcapi
- * _testclinic
- * _testclinic_limited
- * _testconsole
- * _testimportmultiple
- * _testmultiphase
- * _testsinglephase
- * _tkinter
- * pyexpat
- * select
- * unicodedata
- * winsound
+_asyncio
+_ctypes
+_ctypes_test
+_zoneinfo
+_decimal
+_elementtree
+_hashlib
+_msi
+_multiprocessing
+_overlapped
+_socket
+_testbuffer
+_testcapi
+_testclinic
+_testconsole
+_testimportmultiple
+_testmultiphase
+_testsinglephase
+_tkinter
+pyexpat
+select
+unicodedata
+winsound
 
 The following Python-controlled sub-projects wrap external projects.
 Note that these external libraries are not necessary for a working
@@ -228,18 +226,12 @@ directory.  This script extracts all the external sub-projects from
 and
     https://github.com/python/cpython-bin-deps
 via a Python script called "get_external.py", located in this directory.
-Everything downloaded by these scripts is stored in ..\externals
-(relative to this directory), or the path specified by the EXTERNALS_DIR
-environment variable.
-
-The path or command to use for Python can be provided with the
-PYTHON_FOR_BUILD environment variable. If this is not set, an active
-virtual environment will be used. If none is active, and HOST_PYTHON is
-set to a recent enough version or "py.exe" is able to find a recent
-enough version, those will be used. If all else fails, a copy of Python
-will be downloaded from NuGet and extracted to the externals directory.
-This will then be used for later builds (see PCbuild/find_python.bat
-for the full logic).
+If Python 3.6 or later is not available via the "py.exe" launcher, the
+path or command to use for Python can be provided in the PYTHON_FOR_BUILD
+environment variable, or get_externals.bat will download the latest
+version of NuGet and use it to download the latest "pythonx86" package
+for use with get_external.py.  Everything downloaded by these scripts is
+stored in ..\externals (relative to this directory).
 
 It is also possible to download sources from each project's homepage,
 though you may have to change folder names or pass the names to MSBuild
@@ -294,7 +286,7 @@ The property files used are:
  * python (versions, directories and build names)
  * pyproject (base settings for all projects)
  * openssl (used by projects dependent upon OpenSSL)
- * tcltk (used by _tkinter, tcl, and tk projects)
+ * tcltk (used by _tkinter, tcl, tk and tix projects)
 
 The pyproject property file defines all of the build settings for each
 project, with some projects overriding certain specific values. The GUI
@@ -311,8 +303,6 @@ _testclinic_limited extension, the file Modules/_testclinic_limited.c:
 * In PCbuild/, copy _testclinic.vcxproj to _testclinic_limited.vcxproj,
   replace RootNamespace value with `_testclinic_limited`, replace
   `_asyncio.c` with `_testclinic_limited.c`.
-* In PCbuild/, copy _testclinic.vcxproj.filters to
-  _testclinic_limited.vcxproj.filters, edit the list of files in the new file.
 * Open Visual Studio, open PCbuild\pcbuild.sln solution, add the
   PCbuild\_testclinic_limited.vcxproj project to the solution ("add existing
   project).

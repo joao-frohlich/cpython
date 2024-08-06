@@ -5,12 +5,10 @@
 
 */
 
-#ifndef Py_BUILD_CORE_BUILTIN
-#  define Py_BUILD_CORE_MODULE 1
-#endif
+#define PY_SSIZE_T_CLEAN
 
 #include "Python.h"
-
+#include "structmember.h"         // PyMemberDef
 
 #include <stdlib.h>               // free()
 #include <string.h>
@@ -244,10 +242,15 @@ parse_filter_spec_lzma(_lzma_state *state, PyObject *spec)
     /* First, fill in default values for all the options using a preset.
        Then, override the defaults with any values given by the caller. */
 
-    if (PyMapping_GetOptionalItemString(spec, "preset", &preset_obj) < 0) {
-        return NULL;
-    }
-    if (preset_obj != NULL) {
+    preset_obj = PyMapping_GetItemString(spec, "preset");
+    if (preset_obj == NULL) {
+        if (PyErr_ExceptionMatches(PyExc_KeyError)) {
+            PyErr_Clear();
+        }
+        else {
+            return NULL;
+        }
+    } else {
         int ok = uint32_converter(preset_obj, &preset);
         Py_DECREF(preset_obj);
         if (!ok) {
@@ -344,12 +347,11 @@ lzma_filter_converter(_lzma_state *state, PyObject *spec, void *ptr)
                         "Filter specifier must be a dict or dict-like object");
         return 0;
     }
-    if (PyMapping_GetOptionalItemString(spec, "id", &id_obj) < 0) {
-        return 0;
-    }
+    id_obj = PyMapping_GetItemString(spec, "id");
     if (id_obj == NULL) {
-        PyErr_SetString(PyExc_ValueError,
-                        "Filter specifier must have an \"id\" entry");
+        if (PyErr_ExceptionMatches(PyExc_KeyError))
+            PyErr_SetString(PyExc_ValueError,
+                            "Filter specifier must have an \"id\" entry");
         return 0;
     }
     f->id = PyLong_AsUnsignedLongLong(id_obj);
@@ -1344,13 +1346,13 @@ PyDoc_STRVAR(Decompressor_unused_data_doc,
 "Data found after the end of the compressed stream.");
 
 static PyMemberDef Decompressor_members[] = {
-    {"check", Py_T_INT, offsetof(Decompressor, check), Py_READONLY,
+    {"check", T_INT, offsetof(Decompressor, check), READONLY,
      Decompressor_check_doc},
-    {"eof", Py_T_BOOL, offsetof(Decompressor, eof), Py_READONLY,
+    {"eof", T_BOOL, offsetof(Decompressor, eof), READONLY,
      Decompressor_eof_doc},
-    {"needs_input", Py_T_BOOL, offsetof(Decompressor, needs_input), Py_READONLY,
+    {"needs_input", T_BOOL, offsetof(Decompressor, needs_input), READONLY,
      Decompressor_needs_input_doc},
-    {"unused_data", Py_T_OBJECT_EX, offsetof(Decompressor, unused_data), Py_READONLY,
+    {"unused_data", T_OBJECT_EX, offsetof(Decompressor, unused_data), READONLY,
      Decompressor_unused_data_doc},
     {NULL}
 };
@@ -1504,7 +1506,15 @@ _lzma__decode_filter_properties_impl(PyObject *module, lzma_vli filter_id,
 static int
 module_add_int_constant(PyObject *m, const char *name, long long value)
 {
-    return PyModule_Add(m, name, PyLong_FromLongLong(value));
+    PyObject *o = PyLong_FromLongLong(value);
+    if (o == NULL) {
+        return -1;
+    }
+    if (PyModule_AddObject(m, name, o) == 0) {
+        return 0;
+    }
+    Py_DECREF(o);
+    return -1;
 }
 
 static int
@@ -1604,7 +1614,6 @@ static PyMethodDef lzma_methods[] = {
 static PyModuleDef_Slot lzma_slots[] = {
     {Py_mod_exec, lzma_exec},
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
 

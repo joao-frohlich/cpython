@@ -118,7 +118,8 @@ class Leaf:
         return self.value
 
     def __iter__(self) -> Iterable[str]:
-        yield from ()
+        if False:
+            yield
 
 
 class NameLeaf(Leaf):
@@ -340,7 +341,8 @@ class Cut:
         return f"~"
 
     def __iter__(self) -> Iterator[Tuple[str, str]]:
-        yield from ()
+        if False:
+            yield
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Cut):
@@ -353,7 +355,7 @@ class Cut:
 
 Plain = Union[Leaf, Group]
 Item = Union[Plain, Opt, Repeat, Forced, Lookahead, Rhs, Cut]
-RuleName = Tuple[str, Optional[str]]
+RuleName = Tuple[str, str]
 MetaTuple = Tuple[str, Optional[str]]
 MetaList = List[MetaTuple]
 RuleList = List[Rule]

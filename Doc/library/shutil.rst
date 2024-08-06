@@ -343,12 +343,6 @@ Directory and files operations
    .. versionchanged:: 3.12
       Added the *onexc* parameter, deprecated *onerror*.
 
-   .. versionchanged:: 3.13
-      :func:`!rmtree` now ignores :exc:`FileNotFoundError` exceptions for all
-      but the top-level path.
-      Exceptions other than :exc:`OSError` and subclasses of :exc:`!OSError`
-      are now always propagated to the caller.
-
    .. attribute:: rmtree.avoids_symlink_attacks
 
       Indicates whether the current platform and implementation provides a
@@ -421,8 +415,7 @@ Directory and files operations
 
    .. availability:: Unix, Windows.
 
-.. function:: chown(path, user=None, group=None, *, dir_fd=None, \
-                    follow_symlinks=True)
+.. function:: chown(path, user=None, group=None)
 
    Change owner *user* and/or *group* of the given *path*.
 
@@ -437,9 +430,6 @@ Directory and files operations
 
    .. versionadded:: 3.3
 
-   .. versionchanged:: 3.13
-      Added *dir_fd* and *follow_symlinks* parameters.
-
 
 .. function:: which(cmd, mode=os.F_OK | os.X_OK, path=None)
 
@@ -449,9 +439,8 @@ Directory and files operations
    *mode* is a permission mask passed to :func:`os.access`, by default
    determining if the file exists and is executable.
 
-   *path* is a "``PATH`` string" specifying the lookup directory list. When no
-   *path* is specified, the results of :func:`os.environ` are used, returning
-   either the "PATH" value or a fallback of :data:`os.defpath`.
+   When no *path* is specified, the results of :func:`os.environ` are used,
+   returning either the "PATH" value or a fallback of :data:`os.defpath`.
 
    On Windows, the current directory is prepended to the *path* if *mode* does
    not include ``os.X_OK``. When the *mode* does include ``os.X_OK``, the
@@ -706,9 +695,11 @@ provided.  They rely on the :mod:`zipfile` and :mod:`tarfile` modules.
 
    The keyword-only *filter* argument is passed to the underlying unpacking
    function. For zip files, *filter* is not accepted.
-   For tar files, it is recommended to use ``'data'`` (default since Python
-   3.14), unless using features specific to tar and UNIX-like filesystems.
+   For tar files, it is recommended to set it to ``'data'``,
+   unless using features specific to tar and UNIX-like filesystems.
    (See :ref:`tarfile-extraction-filter` for details.)
+   The ``'data'`` filter will become the default for tar files
+   in Python 3.14.
 
    .. audit-event:: shutil.unpack_archive filename,extract_dir,format shutil.unpack_archive
 
@@ -718,12 +709,6 @@ provided.  They rely on the :mod:`zipfile` and :mod:`tarfile` modules.
       It is possible that files are created outside of the path specified in
       the *extract_dir* argument, e.g. members that have absolute filenames
       starting with "/" or filenames with two dots "..".
-
-      Since Python 3.14, the defaults for both built-in formats (zip and tar
-      files) will prevent the most dangerous of such security issues,
-      but will not prevent *all* unintended behavior.
-      Read the :ref:`tarfile-further-verification`
-      section for tar-specific details.
 
    .. versionchanged:: 3.7
       Accepts a :term:`path-like object` for *filename* and *extract_dir*.

@@ -285,7 +285,7 @@ macros.
 .. nonce: 11YXHQ
 .. section: Core and Builtins
 
-Add a new :c:func:`!_PyFrame_IsEntryFrame` API function, to check if a
+Add a new :c:func:`_PyFrame_IsEntryFrame` API function, to check if a
 :c:type:`PyFrameObject` is an entry frame. Patch by Pablo Galindo.
 
 ..
@@ -797,7 +797,7 @@ Patch by Kabir Kwatra.
 .. nonce: roapI2
 .. section: Library
 
-The :mod:`!mailcap` module is now deprecated and will be removed in Python
+The :mod:`mailcap` module is now deprecated and will be removed in Python
 3.13. See :pep:`594` for the rationale and the :mod:`mimetypes` module for
 an alternative. Patch by Victor Stinner.
 
@@ -2029,8 +2029,8 @@ https://gitlab.com/warsaw/pynche
 .. nonce: 3mQ54t
 .. section: C API
 
-Deprecate the C functions: :c:func:`!PySys_SetArgv`,
-:c:func:`!PySys_SetArgvEx`, :c:func:`!PySys_SetPath`. Patch by Victor Stinner.
+Deprecate the C functions: :c:func:`PySys_SetArgv`,
+:c:func:`PySys_SetArgvEx`, :c:func:`PySys_SetPath`. Patch by Victor Stinner.
 
 ..
 

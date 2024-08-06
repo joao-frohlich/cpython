@@ -1,9 +1,7 @@
 # Test specifically-sized containers.
 
-from ctypes import (sizeof,
-                    c_int8, c_uint8, c_int16, c_uint16,
-                    c_int32, c_uint32, c_int64, c_uint64,
-                    c_void_p, c_size_t, c_ssize_t, c_time_t, SIZEOF_TIME_T)
+from ctypes import *
+
 import unittest
 
 

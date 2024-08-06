@@ -45,6 +45,7 @@ cygwin in no-cygwin mode).
 # * mingw gcc 3.2/ld 2.13 works
 #   (ld supports -shared)
 
+import os
 import sys
 from subprocess import Popen, PIPE, check_output
 import re

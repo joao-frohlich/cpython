@@ -31,7 +31,7 @@ PostgreSQL or Oracle.
 
 The :mod:`!sqlite3` module was written by Gerhard Häring.  It provides an SQL interface
 compliant with the DB-API 2.0 specification described by :pep:`249`, and
-requires SQLite 3.15.2 or newer.
+requires SQLite 3.7.15 or newer.
 
 This document includes four main sections:
 
@@ -358,12 +358,6 @@ Module functions
    .. versionchanged:: 3.12
       Added the *autocommit* parameter.
 
-   .. versionchanged:: 3.13
-      Positional use of the parameters *timeout*, *detect_types*,
-      *isolation_level*, *check_same_thread*, *factory*, *cached_statements*,
-      and *uri* is deprecated.
-      They will become keyword-only parameters in Python 3.15.
-
 .. function:: complete_statement(statement)
 
    Return ``True`` if the string *statement* appears to contain
@@ -545,6 +539,26 @@ Module constants
    .. versionchanged:: 3.11
       Set *threadsafety* dynamically instead of hard-coding it to ``1``.
 
+.. data:: version
+
+   Version number of this module as a :class:`string <str>`.
+   This is not the version of the SQLite library.
+
+   .. deprecated-removed:: 3.12 3.14
+      This constant used to reflect the version number of the ``pysqlite``
+      package, a third-party library which used to upstream changes to
+      :mod:`!sqlite3`. Today, it carries no meaning or practical value.
+
+.. data:: version_info
+
+   Version number of this module as a :class:`tuple` of :class:`integers <int>`.
+   This is not the version of the SQLite library.
+
+   .. deprecated-removed:: 3.12 3.14
+      This constant used to reflect the version number of the ``pysqlite``
+      package, a third-party library which used to upstream changes to
+      :mod:`!sqlite3`. Today, it carries no meaning or practical value.
+
 .. _sqlite3-dbconfig-constants:
 
 .. data:: SQLITE_DBCONFIG_DEFENSIVE
@@ -577,8 +591,6 @@ Module constants
      https://www.sqlite.org/c3ref/c_dbconfig_defensive.html
         SQLite docs: Database Connection Configuration Options
 
-.. deprecated-removed:: 3.12 3.14
-   The :data:`!version` and :data:`!version_info` constants.
 
 .. _sqlite3-connection-objects:
 
@@ -596,12 +608,6 @@ Connection objects
 
       * :ref:`sqlite3-connection-shortcuts`
       * :ref:`sqlite3-connection-context-manager`
-
-
-   .. versionchanged:: 3.13
-
-      A :exc:`ResourceWarning` is emitted if :meth:`close` is not called before
-      a :class:`!Connection` object is deleted.
 
    An SQLite database connection has the following attributes and methods:
 
@@ -714,6 +720,9 @@ Connection objects
           `deterministic <https://sqlite.org/deterministic.html>`_,
           which allows SQLite to perform additional optimizations.
 
+      :raises NotSupportedError:
+          If *deterministic* is used with SQLite versions older than 3.8.3.
+
       .. versionchanged:: 3.8
          Added the *deterministic* parameter.
 
@@ -730,11 +739,6 @@ Connection objects
          ...     print(row)
          ('acbd18db4cc2f85cedef654fccc4a4d8',)
          >>> con.close()
-
-      .. versionchanged:: 3.13
-
-         Passing *name*, *narg*, and *func* as keyword arguments is deprecated.
-         These parameters will become positional-only in Python 3.15.
 
 
    .. method:: create_aggregate(name, n_arg, aggregate_class)
@@ -789,11 +793,6 @@ Connection objects
          :hide:
 
          3
-
-      .. versionchanged:: 3.13
-
-         Passing *name*, *n_arg*, and *aggregate_class* as keyword arguments is deprecated.
-         These parameters will become positional-only in Python 3.15.
 
 
    .. method:: create_window_function(name, num_params, aggregate_class, /)
@@ -960,10 +959,6 @@ Connection objects
       .. versionchanged:: 3.11
          Added support for disabling the authorizer using ``None``.
 
-      .. versionchanged:: 3.13
-         Passing *authorizer_callback* as a keyword argument is deprecated.
-         The parameter will become positional-only in Python 3.15.
-
 
    .. method:: set_progress_handler(progress_handler, n)
 
@@ -978,10 +973,6 @@ Connection objects
       Returning a non-zero value from the handler function will terminate the
       currently executing query and cause it to raise a :exc:`DatabaseError`
       exception.
-
-      .. versionchanged:: 3.13
-         Passing *progress_handler* as a keyword argument is deprecated.
-         The parameter will become positional-only in Python 3.15.
 
 
    .. method:: set_trace_callback(trace_callback)
@@ -1006,10 +997,6 @@ Connection objects
          tracebacks from exceptions raised in the trace callback.
 
       .. versionadded:: 3.3
-
-      .. versionchanged:: 3.13
-         Passing *trace_callback* as a keyword argument is deprecated.
-         The parameter will become positional-only in Python 3.15.
 
 
    .. method:: enable_load_extension(enabled, /)
@@ -1095,18 +1082,11 @@ Connection objects
 
    .. _Loading an Extension: https://www.sqlite.org/loadext.html#loading_an_extension
 
-   .. method:: iterdump(*, filter=None)
+   .. method:: iterdump
 
       Return an :term:`iterator` to dump the database as SQL source code.
       Useful when saving an in-memory database for later restoration.
       Similar to the ``.dump`` command in the :program:`sqlite3` shell.
-
-      :param filter:
-
-        An optional ``LIKE`` pattern for database objects to dump, e.g. ``prefix_%``.
-        If ``None`` (the default), all database objects will be included.
-
-      :type filter: str | None
 
       Example:
 
@@ -1123,8 +1103,6 @@ Connection objects
 
          :ref:`sqlite3-howto-encoding`
 
-      .. versionchanged:: 3.13
-         Added the *filter* parameter.
 
    .. method:: backup(target, *, pages=-1, progress=None, name="main", sleep=0.250)
 

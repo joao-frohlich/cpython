@@ -2,8 +2,6 @@
 #include "pycore_call.h"          // _PyObject_CallNoArgsTstate()
 #include "pycore_ceval.h"         // _Py_EnterRecursiveCallTstate()
 #include "pycore_dict.h"          // _PyDict_FromItems()
-#include "pycore_function.h"      // _PyFunction_Vectorcall() definition
-#include "pycore_modsupport.h"    // _Py_VaBuildStack()
 #include "pycore_object.h"        // _PyCFunctionWithKeywords_TrampolineCall()
 #include "pycore_pyerrors.h"      // _PyErr_Occurred()
 #include "pycore_pystate.h"       // _PyThreadState_GET()
@@ -108,9 +106,9 @@ PyObject_CallNoArgs(PyObject *func)
 
 
 PyObject *
-_PyObject_VectorcallDictTstate(PyThreadState *tstate, PyObject *callable,
-                               PyObject *const *args, size_t nargsf,
-                               PyObject *kwargs)
+_PyObject_FastCallDictTstate(PyThreadState *tstate, PyObject *callable,
+                             PyObject *const *args, size_t nargsf,
+                             PyObject *kwargs)
 {
     assert(callable != NULL);
 
@@ -124,7 +122,7 @@ _PyObject_VectorcallDictTstate(PyThreadState *tstate, PyObject *callable,
     assert(nargs == 0 || args != NULL);
     assert(kwargs == NULL || PyDict_Check(kwargs));
 
-    vectorcallfunc func = PyVectorcall_Function(callable);
+    vectorcallfunc func = _PyVectorcall_Function(callable);
     if (func == NULL) {
         /* Use tp_call instead */
         return _PyObject_MakeTpCall(tstate, callable, args, nargs, kwargs);
@@ -156,7 +154,7 @@ PyObject_VectorcallDict(PyObject *callable, PyObject *const *args,
                        size_t nargsf, PyObject *kwargs)
 {
     PyThreadState *tstate = _PyThreadState_GET();
-    return _PyObject_VectorcallDictTstate(tstate, callable, args, nargsf, kwargs);
+    return _PyObject_FastCallDictTstate(tstate, callable, args, nargsf, kwargs);
 }
 
 static void
@@ -174,7 +172,7 @@ object_is_not_callable(PyThreadState *tstate, PyObject *callable)
             goto basic_type_error;
         }
         PyObject *attr;
-        int res = PyObject_GetOptionalAttr(callable, name, &attr);
+        int res = _PyObject_LookupAttr(callable, name, &attr);
         if (res < 0) {
             _PyErr_Clear(tstate);
         }
@@ -330,6 +328,14 @@ PyObject_Vectorcall(PyObject *callable, PyObject *const *args,
 
 
 PyObject *
+_PyObject_FastCall(PyObject *func, PyObject *const *args, Py_ssize_t nargs)
+{
+    PyThreadState *tstate = _PyThreadState_GET();
+    return _PyObject_FastCallTstate(tstate, func, args, nargs);
+}
+
+
+PyObject *
 _PyObject_Call(PyThreadState *tstate, PyObject *callable,
                PyObject *args, PyObject *kwargs)
 {
@@ -343,7 +349,7 @@ _PyObject_Call(PyThreadState *tstate, PyObject *callable,
     assert(PyTuple_Check(args));
     assert(kwargs == NULL || PyDict_Check(kwargs));
     EVAL_CALL_STAT_INC_IF_FUNCTION(EVAL_CALL_API, callable);
-    vectorcallfunc vector_func = PyVectorcall_Function(callable);
+    vectorcallfunc vector_func = _PyVectorcall_Function(callable);
     if (vector_func != NULL) {
         return _PyVectorcall_Call(tstate, vector_func, callable, args, kwargs);
     }
@@ -374,11 +380,11 @@ PyObject_Call(PyObject *callable, PyObject *args, PyObject *kwargs)
 }
 
 
-/* Function removed in the Python 3.13 API but kept in the stable ABI. */
-PyAPI_FUNC(PyObject *)
+PyObject *
 PyCFunction_Call(PyObject *callable, PyObject *args, PyObject *kwargs)
 {
-    return PyObject_Call(callable, args, kwargs);
+    PyThreadState *tstate = _PyThreadState_GET();
+    return _PyObject_Call(tstate, callable, args, kwargs);
 }
 
 
@@ -420,9 +426,8 @@ _PyFunction_Vectorcall(PyObject *func, PyObject* const* stack,
 /* --- More complex call functions -------------------------------- */
 
 /* External interface to call any callable object.
-   The args must be a tuple or NULL.  The kwargs must be a dict or NULL.
-   Function removed in Python 3.13 API but kept in the stable ABI. */
-PyAPI_FUNC(PyObject*)
+   The args must be a tuple or NULL.  The kwargs must be a dict or NULL. */
+PyObject *
 PyEval_CallObjectWithKeywords(PyObject *callable,
                               PyObject *args, PyObject *kwargs)
 {
@@ -447,8 +452,7 @@ PyEval_CallObjectWithKeywords(PyObject *callable,
     }
 
     if (args == NULL) {
-        return _PyObject_VectorcallDictTstate(tstate, callable,
-                                              NULL, 0, kwargs);
+        return _PyObject_FastCallDictTstate(tstate, callable, NULL, 0, kwargs);
     }
     else {
         return _PyObject_Call(tstate, callable, args, kwargs);
@@ -501,9 +505,9 @@ _PyObject_Call_Prepend(PyThreadState *tstate, PyObject *callable,
            _PyTuple_ITEMS(args),
            argcount * sizeof(PyObject *));
 
-    PyObject *result = _PyObject_VectorcallDictTstate(tstate, callable,
-                                                      stack, argcount + 1,
-                                                      kwargs);
+    PyObject *result = _PyObject_FastCallDictTstate(tstate, callable,
+                                                    stack, argcount + 1,
+                                                    kwargs);
     if (stack != small_stack) {
         PyMem_Free(stack);
     }
@@ -515,7 +519,7 @@ _PyObject_Call_Prepend(PyThreadState *tstate, PyObject *callable,
 
 static PyObject *
 _PyObject_CallFunctionVa(PyThreadState *tstate, PyObject *callable,
-                         const char *format, va_list va)
+                         const char *format, va_list va, int is_size_t)
 {
     PyObject* small_stack[_PY_FASTCALL_SMALL_STACK];
     const Py_ssize_t small_stack_len = Py_ARRAY_LENGTH(small_stack);
@@ -531,8 +535,14 @@ _PyObject_CallFunctionVa(PyThreadState *tstate, PyObject *callable,
         return _PyObject_CallNoArgsTstate(tstate, callable);
     }
 
-    stack = _Py_VaBuildStack(small_stack, small_stack_len,
-                             format, va, &nargs);
+    if (is_size_t) {
+        stack = _Py_VaBuildStack_SizeT(small_stack, small_stack_len,
+                                       format, va, &nargs);
+    }
+    else {
+        stack = _Py_VaBuildStack(small_stack, small_stack_len,
+                                 format, va, &nargs);
+    }
     if (stack == NULL) {
         return NULL;
     }
@@ -571,7 +581,7 @@ PyObject_CallFunction(PyObject *callable, const char *format, ...)
     PyThreadState *tstate = _PyThreadState_GET();
 
     va_start(va, format);
-    result = _PyObject_CallFunctionVa(tstate, callable, format, va);
+    result = _PyObject_CallFunctionVa(tstate, callable, format, va, 0);
     va_end(va);
 
     return result;
@@ -579,8 +589,9 @@ PyObject_CallFunction(PyObject *callable, const char *format, ...)
 
 
 /* PyEval_CallFunction is exact copy of PyObject_CallFunction.
-   Function removed in Python 3.13 API but kept in the stable ABI. */
-PyAPI_FUNC(PyObject*)
+ * This function is kept for backward compatibility.
+ */
+PyObject *
 PyEval_CallFunction(PyObject *callable, const char *format, ...)
 {
     va_list va;
@@ -588,24 +599,21 @@ PyEval_CallFunction(PyObject *callable, const char *format, ...)
     PyThreadState *tstate = _PyThreadState_GET();
 
     va_start(va, format);
-    result = _PyObject_CallFunctionVa(tstate, callable, format, va);
+    result = _PyObject_CallFunctionVa(tstate, callable, format, va, 0);
     va_end(va);
 
     return result;
 }
 
 
-/* _PyObject_CallFunction_SizeT is exact copy of PyObject_CallFunction.
- * This function must be kept because it is part of the stable ABI.
- */
-PyAPI_FUNC(PyObject *)  /* abi_only */
+PyObject *
 _PyObject_CallFunction_SizeT(PyObject *callable, const char *format, ...)
 {
     PyThreadState *tstate = _PyThreadState_GET();
 
     va_list va;
     va_start(va, format);
-    PyObject *result = _PyObject_CallFunctionVa(tstate, callable, format, va);
+    PyObject *result = _PyObject_CallFunctionVa(tstate, callable, format, va, 1);
     va_end(va);
 
     return result;
@@ -613,7 +621,7 @@ _PyObject_CallFunction_SizeT(PyObject *callable, const char *format, ...)
 
 
 static PyObject*
-callmethod(PyThreadState *tstate, PyObject* callable, const char *format, va_list va)
+callmethod(PyThreadState *tstate, PyObject* callable, const char *format, va_list va, int is_size_t)
 {
     assert(callable != NULL);
     if (!PyCallable_Check(callable)) {
@@ -623,7 +631,7 @@ callmethod(PyThreadState *tstate, PyObject* callable, const char *format, va_lis
         return NULL;
     }
 
-    return _PyObject_CallFunctionVa(tstate, callable, format, va);
+    return _PyObject_CallFunctionVa(tstate, callable, format, va, is_size_t);
 }
 
 PyObject *
@@ -642,7 +650,7 @@ PyObject_CallMethod(PyObject *obj, const char *name, const char *format, ...)
 
     va_list va;
     va_start(va, format);
-    PyObject *retval = callmethod(tstate, callable, format, va);
+    PyObject *retval = callmethod(tstate, callable, format, va, 0);
     va_end(va);
 
     Py_DECREF(callable);
@@ -651,8 +659,9 @@ PyObject_CallMethod(PyObject *obj, const char *name, const char *format, ...)
 
 
 /* PyEval_CallMethod is exact copy of PyObject_CallMethod.
-   Function removed in Python 3.13 API but kept in the stable ABI. */
-PyAPI_FUNC(PyObject*)
+ * This function is kept for backward compatibility.
+ */
+PyObject *
 PyEval_CallMethod(PyObject *obj, const char *name, const char *format, ...)
 {
     PyThreadState *tstate = _PyThreadState_GET();
@@ -667,7 +676,7 @@ PyEval_CallMethod(PyObject *obj, const char *name, const char *format, ...)
 
     va_list va;
     va_start(va, format);
-    PyObject *retval = callmethod(tstate, callable, format, va);
+    PyObject *retval = callmethod(tstate, callable, format, va, 0);
     va_end(va);
 
     Py_DECREF(callable);
@@ -691,7 +700,7 @@ _PyObject_CallMethod(PyObject *obj, PyObject *name,
 
     va_list va;
     va_start(va, format);
-    PyObject *retval = callmethod(tstate, callable, format, va);
+    PyObject *retval = callmethod(tstate, callable, format, va, 1);
     va_end(va);
 
     Py_DECREF(callable);
@@ -715,7 +724,7 @@ _PyObject_CallMethodId(PyObject *obj, _Py_Identifier *name,
 
     va_list va;
     va_start(va, format);
-    PyObject *retval = callmethod(tstate, callable, format, va);
+    PyObject *retval = callmethod(tstate, callable, format, va, 0);
     va_end(va);
 
     Py_DECREF(callable);
@@ -728,15 +737,13 @@ PyObject * _PyObject_CallMethodFormat(PyThreadState *tstate, PyObject *callable,
 {
     va_list va;
     va_start(va, format);
-    PyObject *retval = callmethod(tstate, callable, format, va);
+    PyObject *retval = callmethod(tstate, callable, format, va, 0);
     va_end(va);
     return retval;
 }
 
 
-// _PyObject_CallMethod_SizeT is exact copy of PyObject_CallMethod.
-// This function must be kept because it is part of the stable ABI.
-PyAPI_FUNC(PyObject *)  /* abi_only */
+PyObject *
 _PyObject_CallMethod_SizeT(PyObject *obj, const char *name,
                            const char *format, ...)
 {
@@ -752,7 +759,31 @@ _PyObject_CallMethod_SizeT(PyObject *obj, const char *name,
 
     va_list va;
     va_start(va, format);
-    PyObject *retval = callmethod(tstate, callable, format, va);
+    PyObject *retval = callmethod(tstate, callable, format, va, 1);
+    va_end(va);
+
+    Py_DECREF(callable);
+    return retval;
+}
+
+
+PyObject *
+_PyObject_CallMethodId_SizeT(PyObject *obj, _Py_Identifier *name,
+                             const char *format, ...)
+{
+    PyThreadState *tstate = _PyThreadState_GET();
+    if (obj == NULL || name == NULL) {
+        return null_error(tstate);
+    }
+
+    PyObject *callable = _PyObject_GetAttrId(obj, name);
+    if (callable == NULL) {
+        return NULL;
+    }
+
+    va_list va;
+    va_start(va, format);
+    PyObject *retval = callmethod(tstate, callable, format, va, 1);
     va_end(va);
 
     Py_DECREF(callable);

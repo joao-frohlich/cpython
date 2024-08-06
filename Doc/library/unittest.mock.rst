@@ -188,7 +188,7 @@ code if they are used incorrectly:
    >>> mock_function('wrong arguments')
    Traceback (most recent call last):
     ...
-   TypeError: missing a required argument: 'b'
+   TypeError: <lambda>() takes exactly 3 arguments (1 given)
 
 :func:`create_autospec` can also be used on classes, where it copies the signature of
 the ``__init__`` method, and on callable objects where it copies the signature of
@@ -204,10 +204,8 @@ The Mock Class
     import asyncio
     import inspect
     import unittest
-    import threading
     from unittest.mock import sentinel, DEFAULT, ANY
     from unittest.mock import patch, call, Mock, MagicMock, PropertyMock, AsyncMock
-    from unittest.mock import ThreadingMock
     from unittest.mock import mock_open
 
 :class:`Mock` is a flexible mock object intended to replace the use of stubs and
@@ -314,7 +312,6 @@ the *new_callable* argument to :func:`patch`.
             Traceback (most recent call last):
             ...
             AssertionError: Expected 'method' to have been called once. Called 2 times.
-            Calls: [call(), call()].
 
         .. versionadded:: 3.6
 
@@ -342,7 +339,7 @@ the *new_callable* argument to :func:`patch`.
             Traceback (most recent call last):
               ...
             AssertionError: Expected 'mock' to be called once. Called 2 times.
-            Calls: [call('foo', bar='baz'), call('other', bar='values')].
+
 
     .. method:: assert_any_call(*args, **kwargs)
 
@@ -392,7 +389,6 @@ the *new_callable* argument to :func:`patch`.
             Traceback (most recent call last):
               ...
             AssertionError: Expected 'hello' to not have been called. Called 1 times.
-            Calls: [call()].
 
         .. versionadded:: 3.5
 
@@ -860,20 +856,6 @@ object::
     3
     >>> p.assert_called_once_with()
 
-.. caution::
-
-    If an :exc:`AttributeError` is raised by :class:`PropertyMock`,
-    it will be interpreted as a missing descriptor and
-    :meth:`~object.__getattr__` will be called on the parent mock::
-
-        >>> m = MagicMock()
-        >>> no_attribute = PropertyMock(side_effect=AttributeError)
-        >>> type(m).my_property = no_attribute
-        >>> m.my_property
-        <MagicMock name='mock.my_property' id='140165240345424'>
-
-    See :meth:`~object.__getattr__` for details.
-
 
 .. class:: AsyncMock(spec=None, side_effect=None, return_value=DEFAULT, wraps=None, name=None, spec_set=None, unsafe=False, **kwargs)
 
@@ -970,7 +952,7 @@ object::
         >>> asyncio.run(main())
         >>> mock.assert_awaited_once()
         >>> asyncio.run(main())
-        >>> mock.assert_awaited_once()
+        >>> mock.method.assert_awaited_once()
         Traceback (most recent call last):
         ...
         AssertionError: Expected mock to have been awaited once. Awaited 2 times.
@@ -988,7 +970,7 @@ object::
         >>> mock.assert_awaited_with('other')
         Traceback (most recent call last):
         ...
-        AssertionError: expected await not found.
+        AssertionError: expected call not found.
         Expected: mock('other')
         Actual: mock('foo', bar='bar')
 
@@ -1115,51 +1097,6 @@ object::
       >>> asyncio.run(main('bar'))
       >>> mock.await_args_list
       [call('foo'), call('bar')]
-
-
-.. class:: ThreadingMock(spec=None, side_effect=None, return_value=DEFAULT, wraps=None, name=None, spec_set=None, unsafe=False, *, timeout=UNSET, **kwargs)
-
-  A version of :class:`MagicMock` for multithreading tests. The
-  :class:`ThreadingMock` object provides extra methods to wait for a call to
-  be invoked, rather than assert on it immediately.
-
-  The default timeout is specified by the ``timeout`` argument, or if unset by the
-  :attr:`ThreadingMock.DEFAULT_TIMEOUT` attribute, which defaults to blocking (``None``).
-
-  You can configure the global default timeout by setting :attr:`ThreadingMock.DEFAULT_TIMEOUT`.
-
-  .. method:: wait_until_called(*, timeout=UNSET)
-
-      Waits until the mock is called.
-
-      If a timeout was passed at the creation of the mock or if a timeout
-      argument is passed to this function, the function raises an
-      :exc:`AssertionError` if the call is not performed in time.
-
-        >>> mock = ThreadingMock()
-        >>> thread = threading.Thread(target=mock)
-        >>> thread.start()
-        >>> mock.wait_until_called(timeout=1)
-        >>> thread.join()
-
-  .. method:: wait_until_any_call_with(*args, **kwargs)
-
-      Waits until the mock is called with the specified arguments.
-
-      If a timeout was passed at the creation of the mock
-      the function raises an :exc:`AssertionError` if the call is not performed in time.
-
-        >>> mock = ThreadingMock()
-        >>> thread = threading.Thread(target=mock, args=("arg1", "arg2",), kwargs={"arg": "thing"})
-        >>> thread.start()
-        >>> mock.wait_until_any_call_with("arg1", "arg2", arg="thing")
-        >>> thread.join()
-
-  .. attribute:: DEFAULT_TIMEOUT
-
-    Global default timeout in seconds to create instances of :class:`ThreadingMock`.
-
-  .. versionadded:: 3.13
 
 
 Calling
@@ -1638,8 +1575,7 @@ patch.dict
 .. function:: patch.dict(in_dict, values=(), clear=False, **kwargs)
 
     Patch a dictionary, or dictionary like object, and restore the dictionary
-    to its original state after the test, where the restored dictionary is a
-    copy of the dictionary as it was before the test.
+    to its original state after the test.
 
     *in_dict* can be a dictionary or a mapping like container. If it is a
     mapping then it must at least support getting, setting and deleting items

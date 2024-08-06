@@ -48,7 +48,7 @@ Aware and Naive Objects
 -----------------------
 
 Date and time objects may be categorized as "aware" or "naive" depending on
-whether or not they include time zone information.
+whether or not they include timezone information.
 
 With sufficient knowledge of applicable algorithmic and political time
 adjustments, such as time zone and daylight saving time information,
@@ -58,7 +58,7 @@ interpretation. [#]_
 
 A **naive** object does not contain enough information to unambiguously locate
 itself relative to other date/time objects. Whether a naive object represents
-Coordinated Universal Time (UTC), local time, or time in some other time zone is
+Coordinated Universal Time (UTC), local time, or time in some other timezone is
 purely up to the program, just like it is up to the program whether a
 particular number represents metres, miles, or mass. Naive objects are easy to
 understand and to work with, at the cost of ignoring some aspects of reality.
@@ -70,9 +70,9 @@ These :class:`tzinfo` objects capture information about the offset from UTC
 time, the time zone name, and whether daylight saving time is in effect.
 
 Only one concrete :class:`tzinfo` class, the :class:`timezone` class, is
-supplied by the :mod:`!datetime` module. The :class:`!timezone` class can
-represent simple time zones with fixed offsets from UTC, such as UTC itself or
-North American EST and EDT time zones. Supporting time zones at deeper levels of
+supplied by the :mod:`!datetime` module. The :class:`timezone` class can
+represent simple timezones with fixed offsets from UTC, such as UTC itself or
+North American EST and EDT timezones. Supporting timezones at deeper levels of
 detail is up to the application. The rules for time adjustment across the
 world are more political than rational, change frequently, and there is no
 standard suitable for every application aside from UTC.
@@ -95,7 +95,7 @@ The :mod:`!datetime` module exports the following constants:
 
 .. attribute:: UTC
 
-   Alias for the UTC time zone singleton :attr:`datetime.timezone.utc`.
+   Alias for the UTC timezone singleton :attr:`datetime.timezone.utc`.
 
    .. versionadded:: 3.11
 
@@ -619,26 +619,10 @@ Notes:
 (4)
    :class:`date` objects are equal if they represent the same date.
 
-   :class:`!date` objects that are not also :class:`.datetime` instances
-   are never equal to :class:`!datetime` objects, even if they represent
-   the same date.
-
 (5)
    *date1* is considered less than *date2* when *date1* precedes *date2* in time.
    In other words, ``date1 < date2`` if and only if ``date1.toordinal() <
    date2.toordinal()``.
-
-   Order comparison between a :class:`!date` object that is not also a
-   :class:`.datetime` instance and a :class:`!datetime` object raises
-   :exc:`TypeError`.
-
-.. versionchanged:: 3.13
-   Comparison between :class:`.datetime` object and an instance of
-   the :class:`date` subclass that is not a :class:`!datetime` subclass
-   no longer converts the latter to :class:`!date`, ignoring the time part
-   and the time zone.
-   The default behavior can be changed by overriding the special comparison
-   methods in subclasses.
 
 In Boolean contexts, all :class:`date` objects are considered to be true.
 
@@ -655,9 +639,6 @@ Instance methods:
        >>> d = date(2002, 12, 31)
        >>> d.replace(day=26)
        datetime.date(2002, 12, 26)
-
-   :class:`date` objects are also supported by generic function
-   :func:`copy.replace`.
 
 
 .. method:: date.timetuple()
@@ -869,7 +850,7 @@ Other constructors, all class methods:
 
 .. classmethod:: datetime.today()
 
-   Return the current local date and time, with :attr:`.tzinfo` ``None``.
+   Return the current local datetime, with :attr:`.tzinfo` ``None``.
 
    Equivalent to::
 
@@ -1070,7 +1051,7 @@ Other constructors, all class methods:
    Return a :class:`.datetime` corresponding to *date_string*, parsed according to
    *format*.
 
-   If *format* does not contain microseconds or time zone information, this is equivalent to::
+   If *format* does not contain microseconds or timezone information, this is equivalent to::
 
      datetime(*(time.strptime(date_string, format)[0:6]))
 
@@ -1079,24 +1060,6 @@ Other constructors, all class methods:
    time tuple.  See also :ref:`strftime-strptime-behavior` and
    :meth:`datetime.fromisoformat`.
 
-   .. versionchanged:: 3.13
-
-      If *format* specifies a day of month without a year a
-      :exc:`DeprecationWarning` is now emitted.  This is to avoid a quadrennial
-      leap year bug in code seeking to parse only a month and day as the
-      default year used in absence of one in the format is not a leap year.
-      Such *format* values may raise an error as of Python 3.15.  The
-      workaround is to always include a year in your *format*.  If parsing
-      *date_string* values that do not have a year, explicitly add a year that
-      is a leap year before parsing:
-
-      .. doctest::
-
-         >>> from datetime import datetime
-         >>> date_string = "02/29"
-         >>> when = datetime.strptime(f"{date_string};1984", "%m/%d;%Y")  # Avoids leap year bug.
-         >>> when.strftime("%B %d")  # doctest: +SKIP
-         'February 29'
 
 
 Class attributes:
@@ -1226,6 +1189,9 @@ Supported operations:
    and time, taking into account the time zone.
 
    Naive and aware :class:`!datetime` objects are never equal.
+   :class:`!datetime` objects are never equal to :class:`date` objects
+   that are not also :class:`!datetime` instances, even if they represent
+   the same date.
 
    If both comparands are aware, and have the same :attr:`!tzinfo` attribute,
    the :attr:`!tzinfo` and :attr:`~.datetime.fold` attributes are ignored and
@@ -1240,8 +1206,9 @@ Supported operations:
    *datetime1* is considered less than *datetime2* when *datetime1* precedes
    *datetime2* in time, taking into account the time zone.
 
-   Order comparison between naive and aware :class:`.datetime` objects
-   raises :exc:`TypeError`.
+   Order comparison between naive and aware :class:`.datetime` objects,
+   as well as a :class:`!datetime` object and a :class:`!date` object
+   that is not also a :class:`!datetime` instance, raises :exc:`TypeError`.
 
    If both comparands are aware, and have the same :attr:`!tzinfo` attribute,
    the :attr:`!tzinfo` and :attr:`~.datetime.fold` attributes are ignored and
@@ -1253,14 +1220,6 @@ Supported operations:
 .. versionchanged:: 3.3
    Equality comparisons between aware and naive :class:`.datetime`
    instances don't raise :exc:`TypeError`.
-
-.. versionchanged:: 3.13
-   Comparison between :class:`.datetime` object and an instance of
-   the :class:`date` subclass that is not a :class:`!datetime` subclass
-   no longer converts the latter to :class:`!date`, ignoring the time part
-   and the time zone.
-   The default behavior can be changed by overriding the special comparison
-   methods in subclasses.
 
 Instance methods:
 
@@ -1296,9 +1255,6 @@ Instance methods:
    ``tzinfo=None`` can be specified to create a naive datetime from an aware
    datetime with no conversion of date and time data.
 
-   :class:`.datetime` objects are also supported by generic function
-   :func:`copy.replace`.
-
    .. versionchanged:: 3.6
       Added the *fold* parameter.
 
@@ -1311,22 +1267,22 @@ Instance methods:
 
    If provided, *tz* must be an instance of a :class:`tzinfo` subclass, and its
    :meth:`utcoffset` and :meth:`dst` methods must not return ``None``. If *self*
-   is naive, it is presumed to represent time in the system time zone.
+   is naive, it is presumed to represent time in the system timezone.
 
    If called without arguments (or with ``tz=None``) the system local
-   time zone is assumed for the target time zone. The ``.tzinfo`` attribute of the converted
+   timezone is assumed for the target timezone. The ``.tzinfo`` attribute of the converted
    datetime instance will be set to an instance of :class:`timezone`
    with the zone name and offset obtained from the OS.
 
    If ``self.tzinfo`` is *tz*, ``self.astimezone(tz)`` is equal to *self*:  no
    adjustment of date or time data is performed. Else the result is local
-   time in the time zone *tz*, representing the same UTC time as *self*:  after
+   time in the timezone *tz*, representing the same UTC time as *self*:  after
    ``astz = dt.astimezone(tz)``, ``astz - astz.utcoffset()`` will have
    the same date and time data as ``dt - dt.utcoffset()``.
 
-   If you merely want to attach a :class:`timezone` object *tz* to a datetime *dt* without
+   If you merely want to attach a time zone object *tz* to a datetime *dt* without
    adjustment of date and time data, use ``dt.replace(tzinfo=tz)``. If you
-   merely want to remove the :class:`!timezone` object from an aware datetime *dt* without
+   merely want to remove the time zone object from an aware datetime *dt* without
    conversion of date and time data, use ``dt.replace(tzinfo=None)``.
 
    Note that the default :meth:`tzinfo.fromutc` method can be overridden in a
@@ -1336,7 +1292,7 @@ Instance methods:
       def astimezone(self, tz):
           if self.tzinfo is tz:
               return self
-          # Convert self to UTC, and attach the new timezone object.
+          # Convert self to UTC, and attach the new time zone object.
           utc = (self - self.utcoffset()).replace(tzinfo=tz)
           # Convert from UTC to tz's local time.
           return tz.fromutc(utc)
@@ -1450,7 +1406,7 @@ Instance methods:
 
       There is no method to obtain the POSIX timestamp directly from a
       naive :class:`.datetime` instance representing UTC time. If your
-      application uses this convention and your system time zone is not
+      application uses this convention and your system timezone is not
       set to UTC, you can obtain the POSIX timestamp by supplying
       ``tzinfo=timezone.utc``::
 
@@ -1874,9 +1830,6 @@ Instance methods:
    ``tzinfo=None`` can be specified to create a naive :class:`.time` from an
    aware :class:`.time`, without conversion of the time data.
 
-   :class:`.time` objects are also supported by generic function
-   :func:`copy.replace`.
-
    .. versionchanged:: 3.6
       Added the *fold* parameter.
 
@@ -2021,7 +1974,7 @@ Examples of working with a :class:`.time` object::
    supply implementations of the standard :class:`tzinfo` methods needed by the
    :class:`.datetime` methods you use. The :mod:`!datetime` module provides
    :class:`timezone`, a simple concrete subclass of :class:`tzinfo` which can
-   represent time zones with fixed offset from UTC such as UTC itself or North
+   represent timezones with fixed offset from UTC such as UTC itself or North
    American EST and EDT.
 
    Special requirement for pickling:  A :class:`tzinfo` subclass must have an
@@ -2146,14 +2099,14 @@ When a :class:`.datetime` object is passed in response to a :class:`.datetime`
 method, ``dt.tzinfo`` is the same object as *self*. :class:`tzinfo` methods can
 rely on this, unless user code calls :class:`tzinfo` methods directly. The
 intent is that the :class:`tzinfo` methods interpret *dt* as being in local
-time, and not need worry about objects in other time zones.
+time, and not need worry about objects in other timezones.
 
 There is one more :class:`tzinfo` method that a subclass may wish to override:
 
 
 .. method:: tzinfo.fromutc(dt)
 
-   This is called from the default :meth:`datetime.astimezone`
+   This is called from the default :class:`datetime.astimezone()`
    implementation. When called from that, ``dt.tzinfo`` is *self*, and *dt*'s
    date and time data are to be viewed as expressing a UTC time. The purpose
    of :meth:`fromutc` is to adjust the date and time data, returning an
@@ -2263,12 +2216,12 @@ only EST (fixed offset -5 hours), or only EDT (fixed offset -4 hours)).
     :mod:`zoneinfo`
       The :mod:`!datetime` module has a basic :class:`timezone` class (for
       handling arbitrary fixed offsets from UTC) and its :attr:`timezone.utc`
-      attribute (a UTC :class:`!timezone` instance).
+      attribute (a UTC timezone instance).
 
-      ``zoneinfo`` brings the *IANA time zone database* (also known as the Olson
+      ``zoneinfo`` brings the *IANA timezone database* (also known as the Olson
       database) to Python, and its usage is recommended.
 
-   `IANA time zone database <https://www.iana.org/time-zones>`_
+   `IANA timezone database <https://www.iana.org/time-zones>`_
       The Time Zone Database (often called tz, tzdata or zoneinfo) contains code
       and data that represent the history of local time for many representative
       locations around the globe. It is updated periodically to reflect changes
@@ -2282,10 +2235,10 @@ only EST (fixed offset -5 hours), or only EDT (fixed offset -4 hours)).
 -------------------------
 
 The :class:`timezone` class is a subclass of :class:`tzinfo`, each
-instance of which represents a time zone defined by a fixed offset from
+instance of which represents a timezone defined by a fixed offset from
 UTC.
 
-Objects of this class cannot be used to represent time zone information in the
+Objects of this class cannot be used to represent timezone information in the
 locations where different offsets are used in different days of the year or
 where historical changes have been made to civil time.
 
@@ -2346,7 +2299,7 @@ Class attributes:
 
 .. attribute:: timezone.utc
 
-   The UTC time zone, ``timezone(timedelta(0))``.
+   The UTC timezone, ``timezone(timedelta(0))``.
 
 
 .. index::
@@ -2555,7 +2508,7 @@ Using ``datetime.strptime(date_string, format)`` is equivalent to::
 
   datetime(*(time.strptime(date_string, format)[0:6]))
 
-except when the format includes sub-second components or time zone offset
+except when the format includes sub-second components or timezone offset
 information, which are supported in ``datetime.strptime`` but are discarded by
 ``time.strptime``.
 
@@ -2674,25 +2627,6 @@ Notes:
    When used with the :meth:`~.datetime.strptime` method, the leading zero is optional
    for  formats ``%d``, ``%m``, ``%H``, ``%I``, ``%M``, ``%S``, ``%j``, ``%U``,
    ``%W``, and ``%V``. Format ``%y`` does require a leading zero.
-
-(10)
-   When parsing a month and day using :meth:`~.datetime.strptime`, always
-   include a year in the format.  If the value you need to parse lacks a year,
-   append an explicit dummy leap year.  Otherwise your code will raise an
-   exception when it encounters leap day because the default year used by the
-   parser is not a leap year.  Users run into this bug every four years...
-
-   .. doctest::
-
-      >>> month_day = "02/29"
-      >>> datetime.strptime(f"{month_day};1984", "%m/%d;%Y")  # No leap year bug.
-      datetime.datetime(1984, 2, 29, 0, 0)
-
-   .. deprecated-removed:: 3.13 3.15
-      :meth:`~.datetime.strptime` calls using a format string containing
-      a day of month without a year now emit a
-      :exc:`DeprecationWarning`. In 3.15 or later we may change this into
-      an error or change the default year to a leap year. See :gh:`70647`.
 
 .. rubric:: Footnotes
 

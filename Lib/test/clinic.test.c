@@ -4,11 +4,9 @@ output preset block
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=3c81ac2402d06a8b]*/
 
 /*[clinic input]
-module m
-class m.T "TestObj *" "TestType"
 class Test "TestObj *" "TestType"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=f761b4d55cb179cf]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=fc7e50384d12b83f]*/
 
 /*[clinic input]
 test_object_converter
@@ -412,6 +410,9 @@ test_unicode_converter(PyObject *module, PyObject *arg)
         _PyArg_BadArgument("test_unicode_converter", "argument", "str", arg);
         goto exit;
     }
+    if (PyUnicode_READY(arg) == -1) {
+        goto exit;
+    }
     a = arg;
     return_value = test_unicode_converter_impl(module, a);
 
@@ -421,7 +422,7 @@ exit:
 
 static PyObject *
 test_unicode_converter_impl(PyObject *module, PyObject *a)
-/*[clinic end generated code: output=8c1625cc272c1f3d input=aa33612df92aa9c5]*/
+/*[clinic end generated code: output=18f1e3880c862611 input=aa33612df92aa9c5]*/
 
 
 /*[clinic input]
@@ -473,7 +474,7 @@ test_bool_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 3) {
         goto skip_optional;
     }
-    c = PyLong_AsInt(args[2]);
+    c = _PyLong_AsInt(args[2]);
     if (c == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -486,7 +487,7 @@ exit:
 
 static PyObject *
 test_bool_converter_impl(PyObject *module, int a, int b, int c)
-/*[clinic end generated code: output=3190e46490de0644 input=939854fa9f248c60]*/
+/*[clinic end generated code: output=27f0e653a70b9be3 input=939854fa9f248c60]*/
 
 
 /*[clinic input]
@@ -550,24 +551,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 1) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[0])) {
-        if (PyBytes_GET_SIZE(args[0]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 1 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[0]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[0]) && PyBytes_GET_SIZE(args[0]) == 1) {
         a = PyBytes_AS_STRING(args[0])[0];
     }
-    else if (PyByteArray_Check(args[0])) {
-        if (PyByteArray_GET_SIZE(args[0]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 1 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[0]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[0]) && PyByteArray_GET_SIZE(args[0]) == 1) {
         a = PyByteArray_AS_STRING(args[0])[0];
     }
     else {
@@ -577,24 +564,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 2) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[1])) {
-        if (PyBytes_GET_SIZE(args[1]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 2 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[1]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[1]) && PyBytes_GET_SIZE(args[1]) == 1) {
         b = PyBytes_AS_STRING(args[1])[0];
     }
-    else if (PyByteArray_Check(args[1])) {
-        if (PyByteArray_GET_SIZE(args[1]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 2 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[1]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[1]) && PyByteArray_GET_SIZE(args[1]) == 1) {
         b = PyByteArray_AS_STRING(args[1])[0];
     }
     else {
@@ -604,24 +577,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 3) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[2])) {
-        if (PyBytes_GET_SIZE(args[2]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 3 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[2]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[2]) && PyBytes_GET_SIZE(args[2]) == 1) {
         c = PyBytes_AS_STRING(args[2])[0];
     }
-    else if (PyByteArray_Check(args[2])) {
-        if (PyByteArray_GET_SIZE(args[2]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 3 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[2]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[2]) && PyByteArray_GET_SIZE(args[2]) == 1) {
         c = PyByteArray_AS_STRING(args[2])[0];
     }
     else {
@@ -631,24 +590,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 4) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[3])) {
-        if (PyBytes_GET_SIZE(args[3]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 4 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[3]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[3]) && PyBytes_GET_SIZE(args[3]) == 1) {
         d = PyBytes_AS_STRING(args[3])[0];
     }
-    else if (PyByteArray_Check(args[3])) {
-        if (PyByteArray_GET_SIZE(args[3]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 4 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[3]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[3]) && PyByteArray_GET_SIZE(args[3]) == 1) {
         d = PyByteArray_AS_STRING(args[3])[0];
     }
     else {
@@ -658,24 +603,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 5) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[4])) {
-        if (PyBytes_GET_SIZE(args[4]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 5 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[4]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[4]) && PyBytes_GET_SIZE(args[4]) == 1) {
         e = PyBytes_AS_STRING(args[4])[0];
     }
-    else if (PyByteArray_Check(args[4])) {
-        if (PyByteArray_GET_SIZE(args[4]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 5 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[4]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[4]) && PyByteArray_GET_SIZE(args[4]) == 1) {
         e = PyByteArray_AS_STRING(args[4])[0];
     }
     else {
@@ -685,24 +616,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 6) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[5])) {
-        if (PyBytes_GET_SIZE(args[5]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 6 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[5]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[5]) && PyBytes_GET_SIZE(args[5]) == 1) {
         f = PyBytes_AS_STRING(args[5])[0];
     }
-    else if (PyByteArray_Check(args[5])) {
-        if (PyByteArray_GET_SIZE(args[5]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 6 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[5]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[5]) && PyByteArray_GET_SIZE(args[5]) == 1) {
         f = PyByteArray_AS_STRING(args[5])[0];
     }
     else {
@@ -712,24 +629,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 7) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[6])) {
-        if (PyBytes_GET_SIZE(args[6]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 7 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[6]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[6]) && PyBytes_GET_SIZE(args[6]) == 1) {
         g = PyBytes_AS_STRING(args[6])[0];
     }
-    else if (PyByteArray_Check(args[6])) {
-        if (PyByteArray_GET_SIZE(args[6]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 7 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[6]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[6]) && PyByteArray_GET_SIZE(args[6]) == 1) {
         g = PyByteArray_AS_STRING(args[6])[0];
     }
     else {
@@ -739,24 +642,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 8) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[7])) {
-        if (PyBytes_GET_SIZE(args[7]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 8 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[7]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[7]) && PyBytes_GET_SIZE(args[7]) == 1) {
         h = PyBytes_AS_STRING(args[7])[0];
     }
-    else if (PyByteArray_Check(args[7])) {
-        if (PyByteArray_GET_SIZE(args[7]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 8 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[7]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[7]) && PyByteArray_GET_SIZE(args[7]) == 1) {
         h = PyByteArray_AS_STRING(args[7])[0];
     }
     else {
@@ -766,24 +655,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 9) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[8])) {
-        if (PyBytes_GET_SIZE(args[8]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 9 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[8]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[8]) && PyBytes_GET_SIZE(args[8]) == 1) {
         i = PyBytes_AS_STRING(args[8])[0];
     }
-    else if (PyByteArray_Check(args[8])) {
-        if (PyByteArray_GET_SIZE(args[8]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 9 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[8]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[8]) && PyByteArray_GET_SIZE(args[8]) == 1) {
         i = PyByteArray_AS_STRING(args[8])[0];
     }
     else {
@@ -793,24 +668,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 10) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[9])) {
-        if (PyBytes_GET_SIZE(args[9]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 10 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[9]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[9]) && PyBytes_GET_SIZE(args[9]) == 1) {
         j = PyBytes_AS_STRING(args[9])[0];
     }
-    else if (PyByteArray_Check(args[9])) {
-        if (PyByteArray_GET_SIZE(args[9]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 10 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[9]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[9]) && PyByteArray_GET_SIZE(args[9]) == 1) {
         j = PyByteArray_AS_STRING(args[9])[0];
     }
     else {
@@ -820,24 +681,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 11) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[10])) {
-        if (PyBytes_GET_SIZE(args[10]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 11 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[10]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[10]) && PyBytes_GET_SIZE(args[10]) == 1) {
         k = PyBytes_AS_STRING(args[10])[0];
     }
-    else if (PyByteArray_Check(args[10])) {
-        if (PyByteArray_GET_SIZE(args[10]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 11 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[10]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[10]) && PyByteArray_GET_SIZE(args[10]) == 1) {
         k = PyByteArray_AS_STRING(args[10])[0];
     }
     else {
@@ -847,24 +694,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 12) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[11])) {
-        if (PyBytes_GET_SIZE(args[11]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 12 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[11]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[11]) && PyBytes_GET_SIZE(args[11]) == 1) {
         l = PyBytes_AS_STRING(args[11])[0];
     }
-    else if (PyByteArray_Check(args[11])) {
-        if (PyByteArray_GET_SIZE(args[11]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 12 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[11]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[11]) && PyByteArray_GET_SIZE(args[11]) == 1) {
         l = PyByteArray_AS_STRING(args[11])[0];
     }
     else {
@@ -874,24 +707,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 13) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[12])) {
-        if (PyBytes_GET_SIZE(args[12]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 13 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[12]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[12]) && PyBytes_GET_SIZE(args[12]) == 1) {
         m = PyBytes_AS_STRING(args[12])[0];
     }
-    else if (PyByteArray_Check(args[12])) {
-        if (PyByteArray_GET_SIZE(args[12]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 13 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[12]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[12]) && PyByteArray_GET_SIZE(args[12]) == 1) {
         m = PyByteArray_AS_STRING(args[12])[0];
     }
     else {
@@ -901,24 +720,10 @@ test_char_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 14) {
         goto skip_optional;
     }
-    if (PyBytes_Check(args[13])) {
-        if (PyBytes_GET_SIZE(args[13]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 14 must be a byte string of length 1, "
-                "not a bytes object of length %zd",
-                PyBytes_GET_SIZE(args[13]));
-            goto exit;
-        }
+    if (PyBytes_Check(args[13]) && PyBytes_GET_SIZE(args[13]) == 1) {
         n = PyBytes_AS_STRING(args[13])[0];
     }
-    else if (PyByteArray_Check(args[13])) {
-        if (PyByteArray_GET_SIZE(args[13]) != 1) {
-            PyErr_Format(PyExc_TypeError,
-                "test_char_converter(): argument 14 must be a byte string of length 1, "
-                "not a bytearray object of length %zd",
-                PyByteArray_GET_SIZE(args[13]));
-            goto exit;
-        }
+    else if (PyByteArray_Check(args[13]) && PyByteArray_GET_SIZE(args[13]) == 1) {
         n = PyByteArray_AS_STRING(args[13])[0];
     }
     else {
@@ -936,7 +741,7 @@ static PyObject *
 test_char_converter_impl(PyObject *module, char a, char b, char c, char d,
                          char e, char f, char g, char h, char i, char j,
                          char k, char l, char m, char n)
-/*[clinic end generated code: output=ff11e203248582df input=e42330417a44feac]*/
+/*[clinic end generated code: output=98589f02422fe6b1 input=e42330417a44feac]*/
 
 
 /*[clinic input]
@@ -1205,14 +1010,14 @@ test_int_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 1) {
         goto skip_optional;
     }
-    a = PyLong_AsInt(args[0]);
+    a = _PyLong_AsInt(args[0]);
     if (a == -1 && PyErr_Occurred()) {
         goto exit;
     }
     if (nargs < 2) {
         goto skip_optional;
     }
-    b = PyLong_AsInt(args[1]);
+    b = _PyLong_AsInt(args[1]);
     if (b == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -1223,18 +1028,18 @@ test_int_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
         _PyArg_BadArgument("test_int_converter", "argument 3", "a unicode character", args[2]);
         goto exit;
     }
+    if (PyUnicode_READY(args[2])) {
+        goto exit;
+    }
     if (PyUnicode_GET_LENGTH(args[2]) != 1) {
-        PyErr_Format(PyExc_TypeError,
-            "test_int_converter(): argument 3 must be a unicode character, "
-            "not a string of length %zd",
-            PyUnicode_GET_LENGTH(args[2]));
+        _PyArg_BadArgument("test_int_converter", "argument 3", "a unicode character", args[2]);
         goto exit;
     }
     c = PyUnicode_READ_CHAR(args[2], 0);
     if (nargs < 4) {
         goto skip_optional;
     }
-    d = PyLong_AsInt(args[3]);
+    d = _PyLong_AsInt(args[3]);
     if (d == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -1247,7 +1052,7 @@ exit:
 
 static PyObject *
 test_int_converter_impl(PyObject *module, int a, int b, int c, myenum d)
-/*[clinic end generated code: output=fbcfb7554688663d input=d20541fc1ca0553e]*/
+/*[clinic end generated code: output=800993036e078c07 input=d20541fc1ca0553e]*/
 
 
 /*[clinic input]
@@ -2034,21 +1839,21 @@ PyDoc_STRVAR(test_Py_UNICODE_converter__doc__,
     {"test_Py_UNICODE_converter", _PyCFunction_CAST(test_Py_UNICODE_converter), METH_FASTCALL, test_Py_UNICODE_converter__doc__},
 
 static PyObject *
-test_Py_UNICODE_converter_impl(PyObject *module, const wchar_t *a,
-                               const wchar_t *b, const wchar_t *c,
-                               const wchar_t *d, Py_ssize_t d_length,
-                               const wchar_t *e, Py_ssize_t e_length);
+test_Py_UNICODE_converter_impl(PyObject *module, const Py_UNICODE *a,
+                               const Py_UNICODE *b, const Py_UNICODE *c,
+                               const Py_UNICODE *d, Py_ssize_t d_length,
+                               const Py_UNICODE *e, Py_ssize_t e_length);
 
 static PyObject *
 test_Py_UNICODE_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 {
     PyObject *return_value = NULL;
-    const wchar_t *a = NULL;
-    const wchar_t *b = NULL;
-    const wchar_t *c = NULL;
-    const wchar_t *d = NULL;
+    const Py_UNICODE *a = NULL;
+    const Py_UNICODE *b = NULL;
+    const Py_UNICODE *c = NULL;
+    const Py_UNICODE *d = NULL;
     Py_ssize_t d_length;
-    const wchar_t *e = NULL;
+    const Py_UNICODE *e = NULL;
     Py_ssize_t e_length;
 
     if (!_PyArg_ParseStack(args, nargs, "O&O&O&u#Z#:test_Py_UNICODE_converter",
@@ -2069,11 +1874,11 @@ exit:
 }
 
 static PyObject *
-test_Py_UNICODE_converter_impl(PyObject *module, const wchar_t *a,
-                               const wchar_t *b, const wchar_t *c,
-                               const wchar_t *d, Py_ssize_t d_length,
-                               const wchar_t *e, Py_ssize_t e_length)
-/*[clinic end generated code: output=529af9cda2a20349 input=064a3b68ad7f04b0]*/
+test_Py_UNICODE_converter_impl(PyObject *module, const Py_UNICODE *a,
+                               const Py_UNICODE *b, const Py_UNICODE *c,
+                               const Py_UNICODE *d, Py_ssize_t d_length,
+                               const Py_UNICODE *e, Py_ssize_t e_length)
+/*[clinic end generated code: output=9f34a249b3071fdd input=064a3b68ad7f04b0]*/
 
 
 /*[clinic input]
@@ -2179,7 +1984,7 @@ test_keywords(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObjec
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), _Py_LATIN1_CHR('b'), },
+        .ob_item = { &_Py_ID(a), &_Py_ID(b), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2213,7 +2018,7 @@ exit:
 
 static PyObject *
 test_keywords_impl(PyObject *module, PyObject *a, PyObject *b)
-/*[clinic end generated code: output=13ba007e1c842a37 input=0d3484844749c05b]*/
+/*[clinic end generated code: output=73d46a9ae3320f96 input=0d3484844749c05b]*/
 
 
 /*[clinic input]
@@ -2249,7 +2054,7 @@ test_keywords_kwonly(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), _Py_LATIN1_CHR('b'), },
+        .ob_item = { &_Py_ID(a), &_Py_ID(b), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2283,7 +2088,7 @@ exit:
 
 static PyObject *
 test_keywords_kwonly_impl(PyObject *module, PyObject *a, PyObject *b)
-/*[clinic end generated code: output=789799a6d2d6eb4d input=384adc78bfa0bff7]*/
+/*[clinic end generated code: output=c9f02a41f425897d input=384adc78bfa0bff7]*/
 
 
 /*[clinic input]
@@ -2320,7 +2125,7 @@ test_keywords_opt(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), },
+        .ob_item = { &_Py_ID(a), &_Py_ID(b), &_Py_ID(c), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2367,7 +2172,7 @@ exit:
 static PyObject *
 test_keywords_opt_impl(PyObject *module, PyObject *a, PyObject *b,
                        PyObject *c)
-/*[clinic end generated code: output=42430dd8ea5afde6 input=eda7964f784f4607]*/
+/*[clinic end generated code: output=b35d4e66f7283e46 input=eda7964f784f4607]*/
 
 
 /*[clinic input]
@@ -2406,7 +2211,7 @@ test_keywords_opt_kwonly(PyObject *module, PyObject *const *args, Py_ssize_t nar
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), },
+        .ob_item = { &_Py_ID(a), &_Py_ID(b), &_Py_ID(c), &_Py_ID(d), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2464,7 +2269,7 @@ exit:
 static PyObject *
 test_keywords_opt_kwonly_impl(PyObject *module, PyObject *a, PyObject *b,
                               PyObject *c, PyObject *d)
-/*[clinic end generated code: output=f312c35c380d2bf9 input=209387a4815e5082]*/
+/*[clinic end generated code: output=ede7e6e65106bf2b input=209387a4815e5082]*/
 
 
 /*[clinic input]
@@ -2502,7 +2307,7 @@ test_keywords_kwonly_opt(PyObject *module, PyObject *const *args, Py_ssize_t nar
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), },
+        .ob_item = { &_Py_ID(a), &_Py_ID(b), &_Py_ID(c), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2549,7 +2354,7 @@ exit:
 static PyObject *
 test_keywords_kwonly_opt_impl(PyObject *module, PyObject *a, PyObject *b,
                               PyObject *c)
-/*[clinic end generated code: output=3937da2a8233ebe0 input=18393cc64fa000f4]*/
+/*[clinic end generated code: output=36d4df939a4c3eef input=18393cc64fa000f4]*/
 
 
 /*[clinic input]
@@ -2585,7 +2390,7 @@ test_posonly_keywords(PyObject *module, PyObject *const *args, Py_ssize_t nargs,
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), },
+        .ob_item = { &_Py_ID(b), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2619,7 +2424,7 @@ exit:
 
 static PyObject *
 test_posonly_keywords_impl(PyObject *module, PyObject *a, PyObject *b)
-/*[clinic end generated code: output=6b4f6dd5f4db3877 input=1767b0ebdf06060e]*/
+/*[clinic end generated code: output=4835f4b6cf386c28 input=1767b0ebdf06060e]*/
 
 
 /*[clinic input]
@@ -2656,7 +2461,7 @@ test_posonly_kwonly(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('c'), },
+        .ob_item = { &_Py_ID(c), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2690,7 +2495,7 @@ exit:
 
 static PyObject *
 test_posonly_kwonly_impl(PyObject *module, PyObject *a, PyObject *c)
-/*[clinic end generated code: output=8bef2a8198e70b26 input=9042f2818f664839]*/
+/*[clinic end generated code: output=2570ea156a8d3cb5 input=9042f2818f664839]*/
 
 
 /*[clinic input]
@@ -2729,7 +2534,7 @@ test_posonly_keywords_kwonly(PyObject *module, PyObject *const *args, Py_ssize_t
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2766,7 +2571,7 @@ exit:
 static PyObject *
 test_posonly_keywords_kwonly_impl(PyObject *module, PyObject *a, PyObject *b,
                                   PyObject *c)
-/*[clinic end generated code: output=a44b8ae8300955e1 input=29546ebdca492fea]*/
+/*[clinic end generated code: output=aaa0e6b5ce02900d input=29546ebdca492fea]*/
 
 
 /*[clinic input]
@@ -2805,7 +2610,7 @@ test_posonly_keywords_opt(PyObject *module, PyObject *const *args, Py_ssize_t na
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), &_Py_ID(d), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2854,7 +2659,7 @@ exit:
 static PyObject *
 test_posonly_keywords_opt_impl(PyObject *module, PyObject *a, PyObject *b,
                                PyObject *c, PyObject *d)
-/*[clinic end generated code: output=cae6647c9e8e0238 input=cdf5a9625e554e9b]*/
+/*[clinic end generated code: output=1d9f2d8420d0a85f input=cdf5a9625e554e9b]*/
 
 
 /*[clinic input]
@@ -2892,7 +2697,7 @@ test_posonly_keywords_opt2(PyObject *module, PyObject *const *args, Py_ssize_t n
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -2939,7 +2744,7 @@ exit:
 static PyObject *
 test_posonly_keywords_opt2_impl(PyObject *module, PyObject *a, PyObject *b,
                                 PyObject *c)
-/*[clinic end generated code: output=6526fd08aafa2149 input=1581299d21d16f14]*/
+/*[clinic end generated code: output=a83caa0505b296cf input=1581299d21d16f14]*/
 
 
 /*[clinic input]
@@ -2978,7 +2783,7 @@ test_posonly_opt_keywords_opt(PyObject *module, PyObject *const *args, Py_ssize_
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), },
+        .ob_item = { &_Py_ID(c), &_Py_ID(d), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3032,7 +2837,7 @@ exit:
 static PyObject *
 test_posonly_opt_keywords_opt_impl(PyObject *module, PyObject *a,
                                    PyObject *b, PyObject *c, PyObject *d)
-/*[clinic end generated code: output=b8d01e98443738c2 input=408798ec3d42949f]*/
+/*[clinic end generated code: output=0b24fba3dc04d26b input=408798ec3d42949f]*/
 
 
 /*[clinic input]
@@ -3072,7 +2877,7 @@ test_posonly_kwonly_opt(PyObject *module, PyObject *const *args, Py_ssize_t narg
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), &_Py_ID(d), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3121,7 +2926,7 @@ exit:
 static PyObject *
 test_posonly_kwonly_opt_impl(PyObject *module, PyObject *a, PyObject *b,
                              PyObject *c, PyObject *d)
-/*[clinic end generated code: output=81d71c288f13d4dc input=8d8e5643bbbc2309]*/
+/*[clinic end generated code: output=592b217bca2f7bcc input=8d8e5643bbbc2309]*/
 
 
 /*[clinic input]
@@ -3160,7 +2965,7 @@ test_posonly_kwonly_opt2(PyObject *module, PyObject *const *args, Py_ssize_t nar
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3207,7 +3012,7 @@ exit:
 static PyObject *
 test_posonly_kwonly_opt2_impl(PyObject *module, PyObject *a, PyObject *b,
                               PyObject *c)
-/*[clinic end generated code: output=a717d2a1a3310289 input=f7e5eed94f75fff0]*/
+/*[clinic end generated code: output=b8b00420826bc11f input=f7e5eed94f75fff0]*/
 
 
 /*[clinic input]
@@ -3247,7 +3052,7 @@ test_posonly_opt_kwonly_opt(PyObject *module, PyObject *const *args, Py_ssize_t 
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), },
+        .ob_item = { &_Py_ID(c), &_Py_ID(d), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3301,7 +3106,7 @@ exit:
 static PyObject *
 test_posonly_opt_kwonly_opt_impl(PyObject *module, PyObject *a, PyObject *b,
                                  PyObject *c, PyObject *d)
-/*[clinic end generated code: output=0f50b4b8d45cf2de input=1e557dc979d120fd]*/
+/*[clinic end generated code: output=3b9ee879ebee285a input=1e557dc979d120fd]*/
 
 
 /*[clinic input]
@@ -3343,7 +3148,7 @@ test_posonly_keywords_kwonly_opt(PyObject *module, PyObject *const *args, Py_ssi
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), _Py_LATIN1_CHR('e'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), &_Py_ID(d), &_Py_ID(e), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3395,7 +3200,7 @@ static PyObject *
 test_posonly_keywords_kwonly_opt_impl(PyObject *module, PyObject *a,
                                       PyObject *b, PyObject *c, PyObject *d,
                                       PyObject *e)
-/*[clinic end generated code: output=8dac8d2a4e6105fa input=c3884a4f956fdc89]*/
+/*[clinic end generated code: output=d380f84f81cc0e45 input=c3884a4f956fdc89]*/
 
 
 /*[clinic input]
@@ -3435,7 +3240,7 @@ test_posonly_keywords_kwonly_opt2(PyObject *module, PyObject *const *args, Py_ss
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), &_Py_ID(d), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3484,7 +3289,7 @@ exit:
 static PyObject *
 test_posonly_keywords_kwonly_opt2_impl(PyObject *module, PyObject *a,
                                        PyObject *b, PyObject *c, PyObject *d)
-/*[clinic end generated code: output=5a96d521e6414f5d input=68d01d7c0f6dafb0]*/
+/*[clinic end generated code: output=ee629e962cb06992 input=68d01d7c0f6dafb0]*/
 
 
 /*[clinic input]
@@ -3527,7 +3332,7 @@ test_posonly_keywords_opt_kwonly_opt(PyObject *module, PyObject *const *args, Py
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), _Py_LATIN1_CHR('e'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), &_Py_ID(d), &_Py_ID(e), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3588,7 +3393,7 @@ static PyObject *
 test_posonly_keywords_opt_kwonly_opt_impl(PyObject *module, PyObject *a,
                                           PyObject *b, PyObject *c,
                                           PyObject *d, PyObject *e)
-/*[clinic end generated code: output=d5a474dcd5dc3e9f input=d0883d45876f186c]*/
+/*[clinic end generated code: output=a2721babb42ecfd1 input=d0883d45876f186c]*/
 
 
 /*[clinic input]
@@ -3631,7 +3436,7 @@ test_posonly_keywords_opt2_kwonly_opt(PyObject *module, PyObject *const *args, P
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), _Py_LATIN1_CHR('e'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), &_Py_ID(d), &_Py_ID(e), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3697,7 +3502,7 @@ static PyObject *
 test_posonly_keywords_opt2_kwonly_opt_impl(PyObject *module, PyObject *a,
                                            PyObject *b, PyObject *c,
                                            PyObject *d, PyObject *e)
-/*[clinic end generated code: output=ac239c5ee8a74408 input=c95e2e1ec93035ad]*/
+/*[clinic end generated code: output=0626203eedb6e7e8 input=c95e2e1ec93035ad]*/
 
 
 /*[clinic input]
@@ -3742,7 +3547,7 @@ test_posonly_opt_keywords_opt_kwonly_opt(PyObject *module, PyObject *const *args
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('c'), _Py_LATIN1_CHR('d'), _Py_LATIN1_CHR('e'), _Py_LATIN1_CHR('f'), },
+        .ob_item = { &_Py_ID(c), &_Py_ID(d), &_Py_ID(e), &_Py_ID(f), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -3816,7 +3621,7 @@ test_posonly_opt_keywords_opt_kwonly_opt_impl(PyObject *module, PyObject *a,
                                               PyObject *b, PyObject *c,
                                               PyObject *d, PyObject *e,
                                               PyObject *f)
-/*[clinic end generated code: output=638bbd0005639342 input=9914857713c5bbf8]*/
+/*[clinic end generated code: output=07d8acc04558a5a0 input=9914857713c5bbf8]*/
 
 /*[clinic input]
 test_keyword_only_parameter
@@ -4212,7 +4017,7 @@ test_vararg(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject 
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), },
+        .ob_item = { &_Py_ID(a), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -4247,7 +4052,7 @@ exit:
 
 static PyObject *
 test_vararg_impl(PyObject *module, PyObject *a, PyObject *args)
-/*[clinic end generated code: output=1411e464f358a7ba input=81d33815ad1bae6e]*/
+/*[clinic end generated code: output=880365c61ae205d7 input=81d33815ad1bae6e]*/
 
 /*[clinic input]
 test_vararg_with_default
@@ -4284,7 +4089,7 @@ test_vararg_with_default(PyObject *module, PyObject *const *args, Py_ssize_t nar
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), _Py_LATIN1_CHR('b'), },
+        .ob_item = { &_Py_ID(a), &_Py_ID(b), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -4330,7 +4135,7 @@ exit:
 static PyObject *
 test_vararg_with_default_impl(PyObject *module, PyObject *a, PyObject *args,
                               int b)
-/*[clinic end generated code: output=f09d4b917063ca41 input=6e110b54acd9b22d]*/
+/*[clinic end generated code: output=291e9a5a09831128 input=6e110b54acd9b22d]*/
 
 /*[clinic input]
 test_vararg_with_only_defaults
@@ -4367,7 +4172,7 @@ test_vararg_with_only_defaults(PyObject *module, PyObject *const *args, Py_ssize
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('b'), _Py_LATIN1_CHR('c'), },
+        .ob_item = { &_Py_ID(b), &_Py_ID(c), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -4418,7 +4223,7 @@ exit:
 static PyObject *
 test_vararg_with_only_defaults_impl(PyObject *module, PyObject *args, int b,
                                     PyObject *c)
-/*[clinic end generated code: output=cc6590b8805d5433 input=fa56a709a035666e]*/
+/*[clinic end generated code: output=dd21b28f0db26a4b input=fa56a709a035666e]*/
 
 /*[clinic input]
 test_paramname_module
@@ -4685,7 +4490,7 @@ Test_cls_with_param(TestObj *self, PyTypeObject *cls, PyObject *const *args, Py_
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), },
+        .ob_item = { &_Py_ID(a), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -4708,7 +4513,7 @@ Test_cls_with_param(TestObj *self, PyTypeObject *cls, PyObject *const *args, Py_
     if (!args) {
         goto exit;
     }
-    a = PyLong_AsInt(args[0]);
+    a = _PyLong_AsInt(args[0]);
     if (a == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -4720,7 +4525,7 @@ exit:
 
 static PyObject *
 Test_cls_with_param_impl(TestObj *self, PyTypeObject *cls, int a)
-/*[clinic end generated code: output=a3a968137b0f320a input=af158077bd237ef9]*/
+/*[clinic end generated code: output=00218e7f583e6c81 input=af158077bd237ef9]*/
 
 
 /*[clinic input]
@@ -4902,7 +4707,7 @@ Test_an_metho_arg_named_arg(TestObj *self, PyObject *arg_)
     PyObject *return_value = NULL;
     int arg;
 
-    arg = PyLong_AsInt(arg_);
+    arg = _PyLong_AsInt(arg_);
     if (arg == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -4914,7 +4719,7 @@ exit:
 
 static PyObject *
 Test_an_metho_arg_named_arg_impl(TestObj *self, int arg)
-/*[clinic end generated code: output=9f04de4a62287e28 input=2a53a57cf5624f95]*/
+/*[clinic end generated code: output=7d590626642194ae input=2a53a57cf5624f95]*/
 
 
 /*[clinic input]
@@ -5033,7 +4838,7 @@ Test___init__(PyObject *self, PyObject *args, PyObject *kwargs)
         PyObject *ob_item[NUM_KEYWORDS];
     } _kwtuple = {
         .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), },
+        .ob_item = { &_Py_ID(a), },
     };
     #undef NUM_KEYWORDS
     #define KWTUPLE (&_kwtuple.ob_base.ob_base)
@@ -5067,7 +4872,7 @@ exit:
 
 static int
 Test___init___impl(TestObj *self, PyObject *a)
-/*[clinic end generated code: output=0e1239b9bc247bc1 input=a8f9222a6ab35c59]*/
+/*[clinic end generated code: output=0b9ca79638ab3ecb input=a8f9222a6ab35c59]*/
 
 
 /*[clinic input]
@@ -5150,69 +4955,6 @@ static PyObject *
 Test_meth_coexist_impl(TestObj *self)
 /*[clinic end generated code: output=808a293d0cd27439 input=2a1d75b5e6fec6dd]*/
 
-/*[clinic input]
-@getter
-Test.property
-[clinic start generated code]*/
-
-#if defined(Test_property_HAS_DOCSTR)
-#  define Test_property_DOCSTR Test_property__doc__
-#else
-#  define Test_property_DOCSTR NULL
-#endif
-#if defined(TEST_PROPERTY_GETSETDEF)
-#  undef TEST_PROPERTY_GETSETDEF
-#  define TEST_PROPERTY_GETSETDEF {"property", (getter)Test_property_get, (setter)Test_property_set, Test_property_DOCSTR},
-#else
-#  define TEST_PROPERTY_GETSETDEF {"property", (getter)Test_property_get, NULL, Test_property_DOCSTR},
-#endif
-
-static PyObject *
-Test_property_get_impl(TestObj *self);
-
-static PyObject *
-Test_property_get(TestObj *self, void *Py_UNUSED(context))
-{
-    return Test_property_get_impl(self);
-}
-
-static PyObject *
-Test_property_get_impl(TestObj *self)
-/*[clinic end generated code: output=27b519719d992e03 input=2d92b3449fbc7d2b]*/
-
-/*[clinic input]
-@setter
-Test.property
-[clinic start generated code]*/
-
-#if defined(TEST_PROPERTY_HAS_DOCSTR)
-#  define Test_property_DOCSTR Test_property__doc__
-#else
-#  define Test_property_DOCSTR NULL
-#endif
-#if defined(TEST_PROPERTY_GETSETDEF)
-#  undef TEST_PROPERTY_GETSETDEF
-#  define TEST_PROPERTY_GETSETDEF {"property", (getter)Test_property_get, (setter)Test_property_set, Test_property_DOCSTR},
-#else
-#  define TEST_PROPERTY_GETSETDEF {"property", NULL, (setter)Test_property_set, NULL},
-#endif
-
-static int
-Test_property_set_impl(TestObj *self, PyObject *value);
-
-static int
-Test_property_set(TestObj *self, PyObject *value, void *Py_UNUSED(context))
-{
-    int return_value;
-
-    return_value = Test_property_set_impl(self, value);
-
-    return return_value;
-}
-
-static int
-Test_property_set_impl(TestObj *self, PyObject *value)
-/*[clinic end generated code: output=d51023f17c4ac3a1 input=3bc3f46a23c83a88]*/
 
 /*[clinic input]
 output push
@@ -5268,663 +5010,3 @@ PyDoc_STRVAR(new_dest__doc__,
 "\n"
 "Only this docstring should be outputted to test1.");
 /*[clinic end generated code: output=9cac703f51d90e84 input=090db8df4945576d]*/
-
-
-/*[clinic input]
-mangled_c_keyword_identifier
-    i as int: int
-The 'int' param should be mangled as 'int_value'
-[clinic start generated code]*/
-
-PyDoc_STRVAR(mangled_c_keyword_identifier__doc__,
-"mangled_c_keyword_identifier($module, /, i)\n"
-"--\n"
-"\n"
-"The \'int\' param should be mangled as \'int_value\'");
-
-#define MANGLED_C_KEYWORD_IDENTIFIER_METHODDEF    \
-    {"mangled_c_keyword_identifier", _PyCFunction_CAST(mangled_c_keyword_identifier), METH_FASTCALL|METH_KEYWORDS, mangled_c_keyword_identifier__doc__},
-
-static PyObject *
-mangled_c_keyword_identifier_impl(PyObject *module, int int_value);
-
-static PyObject *
-mangled_c_keyword_identifier(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
-
-    #define NUM_KEYWORDS 1
-    static struct {
-        PyGC_Head _this_is_not_used;
-        PyObject_VAR_HEAD
-        PyObject *ob_item[NUM_KEYWORDS];
-    } _kwtuple = {
-        .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('i'), },
-    };
-    #undef NUM_KEYWORDS
-    #define KWTUPLE (&_kwtuple.ob_base.ob_base)
-
-    #else  // !Py_BUILD_CORE
-    #  define KWTUPLE NULL
-    #endif  // !Py_BUILD_CORE
-
-    static const char * const _keywords[] = {"i", NULL};
-    static _PyArg_Parser _parser = {
-        .keywords = _keywords,
-        .fname = "mangled_c_keyword_identifier",
-        .kwtuple = KWTUPLE,
-    };
-    #undef KWTUPLE
-    PyObject *argsbuf[1];
-    int int_value;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    int_value = PyLong_AsInt(args[0]);
-    if (int_value == -1 && PyErr_Occurred()) {
-        goto exit;
-    }
-    return_value = mangled_c_keyword_identifier_impl(module, int_value);
-
-exit:
-    return return_value;
-}
-
-static PyObject *
-mangled_c_keyword_identifier_impl(PyObject *module, int int_value)
-/*[clinic end generated code: output=01a8088b57632916 input=060876448ab567a2]*/
-
-
-/*[clinic input]
-bool_return -> bool
-[clinic start generated code]*/
-
-PyDoc_STRVAR(bool_return__doc__,
-"bool_return($module, /)\n"
-"--\n"
-"\n");
-
-#define BOOL_RETURN_METHODDEF    \
-    {"bool_return", (PyCFunction)bool_return, METH_NOARGS, bool_return__doc__},
-
-static int
-bool_return_impl(PyObject *module);
-
-static PyObject *
-bool_return(PyObject *module, PyObject *Py_UNUSED(ignored))
-{
-    PyObject *return_value = NULL;
-    int _return_value;
-
-    _return_value = bool_return_impl(module);
-    if ((_return_value == -1) && PyErr_Occurred()) {
-        goto exit;
-    }
-    return_value = PyBool_FromLong((long)_return_value);
-
-exit:
-    return return_value;
-}
-
-static int
-bool_return_impl(PyObject *module)
-/*[clinic end generated code: output=3a65f07830e48e98 input=93ba95d39ee98f39]*/
-
-
-/*[clinic input]
-double_return -> double
-[clinic start generated code]*/
-
-PyDoc_STRVAR(double_return__doc__,
-"double_return($module, /)\n"
-"--\n"
-"\n");
-
-#define DOUBLE_RETURN_METHODDEF    \
-    {"double_return", (PyCFunction)double_return, METH_NOARGS, double_return__doc__},
-
-static double
-double_return_impl(PyObject *module);
-
-static PyObject *
-double_return(PyObject *module, PyObject *Py_UNUSED(ignored))
-{
-    PyObject *return_value = NULL;
-    double _return_value;
-
-    _return_value = double_return_impl(module);
-    if ((_return_value == -1.0) && PyErr_Occurred()) {
-        goto exit;
-    }
-    return_value = PyFloat_FromDouble(_return_value);
-
-exit:
-    return return_value;
-}
-
-static double
-double_return_impl(PyObject *module)
-/*[clinic end generated code: output=076dc72595d3f66d input=da11b6255e4cbfd7]*/
-
-
-/*[clinic input]
-Test.__init__
-    a: object
-    [
-    b: object
-    ]
-    /
-Should generate two PyArg_ParseTuple calls.
-[clinic start generated code]*/
-
-PyDoc_STRVAR(Test___init____doc__,
-"Test(a, [b])\n"
-"Should generate two PyArg_ParseTuple calls.");
-
-static int
-Test___init___impl(TestObj *self, PyObject *a, int group_right_1,
-                   PyObject *b);
-
-static int
-Test___init__(PyObject *self, PyObject *args, PyObject *kwargs)
-{
-    int return_value = -1;
-    PyTypeObject *base_tp = TestType;
-    PyObject *a;
-    int group_right_1 = 0;
-    PyObject *b = NULL;
-
-    if ((Py_IS_TYPE(self, base_tp) ||
-         Py_TYPE(self)->tp_new == base_tp->tp_new) &&
-        !_PyArg_NoKeywords("Test", kwargs)) {
-        goto exit;
-    }
-    switch (PyTuple_GET_SIZE(args)) {
-        case 1:
-            if (!PyArg_ParseTuple(args, "O:__init__", &a)) {
-                goto exit;
-            }
-            break;
-        case 2:
-            if (!PyArg_ParseTuple(args, "OO:__init__", &a, &b)) {
-                goto exit;
-            }
-            group_right_1 = 1;
-            break;
-        default:
-            PyErr_SetString(PyExc_TypeError, "Test.__init__ requires 1 to 2 arguments");
-            goto exit;
-    }
-    return_value = Test___init___impl((TestObj *)self, a, group_right_1, b);
-
-exit:
-    return return_value;
-}
-
-static int
-Test___init___impl(TestObj *self, PyObject *a, int group_right_1,
-                   PyObject *b)
-/*[clinic end generated code: output=2bbb8ea60e8f57a6 input=10f5d0f1e8e466ef]*/
-
-
-/*[clinic input]
-Test._pyarg_parsestackandkeywords
-    cls: defining_class
-    key: str(accept={str, robuffer}, zeroes=True)
-    /
-Check that _PyArg_ParseStackAndKeywords() is generated.
-[clinic start generated code]*/
-
-PyDoc_STRVAR(Test__pyarg_parsestackandkeywords__doc__,
-"_pyarg_parsestackandkeywords($self, key, /)\n"
-"--\n"
-"\n"
-"Check that _PyArg_ParseStackAndKeywords() is generated.");
-
-#define TEST__PYARG_PARSESTACKANDKEYWORDS_METHODDEF    \
-    {"_pyarg_parsestackandkeywords", _PyCFunction_CAST(Test__pyarg_parsestackandkeywords), METH_METHOD|METH_FASTCALL|METH_KEYWORDS, Test__pyarg_parsestackandkeywords__doc__},
-
-static PyObject *
-Test__pyarg_parsestackandkeywords_impl(TestObj *self, PyTypeObject *cls,
-                                       const char *key,
-                                       Py_ssize_t key_length);
-
-static PyObject *
-Test__pyarg_parsestackandkeywords(TestObj *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
-    #  define KWTUPLE (PyObject *)&_Py_SINGLETON(tuple_empty)
-    #else
-    #  define KWTUPLE NULL
-    #endif
-
-    static const char * const _keywords[] = {"", NULL};
-    static _PyArg_Parser _parser = {
-        .keywords = _keywords,
-        .format = "s#:_pyarg_parsestackandkeywords",
-        .kwtuple = KWTUPLE,
-    };
-    #undef KWTUPLE
-    const char *key;
-    Py_ssize_t key_length;
-
-    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
-        &key, &key_length)) {
-        goto exit;
-    }
-    return_value = Test__pyarg_parsestackandkeywords_impl(self, cls, key, key_length);
-
-exit:
-    return return_value;
-}
-
-static PyObject *
-Test__pyarg_parsestackandkeywords_impl(TestObj *self, PyTypeObject *cls,
-                                       const char *key,
-                                       Py_ssize_t key_length)
-/*[clinic end generated code: output=4fda8a7f2547137c input=fc72ef4b4cfafabc]*/
-
-
-/*[clinic input]
-fn_with_default_binop_expr
-    arg: object(c_default='CONST_A + CONST_B') = a+b
-[clinic start generated code]*/
-
-PyDoc_STRVAR(fn_with_default_binop_expr__doc__,
-"fn_with_default_binop_expr($module, /, arg=a+b)\n"
-"--\n"
-"\n");
-
-#define FN_WITH_DEFAULT_BINOP_EXPR_METHODDEF    \
-    {"fn_with_default_binop_expr", _PyCFunction_CAST(fn_with_default_binop_expr), METH_FASTCALL|METH_KEYWORDS, fn_with_default_binop_expr__doc__},
-
-static PyObject *
-fn_with_default_binop_expr_impl(PyObject *module, PyObject *arg);
-
-static PyObject *
-fn_with_default_binop_expr(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
-
-    #define NUM_KEYWORDS 1
-    static struct {
-        PyGC_Head _this_is_not_used;
-        PyObject_VAR_HEAD
-        PyObject *ob_item[NUM_KEYWORDS];
-    } _kwtuple = {
-        .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { &_Py_ID(arg), },
-    };
-    #undef NUM_KEYWORDS
-    #define KWTUPLE (&_kwtuple.ob_base.ob_base)
-
-    #else  // !Py_BUILD_CORE
-    #  define KWTUPLE NULL
-    #endif  // !Py_BUILD_CORE
-
-    static const char * const _keywords[] = {"arg", NULL};
-    static _PyArg_Parser _parser = {
-        .keywords = _keywords,
-        .fname = "fn_with_default_binop_expr",
-        .kwtuple = KWTUPLE,
-    };
-    #undef KWTUPLE
-    PyObject *argsbuf[1];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
-    PyObject *arg = CONST_A + CONST_B;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    if (!noptargs) {
-        goto skip_optional_pos;
-    }
-    arg = args[0];
-skip_optional_pos:
-    return_value = fn_with_default_binop_expr_impl(module, arg);
-
-exit:
-    return return_value;
-}
-
-static PyObject *
-fn_with_default_binop_expr_impl(PyObject *module, PyObject *arg)
-/*[clinic end generated code: output=018672772e4092ff input=1b55c8ae68d89453]*/
-
-
-/*[python input]
-class Custom_converter(CConverter):
-    type = "str"
-    default = "Hello!"
-    converter = "c_converter_func"
-[python start generated code]*/
-/*[python end generated code: output=da39a3ee5e6b4b0d input=d612708f0efb8e3c]*/
-
-/*[clinic input]
-docstr_fallback_to_converter_default
-    a: Custom
-Check docstring default value fallback.
-
-Verify that the docstring formatter fetches the default
-value from the converter if no 'py_default' is found.
-The signature should have the default a='Hello!',
-as given by the Custom converter.
-[clinic start generated code]*/
-
-PyDoc_STRVAR(docstr_fallback_to_converter_default__doc__,
-"docstr_fallback_to_converter_default($module, /, a=\'Hello!\')\n"
-"--\n"
-"\n"
-"Check docstring default value fallback.\n"
-"\n"
-"Verify that the docstring formatter fetches the default\n"
-"value from the converter if no \'py_default\' is found.\n"
-"The signature should have the default a=\'Hello!\',\n"
-"as given by the Custom converter.");
-
-#define DOCSTR_FALLBACK_TO_CONVERTER_DEFAULT_METHODDEF    \
-    {"docstr_fallback_to_converter_default", _PyCFunction_CAST(docstr_fallback_to_converter_default), METH_FASTCALL|METH_KEYWORDS, docstr_fallback_to_converter_default__doc__},
-
-static PyObject *
-docstr_fallback_to_converter_default_impl(PyObject *module, str a);
-
-static PyObject *
-docstr_fallback_to_converter_default(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
-
-    #define NUM_KEYWORDS 1
-    static struct {
-        PyGC_Head _this_is_not_used;
-        PyObject_VAR_HEAD
-        PyObject *ob_item[NUM_KEYWORDS];
-    } _kwtuple = {
-        .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-        .ob_item = { _Py_LATIN1_CHR('a'), },
-    };
-    #undef NUM_KEYWORDS
-    #define KWTUPLE (&_kwtuple.ob_base.ob_base)
-
-    #else  // !Py_BUILD_CORE
-    #  define KWTUPLE NULL
-    #endif  // !Py_BUILD_CORE
-
-    static const char * const _keywords[] = {"a", NULL};
-    static _PyArg_Parser _parser = {
-        .keywords = _keywords,
-        .fname = "docstr_fallback_to_converter_default",
-        .kwtuple = KWTUPLE,
-    };
-    #undef KWTUPLE
-    PyObject *argsbuf[1];
-    str a;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    if (!c_converter_func(args[0], &a)) {
-        goto exit;
-    }
-    return_value = docstr_fallback_to_converter_default_impl(module, a);
-
-exit:
-    return return_value;
-}
-
-static PyObject *
-docstr_fallback_to_converter_default_impl(PyObject *module, str a)
-/*[clinic end generated code: output=3fff7b702f0065cb input=0cbe6a4d24bc2274]*/
-
-
-/*[clinic input]
-@critical_section
-test_critical_section
-[clinic start generated code]*/
-
-PyDoc_STRVAR(test_critical_section__doc__,
-"test_critical_section($module, /)\n"
-"--\n"
-"\n");
-
-#define TEST_CRITICAL_SECTION_METHODDEF    \
-    {"test_critical_section", (PyCFunction)test_critical_section, METH_NOARGS, test_critical_section__doc__},
-
-static PyObject *
-test_critical_section_impl(PyObject *module);
-
-static PyObject *
-test_critical_section(PyObject *module, PyObject *Py_UNUSED(ignored))
-{
-    PyObject *return_value = NULL;
-
-    Py_BEGIN_CRITICAL_SECTION(module);
-    return_value = test_critical_section_impl(module);
-    Py_END_CRITICAL_SECTION();
-
-    return return_value;
-}
-
-static PyObject *
-test_critical_section_impl(PyObject *module)
-/*[clinic end generated code: output=9d5a87bb28aa3f0c input=8c58956d6ff00f80]*/
-
-
-/*[clinic input]
-@critical_section
-test_critical_section_meth_o
-    a: object(subclass_of="&PyUnicode_Type")
-    /
-[clinic start generated code]*/
-
-PyDoc_STRVAR(test_critical_section_meth_o__doc__,
-"test_critical_section_meth_o($module, a, /)\n"
-"--\n"
-"\n");
-
-#define TEST_CRITICAL_SECTION_METH_O_METHODDEF    \
-    {"test_critical_section_meth_o", (PyCFunction)test_critical_section_meth_o, METH_O, test_critical_section_meth_o__doc__},
-
-static PyObject *
-test_critical_section_meth_o_impl(PyObject *module, PyObject *a);
-
-static PyObject *
-test_critical_section_meth_o(PyObject *module, PyObject *arg)
-{
-    PyObject *return_value = NULL;
-    PyObject *a;
-
-    if (!PyUnicode_Check(arg)) {
-        _PyArg_BadArgument("test_critical_section_meth_o", "argument", "str", arg);
-        goto exit;
-    }
-    a = arg;
-    Py_BEGIN_CRITICAL_SECTION(module);
-    return_value = test_critical_section_meth_o_impl(module, a);
-    Py_END_CRITICAL_SECTION();
-
-exit:
-    return return_value;
-}
-
-static PyObject *
-test_critical_section_meth_o_impl(PyObject *module, PyObject *a)
-/*[clinic end generated code: output=7a9d7420802d1202 input=376533f51eceb6c3]*/
-
-/*[clinic input]
-@critical_section a
-test_critical_section_object
-    a: object(subclass_of="&PyUnicode_Type")
-    /
-test_critical_section_object
-[clinic start generated code]*/
-
-PyDoc_STRVAR(test_critical_section_object__doc__,
-"test_critical_section_object($module, a, /)\n"
-"--\n"
-"\n"
-"test_critical_section_object");
-
-#define TEST_CRITICAL_SECTION_OBJECT_METHODDEF    \
-    {"test_critical_section_object", (PyCFunction)test_critical_section_object, METH_O, test_critical_section_object__doc__},
-
-static PyObject *
-test_critical_section_object_impl(PyObject *module, PyObject *a);
-
-static PyObject *
-test_critical_section_object(PyObject *module, PyObject *arg)
-{
-    PyObject *return_value = NULL;
-    PyObject *a;
-
-    if (!PyUnicode_Check(arg)) {
-        _PyArg_BadArgument("test_critical_section_object", "argument", "str", arg);
-        goto exit;
-    }
-    a = arg;
-    Py_BEGIN_CRITICAL_SECTION(a);
-    return_value = test_critical_section_object_impl(module, a);
-    Py_END_CRITICAL_SECTION();
-
-exit:
-    return return_value;
-}
-
-static PyObject *
-test_critical_section_object_impl(PyObject *module, PyObject *a)
-/*[clinic end generated code: output=ec06df92232b0fb5 input=6f67f91b523c875f]*/
-
-PyDoc_STRVAR(test_critical_section_object__doc__,
-"test_critical_section_object($module, a, /)\n"
-"--\n"
-"\n"
-"test_critical_section_object");
-
-#define TEST_CRITICAL_SECTION_OBJECT_METHODDEF    \
-    {"test_critical_section_object", (PyCFunction)test_critical_section_object, METH_O, test_critical_section_object__doc__},
-
-static PyObject *
-test_critical_section_object_impl(PyObject *module, PyObject *a);
-
-static PyObject *
-test_critical_section_object(PyObject *module, PyObject *arg)
-{
-    PyObject *return_value = NULL;
-    PyObject *a;
-
-    if (!PyUnicode_Check(arg)) {
-        _PyArg_BadArgument("test_critical_section_object", "argument", "str", arg);
-        goto exit;
-    }
-    a = arg;
-    Py_BEGIN_CRITICAL_SECTION(a);
-    return_value = test_critical_section_object_impl(module, a);
-    Py_END_CRITICAL_SECTION();
-
-exit:
-    return return_value;
-}
-
-/*[clinic input]
-@critical_section a b
-test_critical_section_object2
-    a: object(subclass_of="&PyUnicode_Type")
-    b: object(subclass_of="&PyUnicode_Type")
-    /
-test_critical_section_object2
-[clinic start generated code]*/
-
-PyDoc_STRVAR(test_critical_section_object2__doc__,
-"test_critical_section_object2($module, a, b, /)\n"
-"--\n"
-"\n"
-"test_critical_section_object2");
-
-#define TEST_CRITICAL_SECTION_OBJECT2_METHODDEF    \
-    {"test_critical_section_object2", _PyCFunction_CAST(test_critical_section_object2), METH_FASTCALL, test_critical_section_object2__doc__},
-
-static PyObject *
-test_critical_section_object2_impl(PyObject *module, PyObject *a,
-                                   PyObject *b);
-
-static PyObject *
-test_critical_section_object2(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
-{
-    PyObject *return_value = NULL;
-    PyObject *a;
-    PyObject *b;
-
-    if (!_PyArg_CheckPositional("test_critical_section_object2", nargs, 2, 2)) {
-        goto exit;
-    }
-    if (!PyUnicode_Check(args[0])) {
-        _PyArg_BadArgument("test_critical_section_object2", "argument 1", "str", args[0]);
-        goto exit;
-    }
-    a = args[0];
-    if (!PyUnicode_Check(args[1])) {
-        _PyArg_BadArgument("test_critical_section_object2", "argument 2", "str", args[1]);
-        goto exit;
-    }
-    b = args[1];
-    Py_BEGIN_CRITICAL_SECTION2(a, b);
-    return_value = test_critical_section_object2_impl(module, a, b);
-    Py_END_CRITICAL_SECTION2();
-
-exit:
-    return return_value;
-}
-
-static PyObject *
-test_critical_section_object2_impl(PyObject *module, PyObject *a,
-                                   PyObject *b)
-/*[clinic end generated code: output=d73a1657c18df17a input=638824e41419a466]*/
-
-PyDoc_STRVAR(test_critical_section_object2__doc__,
-"test_critical_section_object2($module, a, b, /)\n"
-"--\n"
-"\n"
-"test_critical_section_object2");
-
-#define TEST_CRITICAL_SECTION_OBJECT2_METHODDEF    \
-    {"test_critical_section_object2", _PyCFunction_CAST(test_critical_section_object2), METH_FASTCALL, test_critical_section_object2__doc__},
-
-static PyObject *
-test_critical_section_object2_impl(PyObject *module, PyObject *a,
-                                   PyObject *b);
-
-static PyObject *
-test_critical_section_object2(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
-{
-    PyObject *return_value = NULL;
-    PyObject *a;
-    PyObject *b;
-
-    if (!_PyArg_CheckPositional("test_critical_section_object2", nargs, 2, 2)) {
-        goto exit;
-    }
-    if (!PyUnicode_Check(args[0])) {
-        _PyArg_BadArgument("test_critical_section_object2", "argument 1", "str", args[0]);
-        goto exit;
-    }
-    a = args[0];
-    if (!PyUnicode_Check(args[1])) {
-        _PyArg_BadArgument("test_critical_section_object2", "argument 2", "str", args[1]);
-        goto exit;
-    }
-    b = args[1];
-    Py_BEGIN_CRITICAL_SECTION2(a, b);
-    return_value = test_critical_section_object2_impl(module, a, b);
-    Py_END_CRITICAL_SECTION2();
-
-exit:
-    return return_value;
-}

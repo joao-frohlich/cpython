@@ -7,7 +7,7 @@ import os
 from difflib import unified_diff
 from io import StringIO
 from test.support.os_helper import TESTFN, unlink, temp_dir, change_cwd
-from contextlib import contextmanager, redirect_stdout
+from contextlib import contextmanager
 
 import profile
 from test.profilee import testfunc, timer
@@ -91,11 +91,6 @@ class ProfileTest(unittest.TestCase):
             self.profilermodule.run("int('1')")
         self.profilermodule.run("int('1')", filename=TESTFN)
         self.assertTrue(os.path.exists(TESTFN))
-
-    def test_run_with_sort_by_values(self):
-        with redirect_stdout(StringIO()) as f:
-            self.profilermodule.run("int('1')", sort=('tottime', 'stdname'))
-        self.assertIn("Ordered by: internal time, standard name", f.getvalue())
 
     def test_runctx(self):
         with silent():

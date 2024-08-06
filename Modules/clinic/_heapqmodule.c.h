@@ -2,7 +2,11 @@
 preserve
 [clinic start generated code]*/
 
-#include "pycore_modsupport.h"    // _PyArg_CheckPositional()
+#if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
+#  include "pycore_gc.h"            // PyGC_Head
+#  include "pycore_runtime.h"       // _Py_ID()
+#endif
+
 
 PyDoc_STRVAR(_heapq_heappush__doc__,
 "heappush($module, heap, item, /)\n"
@@ -267,4 +271,4 @@ _heapq__heapify_max(PyObject *module, PyObject *arg)
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=05f2afdf3bc54c9d input=a9049054013a1b77]*/
+/*[clinic end generated code: output=29e99a48c57f82bb input=a9049054013a1b77]*/

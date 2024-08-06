@@ -15,6 +15,7 @@ _PySSL_msg_callback(int write_p, int version, int content_type,
     PyGILState_STATE threadstate;
     PyObject *res = NULL;
     PySSLSocket *ssl_obj = NULL;  /* ssl._SSLSocket, borrowed ref */
+    PyObject *ssl_socket = NULL;  /* ssl.SSLSocket or ssl.SSLObject */
     int msg_type;
 
     threadstate = PyGILState_Ensure();
@@ -26,14 +27,13 @@ _PySSL_msg_callback(int write_p, int version, int content_type,
         return;
     }
 
-    PyObject *ssl_socket;  /* ssl.SSLSocket or ssl.SSLObject */
     if (ssl_obj->owner)
-        PyWeakref_GetRef(ssl_obj->owner, &ssl_socket);
+        ssl_socket = PyWeakref_GetObject(ssl_obj->owner);
     else if (ssl_obj->Socket)
-        PyWeakref_GetRef(ssl_obj->Socket, &ssl_socket);
+        ssl_socket = PyWeakref_GetObject(ssl_obj->Socket);
     else
-        ssl_socket = (PyObject *)Py_NewRef(ssl_obj);
-    assert(ssl_socket != NULL);  // PyWeakref_GetRef() can return NULL
+        ssl_socket = (PyObject *)ssl_obj;
+    Py_INCREF(ssl_socket);
 
     /* assume that OpenSSL verifies all payload and buf len is of sufficient
        length */

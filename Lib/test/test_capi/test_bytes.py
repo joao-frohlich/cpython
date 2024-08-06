@@ -1,7 +1,6 @@
 import unittest
 from test.support import import_helper
 
-_testlimitedcapi = import_helper.import_module('_testlimitedcapi')
 _testcapi = import_helper.import_module('_testcapi')
 from _testcapi import PY_SSIZE_T_MIN, PY_SSIZE_T_MAX
 
@@ -20,7 +19,7 @@ class BytesLike:
 class CAPITest(unittest.TestCase):
     def test_check(self):
         # Test PyBytes_Check()
-        check = _testlimitedcapi.bytes_check
+        check = _testcapi.bytes_check
         self.assertTrue(check(b'abc'))
         self.assertFalse(check('abc'))
         self.assertFalse(check(bytearray(b'abc')))
@@ -34,7 +33,7 @@ class CAPITest(unittest.TestCase):
 
     def test_checkexact(self):
         # Test PyBytes_CheckExact()
-        check = _testlimitedcapi.bytes_checkexact
+        check = _testcapi.bytes_checkexact
         self.assertTrue(check(b'abc'))
         self.assertFalse(check('abc'))
         self.assertFalse(check(bytearray(b'abc')))
@@ -48,13 +47,11 @@ class CAPITest(unittest.TestCase):
 
     def test_fromstringandsize(self):
         # Test PyBytes_FromStringAndSize()
-        fromstringandsize = _testlimitedcapi.bytes_fromstringandsize
+        fromstringandsize = _testcapi.bytes_fromstringandsize
 
         self.assertEqual(fromstringandsize(b'abc'), b'abc')
         self.assertEqual(fromstringandsize(b'abc', 2), b'ab')
         self.assertEqual(fromstringandsize(b'abc\0def'), b'abc\0def')
-        self.assertEqual(fromstringandsize(b'a'), b'a')
-        self.assertEqual(fromstringandsize(b'a', 1), b'a')
         self.assertEqual(fromstringandsize(b'', 0), b'')
         self.assertEqual(fromstringandsize(NULL, 0), b'')
         self.assertEqual(len(fromstringandsize(NULL, 3)), 3)
@@ -68,7 +65,7 @@ class CAPITest(unittest.TestCase):
 
     def test_fromstring(self):
         # Test PyBytes_FromString()
-        fromstring = _testlimitedcapi.bytes_fromstring
+        fromstring = _testcapi.bytes_fromstring
 
         self.assertEqual(fromstring(b'abc\0def'), b'abc')
         self.assertEqual(fromstring(b''), b'')
@@ -77,7 +74,7 @@ class CAPITest(unittest.TestCase):
 
     def test_fromobject(self):
         # Test PyBytes_FromObject()
-        fromobject = _testlimitedcapi.bytes_fromobject
+        fromobject = _testcapi.bytes_fromobject
 
         self.assertEqual(fromobject(b'abc'), b'abc')
         self.assertEqual(fromobject(bytearray(b'abc')), b'abc')
@@ -91,7 +88,7 @@ class CAPITest(unittest.TestCase):
 
     def test_size(self):
         # Test PyBytes_Size()
-        size = _testlimitedcapi.bytes_size
+        size = _testcapi.bytes_size
 
         self.assertEqual(size(b'abc'), 3)
         self.assertEqual(size(BytesSubclass(b'abc')), 3)
@@ -103,7 +100,7 @@ class CAPITest(unittest.TestCase):
 
     def test_asstring(self):
         """Test PyBytes_AsString()"""
-        asstring = _testlimitedcapi.bytes_asstring
+        asstring = _testcapi.bytes_asstring
 
         self.assertEqual(asstring(b'abc', 4), b'abc\0')
         self.assertEqual(asstring(b'abc\0def', 8), b'abc\0def\0')
@@ -114,8 +111,8 @@ class CAPITest(unittest.TestCase):
 
     def test_asstringandsize(self):
         """Test PyBytes_AsStringAndSize()"""
-        asstringandsize = _testlimitedcapi.bytes_asstringandsize
-        asstringandsize_null = _testlimitedcapi.bytes_asstringandsize_null
+        asstringandsize = _testcapi.bytes_asstringandsize
+        asstringandsize_null = _testcapi.bytes_asstringandsize_null
 
         self.assertEqual(asstringandsize(b'abc', 4), (b'abc\0', 3))
         self.assertEqual(asstringandsize(b'abc\0def', 8), (b'abc\0def\0', 7))
@@ -131,7 +128,7 @@ class CAPITest(unittest.TestCase):
 
     def test_repr(self):
         # Test PyBytes_Repr()
-        bytes_repr = _testlimitedcapi.bytes_repr
+        bytes_repr = _testcapi.bytes_repr
 
         self.assertEqual(bytes_repr(b'''abc''', 0), r"""b'abc'""")
         self.assertEqual(bytes_repr(b'''abc''', 1), r"""b'abc'""")
@@ -152,7 +149,7 @@ class CAPITest(unittest.TestCase):
     def test_concat(self, concat=None):
         """Test PyBytes_Concat()"""
         if concat is None:
-            concat = _testlimitedcapi.bytes_concat
+            concat = _testcapi.bytes_concat
 
         self.assertEqual(concat(b'abc', b'def'), b'abcdef')
         self.assertEqual(concat(b'a\0b', b'c\0d'), b'a\0bc\0d')
@@ -185,11 +182,11 @@ class CAPITest(unittest.TestCase):
 
     def test_concatanddel(self):
         """Test PyBytes_ConcatAndDel()"""
-        self.test_concat(_testlimitedcapi.bytes_concatanddel)
+        self.test_concat(_testcapi.bytes_concatanddel)
 
     def test_decodeescape(self):
         """Test PyBytes_DecodeEscape()"""
-        decodeescape = _testlimitedcapi.bytes_decodeescape
+        decodeescape = _testcapi.bytes_decodeescape
 
         self.assertEqual(decodeescape(b'abc'), b'abc')
         self.assertEqual(decodeescape(br'\t\n\r\x0b\x0c\x00\\\'\"'),
@@ -219,35 +216,6 @@ class CAPITest(unittest.TestCase):
 
         # CRASHES decodeescape(b'abc', NULL, -1)
         # CRASHES decodeescape(NULL, NULL, 1)
-
-    def test_resize(self):
-        """Test _PyBytes_Resize()"""
-        resize = _testcapi.bytes_resize
-
-        for new in True, False:
-            self.assertEqual(resize(b'abc', 0, new), b'')
-            self.assertEqual(resize(b'abc', 1, new), b'a')
-            self.assertEqual(resize(b'abc', 2, new), b'ab')
-            self.assertEqual(resize(b'abc', 3, new), b'abc')
-            b = resize(b'abc', 4, new)
-            self.assertEqual(len(b), 4)
-            self.assertEqual(b[:3], b'abc')
-
-            self.assertEqual(resize(b'a', 0, new), b'')
-            self.assertEqual(resize(b'a', 1, new), b'a')
-            b = resize(b'a', 2, new)
-            self.assertEqual(len(b), 2)
-            self.assertEqual(b[:1], b'a')
-
-            self.assertEqual(resize(b'', 0, new), b'')
-            self.assertEqual(len(resize(b'', 1, new)), 1)
-            self.assertEqual(len(resize(b'', 2, new)), 2)
-
-        self.assertRaises(SystemError, resize, b'abc', -1, False)
-        self.assertRaises(SystemError, resize, bytearray(b'abc'), 3, False)
-
-        # CRASHES resize(NULL, 0, False)
-        # CRASHES resize(NULL, 3, False)
 
 
 if __name__ == "__main__":

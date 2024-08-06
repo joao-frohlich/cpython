@@ -1,7 +1,5 @@
 #include "Python.h"
 #include "pycore_object.h"
-#include "pycore_sysmodule.h"     // _PySys_GetSizeOf()
-
 #include <stddef.h>               // offsetof()
 #include "_iomodule.h"
 
@@ -154,6 +152,9 @@ resize_buffer(bytesio *self, size_t size)
         /* Major upsize; resize up to exact size */
         alloc = size + 1;
     }
+
+    if (alloc > ((size_t)-1) / sizeof(char))
+        goto overflow;
 
     if (SHARED_BUF(self)) {
         if (unshare_buffer(self, alloc) < 0)
@@ -1030,8 +1031,8 @@ static struct PyMethodDef bytesio_methods[] = {
 };
 
 static PyMemberDef bytesio_members[] = {
-    {"__weaklistoffset__", Py_T_PYSSIZET, offsetof(bytesio, weakreflist), Py_READONLY},
-    {"__dictoffset__", Py_T_PYSSIZET, offsetof(bytesio, dict), Py_READONLY},
+    {"__weaklistoffset__", T_PYSSIZET, offsetof(bytesio, weakreflist), READONLY},
+    {"__dictoffset__", T_PYSSIZET, offsetof(bytesio, dict), READONLY},
     {NULL}
 };
 

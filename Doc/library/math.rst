@@ -71,8 +71,8 @@ Number-theoretic and representation functions
    Return *n* factorial as an integer.  Raises :exc:`ValueError` if *n* is not integral or
    is negative.
 
-   .. versionchanged:: 3.10
-      Floats with integral values (like ``5.0``) are no longer accepted.
+   .. deprecated:: 3.9
+      Accepting floats with integral values (like ``5.0``) is deprecated.
 
 
 .. function:: floor(x)
@@ -80,22 +80,6 @@ Number-theoretic and representation functions
    Return the floor of *x*, the largest integer less than or equal to *x*.  If
    *x* is not a float, delegates to :meth:`x.__floor__ <object.__floor__>`, which
    should return an :class:`~numbers.Integral` value.
-
-
-.. function:: fma(x, y, z)
-
-   Fused multiply-add operation. Return ``(x * y) + z``, computed as though with
-   infinite precision and range followed by a single round to the ``float``
-   format. This operation often provides better accuracy than the direct
-   expression ``(x * y) + z``.
-
-   This function follows the specification of the fusedMultiplyAdd operation
-   described in the IEEE 754 standard. The standard leaves one case
-   implementation-defined, namely the result of ``fma(0, inf, nan)``
-   and ``fma(inf, 0, nan)``. In these cases, ``math.fma`` returns a NaN,
-   and does not raise any exception.
-
-   .. versionadded:: 3.13
 
 
 .. function:: fmod(x, y)
@@ -123,7 +107,7 @@ Number-theoretic and representation functions
 
 .. function:: fsum(iterable)
 
-   Return an accurate floating-point sum of values in the iterable.  Avoids
+   Return an accurate floating point sum of values in the iterable.  Avoids
    loss of precision by tracking multiple intermediate partial sums.
 
    The algorithm's accuracy depends on IEEE-754 arithmetic guarantees and the
@@ -133,7 +117,7 @@ Number-theoretic and representation functions
    least significant bit.
 
    For further discussion and two alternative approaches, see the `ASPN cookbook
-   recipes for accurate floating-point summation
+   recipes for accurate floating point summation
    <https://code.activestate.com/recipes/393090-binary-floating-point-summation-accurate-to-full-p/>`_\.
 
 
@@ -304,7 +288,7 @@ Number-theoretic and representation functions
    If the result of the remainder operation is zero, that zero will have
    the same sign as *x*.
 
-   On platforms using IEEE 754 binary floating point, the result of this
+   On platforms using IEEE 754 binary floating-point, the result of this
    operation is always exactly representable: no rounding error is introduced.
 
    .. versionadded:: 3.7

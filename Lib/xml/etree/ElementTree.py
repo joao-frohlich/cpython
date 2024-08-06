@@ -201,7 +201,7 @@ class Element:
 
     def __bool__(self):
         warnings.warn(
-            "Testing an element's truth value will always return True in "
+            "Testing an element's truth value will raise an exception in "
             "future versions.  "
             "Use specific 'len(elem)' or 'elem is not None' test instead.",
             DeprecationWarning, stacklevel=2
@@ -1248,17 +1248,10 @@ def iterparse(source, events=None, parser=None):
             if close_source:
                 source.close()
 
-    gen = iterator(source)
     class IterParseIterator(collections.abc.Iterator):
-        __next__ = gen.__next__
-        def close(self):
-            if close_source:
-                source.close()
-            gen.close()
+        __next__ = iterator(source).__next__
 
         def __del__(self):
-            # TODO: Emit a ResourceWarning if it was not explicitly closed.
-            # (When the close() method will be supported in all maintained Python versions.)
             if close_source:
                 source.close()
 

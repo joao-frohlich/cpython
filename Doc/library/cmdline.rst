@@ -36,7 +36,6 @@ The following modules have a command-line interface.
 * :mod:`pyclbr`
 * :mod:`pydoc`
 * :mod:`quopri`
-* :ref:`random <random-cli>`
 * :mod:`runpy`
 * :ref:`site <site-commandline>`
 * :ref:`sqlite3 <sqlite3-cli>`

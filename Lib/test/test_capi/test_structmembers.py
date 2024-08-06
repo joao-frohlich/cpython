@@ -1,5 +1,6 @@
 import unittest
 from test.support import import_helper
+from test.support import warnings_helper
 
 # Skip this test if the _testcapi module isn't available.
 import_helper.import_module('_testcapi')

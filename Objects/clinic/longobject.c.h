@@ -3,11 +3,10 @@ preserve
 [clinic start generated code]*/
 
 #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
-#  include "pycore_gc.h"          // PyGC_Head
-#  include "pycore_runtime.h"     // _Py_ID()
+#  include "pycore_gc.h"            // PyGC_Head
+#  include "pycore_runtime.h"       // _Py_ID()
 #endif
-#include "pycore_abstract.h"      // _PyNumber_Index()
-#include "pycore_modsupport.h"    // _PyArg_UnpackKeywords()
+
 
 static PyObject *
 long_new_impl(PyTypeObject *type, PyObject *x, PyObject *obase);
@@ -108,6 +107,9 @@ int___format__(PyObject *self, PyObject *arg)
         _PyArg_BadArgument("__format__", "argument", "str", arg);
         goto exit;
     }
+    if (PyUnicode_READY(arg) == -1) {
+        goto exit;
+    }
     format_spec = arg;
     return_value = int___format___impl(self, format_spec);
 
@@ -116,7 +118,7 @@ exit:
 }
 
 PyDoc_STRVAR(int___round____doc__,
-"__round__($self, ndigits=None, /)\n"
+"__round__($self, ndigits=<unrepresentable>, /)\n"
 "--\n"
 "\n"
 "Rounding an Integral returns itself.\n"
@@ -133,7 +135,7 @@ static PyObject *
 int___round__(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
 {
     PyObject *return_value = NULL;
-    PyObject *o_ndigits = Py_None;
+    PyObject *o_ndigits = NULL;
 
     if (!_PyArg_CheckPositional("__round__", nargs, 0, 1)) {
         goto exit;
@@ -267,7 +269,7 @@ PyDoc_STRVAR(int_to_bytes__doc__,
 "    the most significant byte is at the beginning of the byte array.  If\n"
 "    byteorder is \'little\', the most significant byte is at the end of the\n"
 "    byte array.  To request the native byte order of the host system, use\n"
-"    sys.byteorder as the byte order value.  Default is to use \'big\'.\n"
+"    `sys.byteorder\' as the byte order value.  Default is to use \'big\'.\n"
 "  signed\n"
 "    Determines whether two\'s complement is used to represent the integer.\n"
 "    If signed is False and a negative integer is given, an OverflowError\n"
@@ -344,6 +346,9 @@ int_to_bytes(PyObject *self, PyObject *const *args, Py_ssize_t nargs, PyObject *
             _PyArg_BadArgument("to_bytes", "argument 'byteorder'", "str", args[1]);
             goto exit;
         }
+        if (PyUnicode_READY(args[1]) == -1) {
+            goto exit;
+        }
         byteorder = args[1];
         if (!--noptargs) {
             goto skip_optional_pos;
@@ -380,7 +385,7 @@ PyDoc_STRVAR(int_from_bytes__doc__,
 "    the most significant byte is at the beginning of the byte array.  If\n"
 "    byteorder is \'little\', the most significant byte is at the end of the\n"
 "    byte array.  To request the native byte order of the host system, use\n"
-"    sys.byteorder as the byte order value.  Default is to use \'big\'.\n"
+"    `sys.byteorder\' as the byte order value.  Default is to use \'big\'.\n"
 "  signed\n"
 "    Indicates whether two\'s complement is used to represent the integer.");
 
@@ -439,6 +444,9 @@ int_from_bytes(PyTypeObject *type, PyObject *const *args, Py_ssize_t nargs, PyOb
             _PyArg_BadArgument("from_bytes", "argument 'byteorder'", "str", args[1]);
             goto exit;
         }
+        if (PyUnicode_READY(args[1]) == -1) {
+            goto exit;
+        }
         byteorder = args[1];
         if (!--noptargs) {
             goto skip_optional_pos;
@@ -476,4 +484,4 @@ int_is_integer(PyObject *self, PyObject *Py_UNUSED(ignored))
 {
     return int_is_integer_impl(self);
 }
-/*[clinic end generated code: output=a53f5ba9a6c16737 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=cfdf35d916158d4f input=a9049054013a1b77]*/

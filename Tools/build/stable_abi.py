@@ -40,6 +40,7 @@ EXCLUDED_HEADERS = {
     "longintrepr.h",
     "parsetok.h",
     "pyatomic.h",
+    "pytime.h",
     "token.h",
     "ucnhash.h",
 }
@@ -225,9 +226,9 @@ def gen_python3dll(manifest, args, outfile):
             key=sort_key):
         write(f'EXPORT_DATA({item.name})')
 
-ITEM_KIND_TO_DOC_ROLE = {
-    'function': 'func',
-    'data': 'data',
+REST_ROLES = {
+    'function': 'function',
+    'data': 'var',
     'struct': 'type',
     'macro': 'macro',
     # 'const': 'const',  # all undocumented
@@ -236,28 +237,22 @@ ITEM_KIND_TO_DOC_ROLE = {
 
 @generator("doc_list", 'Doc/data/stable_abi.dat')
 def gen_doc_annotations(manifest, args, outfile):
-    """Generate/check the stable ABI list for documentation annotations
-
-    See ``StableABIEntry`` in ``Doc/tools/extensions/c_annotations.py``
-    for a description of each field.
-    """
+    """Generate/check the stable ABI list for documentation annotations"""
     writer = csv.DictWriter(
         outfile,
         ['role', 'name', 'added', 'ifdef_note', 'struct_abi_kind'],
         lineterminator='\n')
     writer.writeheader()
-    kinds = set(ITEM_KIND_TO_DOC_ROLE)
-    for item in manifest.select(kinds, include_abi_only=False):
+    for item in manifest.select(REST_ROLES.keys(), include_abi_only=False):
         if item.ifdef:
             ifdef_note = manifest.contents[item.ifdef].doc
         else:
             ifdef_note = None
         row = {
-            'role': ITEM_KIND_TO_DOC_ROLE[item.kind],
+            'role': REST_ROLES[item.kind],
             'name': item.name,
             'added': item.added,
-            'ifdef_note': ifdef_note,
-        }
+            'ifdef_note': ifdef_note}
         rows = [row]
         if item.kind == 'struct':
             row['struct_abi_kind'] = item.struct_abi_kind
@@ -265,8 +260,7 @@ def gen_doc_annotations(manifest, args, outfile):
                 rows.append({
                     'role': 'member',
                     'name': f'{item.name}.{member_name}',
-                    'added': item.added,
-                })
+                    'added': item.added})
         writer.writerows(rows)
 
 @generator("ctypes_test", 'Lib/test/test_stable_abi_ctypes.py')
@@ -282,19 +276,9 @@ def gen_ctypes_test(manifest, args, outfile):
         import sys
         import unittest
         from test.support.import_helper import import_module
-        try:
-            from _testcapi import get_feature_macros
-        except ImportError:
-            raise unittest.SkipTest("requires _testcapi")
+        from _testcapi import get_feature_macros
 
         feature_macros = get_feature_macros()
-
-        # Stable ABI is incompatible with Py_TRACE_REFS builds due to PyObject
-        # layout differences.
-        # See https://github.com/python/cpython/issues/88299#issuecomment-1113366226
-        if feature_macros['Py_TRACE_REFS']:
-            raise unittest.SkipTest("incompatible with Py_TRACE_REFS.")
-
         ctypes_test = import_module('ctypes')
 
         class TestStableABIAvailability(unittest.TestCase):
@@ -325,11 +309,16 @@ def gen_ctypes_test(manifest, args, outfile):
         {'function', 'data'},
         include_abi_only=True,
     )
-    feature_macros = list(manifest.select({'feature_macro'}))
-    optional_items = {m.name: [] for m in feature_macros}
+    optional_items = {}
     for item in items:
+        if item.name in (
+                # Some symbols aren't exported on all platforms.
+                # This is a bug: https://bugs.python.org/issue44133
+                'PyModule_Create2', 'PyModule_FromDefAndSpec2',
+            ):
+            continue
         if item.ifdef:
-            optional_items[item.ifdef].append(item.name)
+            optional_items.setdefault(item.ifdef, []).append(item.name)
         else:
             write(f'    "{item.name}",')
     write(")")
@@ -340,6 +329,7 @@ def gen_ctypes_test(manifest, args, outfile):
             write(f"        {name!r},")
         write("    )")
     write("")
+    feature_macros = list(manifest.select({'feature_macro'}))
     feature_names = sorted(m.name for m in feature_macros)
     write(f"EXPECTED_FEATURE_MACROS = set({pprint.pformat(feature_names)})")
 
@@ -532,7 +522,7 @@ def gcc_get_limited_api_macros(headers):
 
     api_hexversion = sys.version_info.major << 24 | sys.version_info.minor << 16
 
-    preprocessor_output_with_macros = subprocess.check_output(
+    preprocesor_output_with_macros = subprocess.check_output(
         sysconfig.get_config_var("CC").split()
         + [
             # Prevent the expansion of the exported macros so we can
@@ -551,7 +541,7 @@ def gcc_get_limited_api_macros(headers):
     return {
         target
         for target in re.findall(
-            r"#define (\w+)", preprocessor_output_with_macros
+            r"#define (\w+)", preprocesor_output_with_macros
         )
     }
 
@@ -572,7 +562,7 @@ def gcc_get_limited_api_definitions(headers):
     Requires Python built with a GCC-compatible compiler. (clang might work)
     """
     api_hexversion = sys.version_info.major << 24 | sys.version_info.minor << 16
-    preprocessor_output = subprocess.check_output(
+    preprocesor_output = subprocess.check_output(
         sysconfig.get_config_var("CC").split()
         + [
             # Prevent the expansion of the exported macros so we can capture
@@ -592,13 +582,13 @@ def gcc_get_limited_api_definitions(headers):
         stderr=subprocess.DEVNULL,
     )
     stable_functions = set(
-        re.findall(r"__PyAPI_FUNC\(.*?\)\s*(.*?)\s*\(", preprocessor_output)
+        re.findall(r"__PyAPI_FUNC\(.*?\)\s*(.*?)\s*\(", preprocesor_output)
     )
     stable_exported_data = set(
-        re.findall(r"__EXPORT_DATA\((.*?)\)", preprocessor_output)
+        re.findall(r"__EXPORT_DATA\((.*?)\)", preprocesor_output)
     )
     stable_data = set(
-        re.findall(r"__PyAPI_DATA\(.*?\)[\s\*\(]*([^);]*)\)?.*;", preprocessor_output)
+        re.findall(r"__PyAPI_DATA\(.*?\)[\s\*\(]*([^);]*)\)?.*;", preprocesor_output)
     )
     return stable_data | stable_exported_data | stable_functions
 

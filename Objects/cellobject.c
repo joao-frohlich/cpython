@@ -1,8 +1,6 @@
 /* Cell object implementation */
 
 #include "Python.h"
-#include "pycore_cell.h"          // PyCell_GetRef()
-#include "pycore_modsupport.h"    // _PyArg_NoKeywords()
 #include "pycore_object.h"
 
 PyObject *
@@ -57,7 +55,8 @@ PyCell_Get(PyObject *op)
         PyErr_BadInternalCall();
         return NULL;
     }
-    return PyCell_GetRef((PyCellObject *)op);
+    PyObject *value = PyCell_GET(op);
+    return Py_XNewRef(value);
 }
 
 int
@@ -67,7 +66,9 @@ PyCell_Set(PyObject *op, PyObject *value)
         PyErr_BadInternalCall();
         return -1;
     }
-    PyCell_SetTakeRef((PyCellObject *)op, Py_XNewRef(value));
+    PyObject *old_value = PyCell_GET(op);
+    PyCell_SET(op, Py_XNewRef(value));
+    Py_XDECREF(old_value);
     return 0;
 }
 

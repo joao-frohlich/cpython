@@ -9,6 +9,7 @@ machinery = util.import_importlib('importlib.machinery')
 import os
 from test.support import os_helper
 import unittest
+import warnings
 
 
 @util.case_insensitive_tests

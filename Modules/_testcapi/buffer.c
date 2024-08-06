@@ -2,7 +2,7 @@
 
 #include "parts.h"
 
-
+#include "structmember.h"           // PyMemberDef
 #include <stddef.h>                 // offsetof
 
 typedef struct {
@@ -54,10 +54,8 @@ static int
 testbuf_getbuf(testBufObject *self, Py_buffer *view, int flags)
 {
     int buf = PyObject_GetBuffer(self->obj, view, flags);
-    if (buf == 0) {
-        Py_SETREF(view->obj, Py_NewRef(self));
-        self->references++;
-    }
+    Py_SETREF(view->obj, Py_NewRef(self));
+    self->references++;
     return buf;
 }
 
@@ -74,7 +72,7 @@ static PyBufferProcs testbuf_as_buffer = {
 };
 
 static struct PyMemberDef testbuf_members[] = {
-    {"references", Py_T_PYSSIZET, offsetof(testBufObject, references), Py_READONLY},
+    {"references", T_PYSSIZET, offsetof(testBufObject, references), READONLY},
     {NULL},
 };
 

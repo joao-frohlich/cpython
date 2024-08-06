@@ -38,7 +38,7 @@ except ImportError:
 ssl = import_helper.import_module("ssl")
 import _ssl
 
-from ssl import Purpose, TLSVersion, _TLSContentType, _TLSMessageType, _TLSAlertType
+from ssl import TLSVersion, _TLSContentType, _TLSMessageType, _TLSAlertType
 
 Py_DEBUG_WIN32 = support.Py_DEBUG and sys.platform == 'win32'
 
@@ -87,9 +87,9 @@ CERTFILE_INFO = {
                (('localityName', 'Castle Anthrax'),),
                (('organizationName', 'Python Software Foundation'),),
                (('commonName', 'localhost'),)),
-    'notAfter': 'Jan 24 04:21:36 2043 GMT',
-    'notBefore': 'Nov 25 04:21:36 2023 GMT',
-    'serialNumber': '53E14833F7546C29256DD0F034F776C5E983004C',
+    'notAfter': 'Aug 26 14:23:15 2028 GMT',
+    'notBefore': 'Aug 29 14:23:15 2018 GMT',
+    'serialNumber': '98A7CF88C74A32ED',
     'subject': ((('countryName', 'XY'),),
              (('localityName', 'Castle Anthrax'),),
              (('organizationName', 'Python Software Foundation'),),
@@ -127,13 +127,6 @@ SIGNED_CERTFILE2 = data_file("keycert4.pem")
 SIGNED_CERTFILE2_HOSTNAME = 'fakehostname'
 SIGNED_CERTFILE_ECC = data_file("keycertecc.pem")
 SIGNED_CERTFILE_ECC_HOSTNAME = 'localhost-ecc'
-
-# A custom testcase, extracted from `rfc5280::aki::leaf-missing-aki` in x509-limbo:
-# The leaf (server) certificate has no AKI, which is forbidden under RFC 5280.
-# See: https://x509-limbo.com/testcases/rfc5280/#rfc5280akileaf-missing-aki
-LEAF_MISSING_AKI_CERTFILE = data_file("leaf-missing-aki.keycert.pem")
-LEAF_MISSING_AKI_CERTFILE_HOSTNAME = "example.com"
-LEAF_MISSING_AKI_CA = data_file("leaf-missing-aki.ca.pem")
 
 # Same certificate as pycacert.pem, but without extra text in file
 SIGNING_CA = data_file("capath", "ceff1710.0")
@@ -1510,10 +1503,6 @@ class ContextTests(unittest.TestCase):
 
         self.assertEqual(ctx.protocol, ssl.PROTOCOL_TLS_CLIENT)
         self.assertEqual(ctx.verify_mode, ssl.CERT_REQUIRED)
-        self.assertEqual(ctx.verify_flags & ssl.VERIFY_X509_PARTIAL_CHAIN,
-                         ssl.VERIFY_X509_PARTIAL_CHAIN)
-        self.assertEqual(ctx.verify_flags & ssl.VERIFY_X509_STRICT,
-                    ssl.VERIFY_X509_STRICT)
         self.assertTrue(ctx.check_hostname)
         self._assert_context_options(ctx)
 
@@ -2429,18 +2418,16 @@ class ThreadedEchoServer(threading.Thread):
                         self.write(msg.lower())
                 except OSError as e:
                     # handles SSLError and socket errors
-                    if isinstance(e, ConnectionError):
-                        # OpenSSL 1.1.1 sometimes raises
-                        # ConnectionResetError when connection is not
-                        # shut down gracefully.
-                        if self.server.chatty and support.verbose:
-                            print(f" Connection reset by peer: {self.addr}")
-
-                        self.close()
-                        self.running = False
-                        return
                     if self.server.chatty and support.verbose:
-                        handle_error("Test server failure:\n")
+                        if isinstance(e, ConnectionError):
+                            # OpenSSL 1.1.1 sometimes raises
+                            # ConnectionResetError when connection is not
+                            # shut down gracefully.
+                            print(
+                                f" Connection reset by peer: {self.addr}"
+                            )
+                        else:
+                            handle_error("Test server failure:\n")
                     try:
                         self.write(b"ERROR\n")
                     except OSError:
@@ -2989,38 +2976,6 @@ class ThreadedTests(unittest.TestCase):
                 cipher = s.cipher()[0].split('-')
                 self.assertTrue(cipher[:2], ('ECDHE', 'ECDSA'))
 
-    @unittest.skipUnless(IS_OPENSSL_3_0_0,
-                         "test requires RFC 5280 check added in OpenSSL 3.0+")
-    def test_verify_strict(self):
-        # verification fails by default, since the server cert is non-conforming
-        client_context = ssl.create_default_context()
-        client_context.load_verify_locations(LEAF_MISSING_AKI_CA)
-        hostname = LEAF_MISSING_AKI_CERTFILE_HOSTNAME
-
-        server_context = ssl.create_default_context(purpose=Purpose.CLIENT_AUTH)
-        server_context.load_cert_chain(LEAF_MISSING_AKI_CERTFILE)
-        server = ThreadedEchoServer(context=server_context, chatty=True)
-        with server:
-            with client_context.wrap_socket(socket.socket(),
-                                            server_hostname=hostname) as s:
-                with self.assertRaises(ssl.SSLError):
-                    s.connect((HOST, server.port))
-
-        # explicitly disabling VERIFY_X509_STRICT allows it to succeed
-        client_context = ssl.create_default_context()
-        client_context.load_verify_locations(LEAF_MISSING_AKI_CA)
-        client_context.verify_flags &= ~ssl.VERIFY_X509_STRICT
-
-        server_context = ssl.create_default_context(purpose=Purpose.CLIENT_AUTH)
-        server_context.load_cert_chain(LEAF_MISSING_AKI_CERTFILE)
-        server = ThreadedEchoServer(context=server_context, chatty=True)
-        with server:
-            with client_context.wrap_socket(socket.socket(),
-                                            server_hostname=hostname) as s:
-                s.connect((HOST, server.port))
-                cert = s.getpeercert()
-                self.assertTrue(cert, "Can't get peer certificate.")
-
     def test_dual_rsa_ecc(self):
         client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         client_context.load_verify_locations(SIGNING_CA)
@@ -3168,10 +3123,8 @@ class ThreadedTests(unittest.TestCase):
                                         suppress_ragged_eofs=False) as s:
             s.connect((HOST, server.port))
             with self.assertRaisesRegex(
-                OSError,
-                'alert unknown ca|EOF occurred|TLSV1_ALERT_UNKNOWN_CA|'
-                'closed by the remote host|Connection reset by peer|'
-                'Broken pipe'
+                ssl.SSLError,
+                'alert unknown ca|EOF occurred|TLSV1_ALERT_UNKNOWN_CA'
             ):
                 # TLS 1.3 perform client cert exchange after handshake
                 s.write(b'data')
@@ -4359,107 +4312,6 @@ class ThreadedTests(unittest.TestCase):
                 self.assertEqual(str(e.exception),
                                  'Session refers to a different SSLContext.')
 
-    @requires_tls_version('TLSv1_2')
-    @unittest.skipUnless(ssl.HAS_PSK, 'TLS-PSK disabled on this OpenSSL build')
-    def test_psk(self):
-        psk = bytes.fromhex('deadbeef')
-
-        client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        client_context.check_hostname = False
-        client_context.verify_mode = ssl.CERT_NONE
-        client_context.maximum_version = ssl.TLSVersion.TLSv1_2
-        client_context.set_ciphers('PSK')
-        client_context.set_psk_client_callback(lambda hint: (None, psk))
-
-        server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        server_context.maximum_version = ssl.TLSVersion.TLSv1_2
-        server_context.set_ciphers('PSK')
-        server_context.set_psk_server_callback(lambda identity: psk)
-
-        # correct PSK should connect
-        server = ThreadedEchoServer(context=server_context)
-        with server:
-            with client_context.wrap_socket(socket.socket()) as s:
-                s.connect((HOST, server.port))
-
-        # incorrect PSK should fail
-        incorrect_psk = bytes.fromhex('cafebabe')
-        client_context.set_psk_client_callback(lambda hint: (None, incorrect_psk))
-        server = ThreadedEchoServer(context=server_context)
-        with server:
-            with client_context.wrap_socket(socket.socket()) as s:
-                with self.assertRaises(ssl.SSLError):
-                    s.connect((HOST, server.port))
-
-        # identity_hint and client_identity should be sent to the other side
-        identity_hint = 'identity-hint'
-        client_identity = 'client-identity'
-
-        def client_callback(hint):
-            self.assertEqual(hint, identity_hint)
-            return client_identity, psk
-
-        def server_callback(identity):
-            self.assertEqual(identity, client_identity)
-            return psk
-
-        client_context.set_psk_client_callback(client_callback)
-        server_context.set_psk_server_callback(server_callback, identity_hint)
-        server = ThreadedEchoServer(context=server_context)
-        with server:
-            with client_context.wrap_socket(socket.socket()) as s:
-                s.connect((HOST, server.port))
-
-        # adding client callback to server or vice versa raises an exception
-        with self.assertRaisesRegex(ssl.SSLError, 'Cannot add PSK server callback'):
-            client_context.set_psk_server_callback(server_callback, identity_hint)
-        with self.assertRaisesRegex(ssl.SSLError, 'Cannot add PSK client callback'):
-            server_context.set_psk_client_callback(client_callback)
-
-        # test with UTF-8 identities
-        identity_hint = '身份暗示'  # Translation: "Identity hint"
-        client_identity = '客户身份'  # Translation: "Customer identity"
-
-        client_context.set_psk_client_callback(client_callback)
-        server_context.set_psk_server_callback(server_callback, identity_hint)
-        server = ThreadedEchoServer(context=server_context)
-        with server:
-            with client_context.wrap_socket(socket.socket()) as s:
-                s.connect((HOST, server.port))
-
-    @requires_tls_version('TLSv1_3')
-    @unittest.skipUnless(ssl.HAS_PSK, 'TLS-PSK disabled on this OpenSSL build')
-    def test_psk_tls1_3(self):
-        psk = bytes.fromhex('deadbeef')
-        identity_hint = 'identity-hint'
-        client_identity = 'client-identity'
-
-        def client_callback(hint):
-            # identity_hint is not sent to the client in TLS 1.3
-            self.assertIsNone(hint)
-            return client_identity, psk
-
-        def server_callback(identity):
-            self.assertEqual(identity, client_identity)
-            return psk
-
-        client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        client_context.check_hostname = False
-        client_context.verify_mode = ssl.CERT_NONE
-        client_context.minimum_version = ssl.TLSVersion.TLSv1_3
-        client_context.set_ciphers('PSK')
-        client_context.set_psk_client_callback(client_callback)
-
-        server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        server_context.minimum_version = ssl.TLSVersion.TLSv1_3
-        server_context.set_ciphers('PSK')
-        server_context.set_psk_server_callback(server_callback, identity_hint)
-
-        server = ThreadedEchoServer(context=server_context)
-        with server:
-            with client_context.wrap_socket(socket.socket()) as s:
-                s.connect((HOST, server.port))
-
 
 @unittest.skipUnless(has_tls_version('TLSv1_3'), "Test needs TLS 1.3")
 class TestPostHandshakeAuth(unittest.TestCase):
@@ -4536,12 +4388,8 @@ class TestPostHandshakeAuth(unittest.TestCase):
                 # test sometimes fails with EOF error. Test passes as long as
                 # server aborts connection with an error.
                 with self.assertRaisesRegex(
-                    OSError,
-                    ('certificate required'
-                     '|EOF occurred'
-                     '|closed by the remote host'
-                     '|Connection reset by peer'
-                     '|Broken pipe')
+                    ssl.SSLError,
+                    '(certificate required|EOF occurred)'
                 ):
                     # receive CertificateRequest
                     data = s.recv(1024)
@@ -4965,7 +4813,7 @@ class TestPreHandshakeClose(unittest.TestCase):
                         pass  # closed, protocol error, etc.
 
     def non_linux_skip_if_other_okay_error(self, err):
-        if sys.platform in ("linux", "android"):
+        if sys.platform == "linux":
             return  # Expect the full test setup to always work on Linux.
         if (isinstance(err, ConnectionResetError) or
             (isinstance(err, OSError) and err.errno == errno.EINVAL) or

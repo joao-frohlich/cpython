@@ -5,7 +5,6 @@ import math
 import os.path
 import platform
 import random
-import re
 import shlex
 import signal
 import subprocess
@@ -264,12 +263,6 @@ def clear_caches():
         for f in typing._cleanups:
             f()
 
-        import inspect
-        abs_classes = filter(inspect.isabstract, typing.__dict__.values())
-        for abc in abs_classes:
-            for obj in abc.__subclasses__() + [abc]:
-                obj._abc_caches_clear()
-
     try:
         fractions = sys.modules['fractions']
     except KeyError:
@@ -306,8 +299,8 @@ def get_build_info():
     build = []
 
     # --disable-gil
-    if sysconfig.get_config_var('Py_GIL_DISABLED'):
-        build.append("free_threading")
+    if sysconfig.get_config_var('Py_NOGIL'):
+        build.append("nogil")
 
     if hasattr(sys, 'gettotalrefcount'):
         # --with-pydebug
@@ -599,6 +592,13 @@ def format_resources(use_resources: Iterable[str]):
         return text
 
 
+def process_cpu_count():
+    if hasattr(os, 'sched_getaffinity'):
+        return len(os.sched_getaffinity(0))
+    else:
+        return os.cpu_count()
+
+
 def display_header(use_resources: tuple[str, ...],
                    python_cmd: tuple[str, ...] | None):
     # Print basic platform information
@@ -610,10 +610,9 @@ def display_header(use_resources: tuple[str, ...],
 
     cpu_count: object = os.cpu_count()
     if cpu_count:
-        # The function is new in Python 3.13; mypy doesn't know about it yet:
-        process_cpu_count = os.process_cpu_count()  # type: ignore[attr-defined]
-        if process_cpu_count and process_cpu_count != cpu_count:
-            cpu_count = f"{process_cpu_count} (process) / {cpu_count} (system)"
+        affinity = process_cpu_count()
+        if affinity and affinity != cpu_count:
+            cpu_count = f"{affinity} (process) / {cpu_count} (system)"
         print("== CPU count:", cpu_count)
     print("== encodings: locale=%s FS=%s"
           % (locale.getencoding(), sys.getfilesystemencoding()))
@@ -691,23 +690,23 @@ def cleanup_temp_dir(tmp_dir: StrPath):
             print("Remove file: %s" % name)
             os_helper.unlink(name)
 
+WINDOWS_STATUS = {
+    0xC0000005: "STATUS_ACCESS_VIOLATION",
+    0xC00000FD: "STATUS_STACK_OVERFLOW",
+    0xC000013A: "STATUS_CONTROL_C_EXIT",
+}
 
-ILLEGAL_XML_CHARS_RE = re.compile(
-    '['
-    # Control characters; newline (\x0A and \x0D) and TAB (\x09) are legal
-    '\x00-\x08\x0B\x0C\x0E-\x1F'
-    # Surrogate characters
-    '\uD800-\uDFFF'
-    # Special Unicode characters
-    '\uFFFE'
-    '\uFFFF'
-    # Match multiple sequential invalid characters for better effiency
-    ']+')
+def get_signal_name(exitcode):
+    if exitcode < 0:
+        signum = -exitcode
+        try:
+            return signal.Signals(signum).name
+        except ValueError:
+            pass
 
-def _sanitize_xml_replace(regs):
-    text = regs[0]
-    return ''.join(f'\\x{ord(ch):02x}' if ch <= '\xff' else ascii(ch)[1:-1]
-                   for ch in text)
+    try:
+        return WINDOWS_STATUS[exitcode]
+    except KeyError:
+        pass
 
-def sanitize_xml(text):
-    return ILLEGAL_XML_CHARS_RE.sub(_sanitize_xml_replace, text)
+    return None

@@ -1,5 +1,5 @@
-This is Sucuri, a portuguese translation for Python version 3.14.0 alpha 0
-==========================================================================
+This is Sucuri, a portuguese translation for Python version 3.12.4
+==================================================================
 
 This fork contains an attempt to turn Python into a portuguese programming language, using the
 infrastructure of the Python compiler, and just translating keywords and method names. For now,
@@ -15,12 +15,10 @@ Everything in the below text works in this fork. The main changes are contained 
 `pegen.c`_ file, where, for now, there is a `translate_ptbr_token` function, and a call for it
 in the `initialize_token` function.
 
-.. _pegen.c: https://github.com/joao-frohlich/cpython/blob/ptbr-mod/Parser/pegen.c
+This is Python version 3.12.4
+=============================
 
-This is Python version 3.14.0 alpha 0
-=====================================
-
-.. image:: https://github.com/python/cpython/actions/workflows/build.yml/badge.svg?branch=main&event=push
+.. image:: https://github.com/python/cpython/workflows/Tests/badge.svg
    :alt: CPython build status on GitHub Actions
    :target: https://github.com/python/cpython/actions
 
@@ -95,9 +93,6 @@ to macOS framework and universal builds.  Refer to `Mac/README.rst
 On Windows, see `PCbuild/readme.txt
 <https://github.com/python/cpython/blob/main/PCbuild/readme.txt>`_.
 
-To build Windows installer, see `Tools/msi/README.txt
-<https://github.com/python/cpython/blob/main/Tools/msi/README.txt>`_.
-
 If you wish, you can create a subdirectory and invoke configure from there.
 For example::
 
@@ -155,7 +150,7 @@ What's New
 ----------
 
 We have a comprehensive overview of the changes in the `What's New in Python
-3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_ document.  For a more
+3.12 <https://docs.python.org/3.12/whatsnew/3.12.html>`_ document.  For a more
 detailed change log, read `Misc/NEWS
 <https://github.com/python/cpython/tree/main/Misc/NEWS.d>`_, but a full
 accounting of changes can only be gleaned from the `commit history
@@ -168,7 +163,7 @@ entitled "Installing multiple versions".
 Documentation
 -------------
 
-`Documentation for Python 3.14 <https://docs.python.org/3.14/>`_ is online,
+`Documentation for Python 3.12 <https://docs.python.org/3.12/>`_ is online,
 updated daily.
 
 It can also be downloaded in many formats for faster access.  The documentation
@@ -190,7 +185,7 @@ is printed about a failed test or a traceback or core dump is produced,
 something is wrong.
 
 By default, tests are prevented from overusing resources like disk space and
-memory.  To enable these tests, run ``make buildbottest``.
+memory.  To enable these tests, run ``make testall``.
 
 If any tests fail, you can re-run the failing test(s) in verbose mode.  For
 example, if ``test_os`` and ``test_gdb`` failed, you can run::
@@ -216,18 +211,18 @@ directories installed using ``make altinstall`` contain the major and minor
 version and can thus live side-by-side.  ``make install`` also creates
 ``${prefix}/bin/python3`` which refers to ``${prefix}/bin/python3.X``.  If you
 intend to install multiple versions using the same prefix you must decide which
-version (if any) is your "primary" version.  Install that version using
-``make install``.  Install all other versions using ``make altinstall``.
+version (if any) is your "primary" version.  Install that version using ``make
+install``.  Install all other versions using ``make altinstall``.
 
-For example, if you want to install Python 2.7, 3.6, and 3.14 with 3.14 being the
-primary version, you would execute ``make install`` in your 3.14 build directory
+For example, if you want to install Python 2.7, 3.6, and 3.12 with 3.12 being the
+primary version, you would execute ``make install`` in your 3.12 build directory
 and ``make altinstall`` in the others.
 
 
 Release Schedule
 ----------------
 
-See `PEP 745 <https://peps.python.org/pep-0745/>`__ for Python 3.14 release details.
+See :pep:`693` for Python 3.12 release details.
 
 
 Copyright and License Information

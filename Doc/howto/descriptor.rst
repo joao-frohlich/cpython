@@ -787,7 +787,7 @@ Invocation from super
 ---------------------
 
 The logic for super's dotted lookup is in the :meth:`__getattribute__` method for
-object returned by :func:`super`.
+object returned by :class:`super()`.
 
 A dotted lookup such as ``super(A, obj).m`` searches ``obj.__class__.__mro__``
 for the base class ``B`` immediately following ``A`` and then returns
@@ -1004,42 +1004,31 @@ here is a pure Python equivalent:
             if doc is None and fget is not None:
                 doc = fget.__doc__
             self.__doc__ = doc
-            self._name = None
+            self._name = ''
 
         def __set_name__(self, owner, name):
             self._name = name
-
-        @property
-        def __name__(self):
-            return self._name if self._name is not None else self.fget.__name__
-
-        @__name__.setter
-        def __name__(self, value):
-            self._name = value
 
         def __get__(self, obj, objtype=None):
             if obj is None:
                 return self
             if self.fget is None:
                 raise AttributeError(
-                    f'property {self.__name__!r} of {type(obj).__name__!r} '
-                    'object has no getter'
+                    f'property {self._name!r} of {type(obj).__name__!r} object has no getter'
                  )
             return self.fget(obj)
 
         def __set__(self, obj, value):
             if self.fset is None:
                 raise AttributeError(
-                    f'property {self.__name__!r} of {type(obj).__name__!r} '
-                    'object has no setter'
+                    f'property {self._name!r} of {type(obj).__name__!r} object has no setter'
                  )
             self.fset(obj, value)
 
         def __delete__(self, obj):
             if self.fdel is None:
                 raise AttributeError(
-                    f'property {self.__name__!r} of {type(obj).__name__!r} '
-                    'object has no deleter'
+                    f'property {self._name!r} of {type(obj).__name__!r} object has no deleter'
                  )
             self.fdel(obj)
 
@@ -1193,20 +1182,6 @@ roughly equivalent to:
             obj = self.__self__
             return func(obj, *args, **kwargs)
 
-        def __getattribute__(self, name):
-            "Emulate method_getset() in Objects/classobject.c"
-            if name == '__doc__':
-                return self.__func__.__doc__
-            return object.__getattribute__(self, name)
-
-        def __getattr__(self, name):
-            "Emulate method_getattro() in Objects/classobject.c"
-            return getattr(self.__func__, name)
-
-        def __get__(self, obj, objtype=None):
-            "Emulate method_descr_get() in Objects/classobject.c"
-            return self
-
 To support automatic creation of methods, functions include the
 :meth:`__get__` method for binding methods during attribute access.  This
 means that functions are non-data descriptors that return bound methods
@@ -1229,20 +1204,8 @@ descriptor works in practice:
 .. testcode::
 
     class D:
-        def f(self):
-             return self
-
-    class D2:
-        pass
-
-.. doctest::
-    :hide:
-
-    >>> d = D()
-    >>> d2 = D2()
-    >>> d2.f = d.f.__get__(d2, D2)
-    >>> d2.f() is d
-    True
+        def f(self, x):
+             return x
 
 The function has a :term:`qualified name` attribute to support introspection:
 
@@ -1366,15 +1329,11 @@ Using the non-data descriptor protocol, a pure Python version of
         def __call__(self, *args, **kwds):
             return self.f(*args, **kwds)
 
-        @property
-        def __annotations__(self):
-            return self.f.__annotations__
-
 The :func:`functools.update_wrapper` call adds a ``__wrapped__`` attribute
 that refers to the underlying function.  Also it carries forward
 the attributes necessary to make the wrapper look like the wrapped
-function, including :attr:`~function.__name__`, :attr:`~function.__qualname__`,
-and :attr:`~function.__doc__`.
+function: :attr:`~function.__name__`, :attr:`~function.__qualname__`,
+:attr:`~function.__doc__`, and :attr:`~function.__annotations__`.
 
 .. testcode::
     :hide:
@@ -1503,6 +1462,10 @@ Using the non-data descriptor protocol, a pure Python version of
         def __get__(self, obj, cls=None):
             if cls is None:
                 cls = type(obj)
+            if hasattr(type(self.f), '__get__'):
+                # This code path was added in Python 3.9
+                # and was deprecated in Python 3.11.
+                return self.f.__get__(cls, cls)
             return MethodType(self.f, cls)
 
 .. testcode::
@@ -1515,6 +1478,11 @@ Using the non-data descriptor protocol, a pure Python version of
             "Class method that returns a tuple"
             return (cls.__name__, x, y)
 
+        @ClassMethod
+        @property
+        def __doc__(cls):
+            return f'A doc for {cls.__name__!r}'
+
 
 .. doctest::
     :hide:
@@ -1526,6 +1494,10 @@ Using the non-data descriptor protocol, a pure Python version of
     >>> t = T()
     >>> t.cm(11, 22)
     ('T', 11, 22)
+
+    # Check the alternate path for chained descriptors
+    >>> T.__doc__
+    "A doc for 'T'"
 
     # Verify that T uses our emulation
     >>> type(vars(T)['cm']).__name__
@@ -1550,6 +1522,24 @@ Using the non-data descriptor protocol, a pure Python version of
     >>> f(T, 11, 22)
     ('T', 11, 22)
 
+
+The code path for ``hasattr(type(self.f), '__get__')`` was added in
+Python 3.9 and makes it possible for :func:`classmethod` to support
+chained decorators.  For example, a classmethod and property could be
+chained together.  In Python 3.11, this functionality was deprecated.
+
+.. testcode::
+
+    class G:
+        @classmethod
+        @property
+        def __doc__(cls):
+            return f'A doc for {cls.__name__!r}'
+
+.. doctest::
+
+    >>> G.__doc__
+    "A doc for 'G'"
 
 The :func:`functools.update_wrapper` call in ``ClassMethod`` adds a
 ``__wrapped__`` attribute that refers to the underlying function.  Also

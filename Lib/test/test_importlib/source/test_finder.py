@@ -10,6 +10,7 @@ import sys
 import tempfile
 from test.support.import_helper import make_legacy_pyc
 import unittest
+import warnings
 
 
 class FinderTests(abc.FinderTests):

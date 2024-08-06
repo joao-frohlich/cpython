@@ -989,8 +989,8 @@ class ClassPropertiesAndMethods(unittest.TestCase):
 
     def test_mro_disagreement(self):
         # Testing error messages for MRO disagreement...
-        mro_err_msg = ("Cannot create a consistent method resolution "
-                       "order (MRO) for bases ")
+        mro_err_msg = """Cannot create a consistent method resolution
+order (MRO) for bases """
 
         def raises(exc, expected, callable, *args):
             try:
@@ -1314,7 +1314,7 @@ class ClassPropertiesAndMethods(unittest.TestCase):
         # Inherit from object on purpose to check some backwards compatibility paths
         class X(object):
             __slots__ = "a"
-        with self.assertRaisesRegex(AttributeError, "'test.test_descr.ClassPropertiesAndMethods.test_slots.<locals>.X' object has no attribute 'a'"):
+        with self.assertRaisesRegex(AttributeError, "'X' object has no attribute 'a'"):
             X().a
 
         # Test string subclass in `__slots__`, see gh-98783
@@ -1593,7 +1593,8 @@ class ClassPropertiesAndMethods(unittest.TestCase):
             self.fail("classmethod shouldn't accept keyword args")
 
         cm = classmethod(f)
-        cm_dict = {'__doc__': (
+        cm_dict = {'__annotations__': {},
+                   '__doc__': (
                        "f docstring"
                        if support.HAVE_DOCSTRINGS
                        else None
@@ -1608,41 +1609,6 @@ class ClassPropertiesAndMethods(unittest.TestCase):
         self.assertEqual(cm.__dict__, {"x" : 42, **cm_dict})
         del cm.x
         self.assertNotHasAttr(cm, "x")
-
-    def test_classmethod_staticmethod_annotations(self):
-        for deco in (classmethod, staticmethod):
-            @deco
-            def unannotated(cls): pass
-            @deco
-            def annotated(cls) -> int: pass
-
-            for method in (annotated, unannotated):
-                with self.subTest(deco=deco, method=method):
-                    original_annotations = dict(method.__wrapped__.__annotations__)
-                    self.assertNotIn('__annotations__', method.__dict__)
-                    self.assertEqual(method.__annotations__, original_annotations)
-                    self.assertIn('__annotations__', method.__dict__)
-
-                    new_annotations = {"a": "b"}
-                    method.__annotations__ = new_annotations
-                    self.assertEqual(method.__annotations__, new_annotations)
-                    self.assertEqual(method.__wrapped__.__annotations__, original_annotations)
-
-                    del method.__annotations__
-                    self.assertEqual(method.__annotations__, original_annotations)
-
-                    original_annotate = method.__wrapped__.__annotate__
-                    self.assertNotIn('__annotate__', method.__dict__)
-                    self.assertIs(method.__annotate__, original_annotate)
-                    self.assertIn('__annotate__', method.__dict__)
-
-                    new_annotate = lambda: {"annotations": 1}
-                    method.__annotate__ = new_annotate
-                    self.assertIs(method.__annotate__, new_annotate)
-                    self.assertIs(method.__wrapped__.__annotate__, original_annotate)
-
-                    del method.__annotate__
-                    self.assertIs(method.__annotate__, original_annotate)
 
     @support.refcount_test
     def test_refleaks_in_classmethod___init__(self):
@@ -1721,10 +1687,10 @@ class ClassPropertiesAndMethods(unittest.TestCase):
         self.assertEqual(d.foo(1), (d, 1))
         self.assertEqual(D.foo(d, 1), (d, 1))
         sm = staticmethod(None)
-        self.assertEqual(sm.__dict__, {'__doc__': None.__doc__})
+        self.assertEqual(sm.__dict__, {'__doc__': None})
         sm.x = 42
         self.assertEqual(sm.x, 42)
-        self.assertEqual(sm.__dict__, {"x" : 42, '__doc__': None.__doc__})
+        self.assertEqual(sm.__dict__, {"x" : 42, '__doc__': None})
         del sm.x
         self.assertNotHasAttr(sm, "x")
 
@@ -4781,20 +4747,6 @@ class ClassPropertiesAndMethods(unittest.TestCase):
         with self.assertRaises(AttributeError):
             del X.__abstractmethods__
 
-    def test_gh55664(self):
-        # gh-55664: issue a warning when the
-        # __dict__ of a class contains non-string keys
-        with self.assertWarnsRegex(RuntimeWarning, 'MyClass'):
-            MyClass = type('MyClass', (), {1: 2})
-
-        class meta(type):
-            def __new__(mcls, name, bases, ns):
-                ns[1] = 2
-                return super().__new__(mcls, name, bases, ns)
-
-        with self.assertWarnsRegex(RuntimeWarning, 'MyClass'):
-            MyClass = meta('MyClass', (), {})
-
     def test_proxy_call(self):
         class FakeStr:
             __class__ = str
@@ -4818,24 +4770,24 @@ class ClassPropertiesAndMethods(unittest.TestCase):
         thing = Thing()
         for i in range(20):
             with self.assertRaises(TypeError):
-                # CALL_METHOD_DESCRIPTOR_FAST_WITH_KEYWORDS
+                # PRECALL_METHOD_DESCRIPTOR_FAST_WITH_KEYWORDS
                 list.sort(thing)
         for i in range(20):
             with self.assertRaises(TypeError):
-                # CALL_METHOD_DESCRIPTOR_FAST_WITH_KEYWORDS
+                # PRECALL_METHOD_DESCRIPTOR_FAST_WITH_KEYWORDS
                 str.split(thing)
         for i in range(20):
             with self.assertRaises(TypeError):
-                # CALL_METHOD_DESCRIPTOR_NOARGS
+                # PRECALL_NO_KW_METHOD_DESCRIPTOR_NOARGS
                 str.upper(thing)
         for i in range(20):
             with self.assertRaises(TypeError):
-                # CALL_METHOD_DESCRIPTOR_FAST
+                # PRECALL_NO_KW_METHOD_DESCRIPTOR_FAST
                 str.strip(thing)
         from collections import deque
         for i in range(20):
             with self.assertRaises(TypeError):
-                # CALL_METHOD_DESCRIPTOR_O
+                # PRECALL_NO_KW_METHOD_DESCRIPTOR_O
                 deque.append(thing, thing)
 
     def test_repr_as_str(self):
@@ -5048,7 +5000,6 @@ class ClassPropertiesAndMethods(unittest.TestCase):
                 cls.lst = [2**i for i in range(10000)]
         X.descr
 
-    @support.suppress_immortalization()
     def test_remove_subclass(self):
         # bpo-46417: when the last subclass of a type is deleted,
         # remove_subclass() clears the internal dictionary of subclasses:
@@ -5065,21 +5016,6 @@ class ClassPropertiesAndMethods(unittest.TestCase):
         del Child
         gc.collect()
         self.assertEqual(Parent.__subclasses__(), [])
-
-    def test_instance_method_get_behavior(self):
-        # test case for gh-113157
-
-        class A:
-            def meth(self):
-                return self
-
-        class B:
-            pass
-
-        a = A()
-        b = B()
-        b.meth = a.meth.__get__(b, B)
-        self.assertEqual(b.meth(), a)
 
     def test_attr_raise_through_property(self):
         # test case for gh-103272
@@ -5123,10 +5059,8 @@ class DictProxyTests(unittest.TestCase):
         self.assertNotIsInstance(it, list)
         keys = list(it)
         keys.sort()
-        self.assertEqual(keys, ['__dict__', '__doc__', '__firstlineno__',
-                                '__module__',
-                                '__static_attributes__', '__weakref__',
-                                'meth'])
+        self.assertEqual(keys, ['__dict__', '__doc__', '__module__',
+                                '__weakref__', 'meth'])
 
     @unittest.skipIf(hasattr(sys, 'gettrace') and sys.gettrace(),
                         'trace function introduces __local__')
@@ -5135,7 +5069,7 @@ class DictProxyTests(unittest.TestCase):
         it = self.C.__dict__.values()
         self.assertNotIsInstance(it, list)
         values = list(it)
-        self.assertEqual(len(values), 7)
+        self.assertEqual(len(values), 5)
 
     @unittest.skipIf(hasattr(sys, 'gettrace') and sys.gettrace(),
                         'trace function introduces __local__')
@@ -5145,10 +5079,8 @@ class DictProxyTests(unittest.TestCase):
         self.assertNotIsInstance(it, list)
         keys = [item[0] for item in it]
         keys.sort()
-        self.assertEqual(keys, ['__dict__', '__doc__', '__firstlineno__',
-                                '__module__',
-                                '__static_attributes__', '__weakref__',
-                                'meth'])
+        self.assertEqual(keys, ['__dict__', '__doc__', '__module__',
+                                '__weakref__', 'meth'])
 
     def test_dict_type_with_metaclass(self):
         # Testing type of __dict__ when metaclass set...
@@ -5217,8 +5149,7 @@ class MiscTests(unittest.TestCase):
             mykey = 'from Base2'
             mykey2 = 'from Base2'
 
-        with self.assertWarnsRegex(RuntimeWarning, 'X'):
-            X = type('X', (Base,), {MyKey(): 5})
+        X = type('X', (Base,), {MyKey(): 5})
         # mykey is read from Base
         self.assertEqual(X.mykey, 'from Base')
         # mykey2 is read from Base2 because MyKey.__eq__ has set __bases__

@@ -11,10 +11,6 @@ from test import support
 from test.support import import_helper
 from test.support import warnings_helper
 from test.support.script_helper import assert_python_ok
-try:
-    import _testcapi
-except ImportError:
-    _testcapi = None
 
 
 class AsyncYieldFrom:
@@ -974,13 +970,13 @@ class CoroutineTest(unittest.TestCase):
 
         async def foo():
             await 1
-        with self.assertRaisesRegex(TypeError, "'int' object can.t be awaited"):
+        with self.assertRaisesRegex(TypeError, "object int can.t.*await"):
             run_async(foo())
 
     def test_await_2(self):
         async def foo():
             await []
-        with self.assertRaisesRegex(TypeError, "'list' object can.t be awaited"):
+        with self.assertRaisesRegex(TypeError, "object list can.t.*await"):
             run_async(foo())
 
     def test_await_3(self):
@@ -1040,7 +1036,7 @@ class CoroutineTest(unittest.TestCase):
         async def foo(): return await Awaitable()
 
         with self.assertRaisesRegex(
-            TypeError, "'Awaitable' object can't be awaited"):
+            TypeError, "object Awaitable can't be used in 'await' expression"):
 
             run_async(foo())
 
@@ -2449,7 +2445,6 @@ class UnawaitedWarningDuringShutdownTest(unittest.TestCase):
 
 
 @support.cpython_only
-@unittest.skipIf(_testcapi is None, "requires _testcapi")
 class CAPITest(unittest.TestCase):
 
     def test_tp_await_1(self):

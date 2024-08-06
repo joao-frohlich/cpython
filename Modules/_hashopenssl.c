@@ -22,12 +22,12 @@
 #  define Py_BUILD_CORE_MODULE 1
 #endif
 
-#include <stdbool.h>
+#define PY_SSIZE_T_CLEAN
+
 #include "Python.h"
 #include "pycore_hashtable.h"
-#include "pycore_pyhash.h"        // _Py_HashBytes()
-#include "pycore_strhex.h"        // _Py_strhex()
 #include "hashlib.h"
+#include "pycore_strhex.h"        // _Py_strhex()
 
 /* EVP is the preferred interface to hashing in OpenSSL */
 #include <openssl/evp.h>
@@ -277,16 +277,16 @@ typedef struct {
     PyObject_HEAD
     EVP_MD_CTX          *ctx;   /* OpenSSL message digest context */
     // Prevents undefined behavior via multiple threads entering the C API.
-    bool use_mutex;
-    PyMutex mutex;  /* OpenSSL context lock */
+    // The lock will be NULL before threaded access has been enabled.
+    PyThread_type_lock   lock;  /* OpenSSL context lock */
 } EVPobject;
 
 typedef struct {
     PyObject_HEAD
     HMAC_CTX *ctx;            /* OpenSSL hmac context */
     // Prevents undefined behavior via multiple threads entering the C API.
-    bool use_mutex;
-    PyMutex mutex;  /* HMAC context lock */
+    // The lock will be NULL before threaded access has been enabled.
+    PyThread_type_lock lock;  /* HMAC context lock */
 } HMACobject;
 
 #include "clinic/_hashopenssl.c.h"
@@ -464,7 +464,8 @@ newEVPobject(PyTypeObject *type)
     if (retval == NULL) {
         return NULL;
     }
-    HASHLIB_INIT_MUTEX(retval);
+
+    retval->lock = NULL;
 
     retval->ctx = EVP_MD_CTX_new();
     if (retval->ctx == NULL) {
@@ -502,6 +503,8 @@ static void
 EVP_dealloc(EVPobject *self)
 {
     PyTypeObject *tp = Py_TYPE(self);
+    if (self->lock != NULL)
+        PyThread_free_lock(self->lock);
     EVP_MD_CTX_free(self->ctx);
     PyObject_Free(self);
     Py_DECREF(tp);
@@ -629,14 +632,16 @@ EVP_update(EVPobject *self, PyObject *obj)
 
     GET_BUFFER_VIEW_OR_ERROUT(obj, &view);
 
-    if (!self->use_mutex && view.len >= HASHLIB_GIL_MINSIZE) {
-        self->use_mutex = true;
+    if (self->lock == NULL && view.len >= HASHLIB_GIL_MINSIZE) {
+        self->lock = PyThread_allocate_lock();
+        /* fail? lock = NULL and we fail over to non-threaded code. */
     }
-    if (self->use_mutex) {
+
+    if (self->lock != NULL) {
         Py_BEGIN_ALLOW_THREADS
-        PyMutex_Lock(&self->mutex);
+        PyThread_acquire_lock(self->lock, 1);
         result = EVP_hash(self, view.buf, view.len);
-        PyMutex_Unlock(&self->mutex);
+        PyThread_release_lock(self->lock);
         Py_END_ALLOW_THREADS
     } else {
         result = EVP_hash(self, view.buf, view.len);
@@ -1585,7 +1590,7 @@ _hashlib_hmac_new_impl(PyObject *module, Py_buffer *key, PyObject *msg_obj,
     }
 
     self->ctx = ctx;
-    HASHLIB_INIT_MUTEX(self);
+    self->lock = NULL;
 
     if ((msg_obj != NULL) && (msg_obj != Py_None)) {
         if (!_hmac_update(self, msg_obj))
@@ -1627,14 +1632,16 @@ _hmac_update(HMACobject *self, PyObject *obj)
 
     GET_BUFFER_VIEW_OR_ERROR(obj, &view, return 0);
 
-    if (!self->use_mutex && view.len >= HASHLIB_GIL_MINSIZE) {
-        self->use_mutex = true;
+    if (self->lock == NULL && view.len >= HASHLIB_GIL_MINSIZE) {
+        self->lock = PyThread_allocate_lock();
+        /* fail? lock = NULL and we fail over to non-threaded code. */
     }
-    if (self->use_mutex) {
+
+    if (self->lock != NULL) {
         Py_BEGIN_ALLOW_THREADS
-        PyMutex_Lock(&self->mutex);
+        PyThread_acquire_lock(self->lock, 1);
         r = HMAC_Update(self->ctx, (const unsigned char*)view.buf, view.len);
-        PyMutex_Unlock(&self->mutex);
+        PyThread_release_lock(self->lock);
         Py_END_ALLOW_THREADS
     } else {
         r = HMAC_Update(self->ctx, (const unsigned char*)view.buf, view.len);
@@ -1676,7 +1683,7 @@ _hashlib_HMAC_copy_impl(HMACobject *self)
         return NULL;
     }
     retval->ctx = ctx;
-    HASHLIB_INIT_MUTEX(retval);
+    retval->lock = NULL;
 
     return (PyObject *)retval;
 }
@@ -1685,6 +1692,9 @@ static void
 _hmac_dealloc(HMACobject *self)
 {
     PyTypeObject *tp = Py_TYPE(self);
+    if (self->lock != NULL) {
+        PyThread_free_lock(self->lock);
+    }
     HMAC_CTX_free(self->ctx);
     PyObject_Free(self);
     Py_DECREF(tp);
@@ -1929,7 +1939,12 @@ hashlib_md_meth_names(PyObject *module)
         return -1;
     }
 
-    return PyModule_Add(module, "openssl_md_meth_names", state.set);
+    if (PyModule_AddObject(module, "openssl_md_meth_names", state.set) < 0) {
+        Py_DECREF(state.set);
+        return -1;
+    }
+
+    return 0;
 }
 
 /*[clinic input]
@@ -2023,6 +2038,9 @@ _hashlib_compare_digest_impl(PyObject *module, PyObject *a, PyObject *b)
 
     /* ASCII unicode string */
     if(PyUnicode_Check(a) && PyUnicode_Check(b)) {
+        if (PyUnicode_READY(a) == -1 || PyUnicode_READY(b) == -1) {
+            return NULL;
+        }
         if (!PyUnicode_IS_ASCII(a) || !PyUnicode_IS_ASCII(b)) {
             PyErr_SetString(PyExc_TypeError,
                             "comparing strings with non-ASCII characters is "
@@ -2225,6 +2243,7 @@ hashlib_init_constructors(PyObject *module)
      */
     PyModuleDef *mdef;
     PyMethodDef *fdef;
+    PyObject *proxy;
     PyObject *func, *name_obj;
     _hashlibstate *state = get_hashlib_state(module);
 
@@ -2259,8 +2278,17 @@ hashlib_init_constructors(PyObject *module)
         }
     }
 
-    return PyModule_Add(module, "_constructors",
-                        PyDictProxy_New(state->constructs));
+    proxy = PyDictProxy_New(state->constructs);
+    if (proxy == NULL) {
+        return -1;
+    }
+
+    int rc = PyModule_AddObjectRef(module, "_constructors", proxy);
+    Py_DECREF(proxy);
+    if (rc < 0) {
+        return -1;
+    }
+    return 0;
 }
 
 static int
@@ -2289,7 +2317,6 @@ static PyModuleDef_Slot hashlib_slots[] = {
     {Py_mod_exec, hashlib_init_constructors},
     {Py_mod_exec, hashlib_exception},
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
 

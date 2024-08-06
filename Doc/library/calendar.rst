@@ -512,7 +512,7 @@ to interactively print a calendar.
 
    python -m calendar [-h] [-L LOCALE] [-e ENCODING] [-t {text,html}]
                       [-w WIDTH] [-l LINES] [-s SPACING] [-m MONTHS] [-c CSS]
-                      [-f FIRST_WEEKDAY] [year] [month]
+                      [year] [month]
 
 
 For example, to print a calendar for the year 2000:
@@ -586,17 +586,10 @@ The following options are accepted:
    or as an HTML document.
 
 
-.. option:: --first-weekday FIRST_WEEKDAY, -f FIRST_WEEKDAY
-
-   The weekday to start each week.
-   Must be a number between 0 (Monday) and 6 (Sunday).
-   Defaults to 0.
-
-   .. versionadded:: 3.13
-
 .. option:: year
 
    The year to print the calendar for.
+   Must be a number between 1 and 9999.
    Defaults to the current year.
 
 

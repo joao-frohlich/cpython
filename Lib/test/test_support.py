@@ -3,7 +3,6 @@ import importlib
 import io
 import os
 import shutil
-import signal
 import socket
 import stat
 import subprocess
@@ -71,7 +70,7 @@ class TestSupport(unittest.TestCase):
         self.assertEqual(support.get_original_stdout(), sys.stdout)
 
     def test_unload(self):
-        import sched  # noqa: F401
+        import sched
         self.assertIn("sched", sys.modules)
         import_helper.unload("sched")
         self.assertNotIn("sched", sys.modules)
@@ -432,7 +431,10 @@ class TestSupport(unittest.TestCase):
 
         extra = {
             'TextTestResult',
+            'findTestCases',
+            'getTestCaseNames',
             'installHandler',
+            'makeSuite',
         }
         not_exported = {'load_tests', "TestProgram", "BaseTestSuite"}
         support.check__all__(self,
@@ -631,7 +633,7 @@ class TestSupport(unittest.TestCase):
             if depth:
                 recursive_function(depth - 1)
 
-        for max_depth in (5, 25, 250, 2500):
+        for max_depth in (5, 25, 250):
             with support.infinite_recursion(max_depth):
                 available = support.get_recursion_available()
 
@@ -732,17 +734,6 @@ class TestSupport(unittest.TestCase):
         path = os.path.join(src_dir, 'Objects')
         self.assertEqual(support.copy_python_src_ignore(path, os.listdir(path)),
                          ignored)
-
-    def test_get_signal_name(self):
-        for exitcode, expected in (
-            (-int(signal.SIGINT), 'SIGINT'),
-            (-int(signal.SIGSEGV), 'SIGSEGV'),
-            (128 + int(signal.SIGABRT), 'SIGABRT'),
-            (3221225477, "STATUS_ACCESS_VIOLATION"),
-            (0xC00000FD, "STATUS_STACK_OVERFLOW"),
-        ):
-            self.assertEqual(support.get_signal_name(exitcode), expected,
-                             exitcode)
 
     # XXX -follows a list of untested API
     # make_legacy_pyc

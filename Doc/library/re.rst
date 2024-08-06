@@ -101,7 +101,7 @@ The special characters are:
 ``.``
    (Dot.)  In the default mode, this matches any character except a newline.  If
    the :const:`DOTALL` flag has been specified, this matches any character
-   including a newline.  ``(?s:.)`` matches any character regardless of flags.
+   including a newline.
 
 .. index:: single: ^ (caret); in regular expressions
 
@@ -911,10 +911,6 @@ Functions
    ``None`` if no position in the string matches the pattern; note that this is
    different from finding a zero-length match at some point in the string.
 
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
-
 
 .. function:: match(pattern, string, flags=0)
 
@@ -929,20 +925,12 @@ Functions
    If you want to locate a match anywhere in *string*, use :func:`search`
    instead (see also :ref:`search-vs-match`).
 
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
-
 
 .. function:: fullmatch(pattern, string, flags=0)
 
    If the whole *string* matches the regular expression *pattern*, return a
    corresponding :class:`~re.Match`.  Return ``None`` if the string does not match
    the pattern; note that this is different from a zero-length match.
-
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
 
    .. versionadded:: 3.4
 
@@ -959,7 +947,7 @@ Functions
       ['Words', 'words', 'words', '']
       >>> re.split(r'(\W+)', 'Words, words, words.')
       ['Words', ', ', 'words', ', ', 'words', '.', '']
-      >>> re.split(r'\W+', 'Words, words, words.', maxsplit=1)
+      >>> re.split(r'\W+', 'Words, words, words.', 1)
       ['Words', 'words, words.']
       >>> re.split('[a-f]+', '0a3B9', flags=re.IGNORECASE)
       ['0', '3', '9']
@@ -986,20 +974,11 @@ Functions
       >>> re.split(r'(\W*)', '...words...')
       ['', '...', '', '', 'w', '', 'o', '', 'r', '', 'd', '', 's', '...', '', '', '']
 
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
-
    .. versionchanged:: 3.1
       Added the optional flags argument.
 
    .. versionchanged:: 3.7
       Added support of splitting on a pattern that could match an empty string.
-
-   .. deprecated:: 3.13
-      Passing *maxsplit* and *flags* as positional arguments is deprecated.
-      In future Python versions they will be
-      :ref:`keyword-only parameters <keyword-only_parameter>`.
 
 
 .. function:: findall(pattern, string, flags=0)
@@ -1020,10 +999,6 @@ Functions
       >>> re.findall(r'(\w+)=(\d+)', 'set width=20 and height=10')
       [('width', '20'), ('height', '10')]
 
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
-
    .. versionchanged:: 3.7
       Non-empty matches can now start just after a previous empty match.
 
@@ -1034,10 +1009,6 @@ Functions
    all non-overlapping matches for the RE *pattern* in *string*.  The *string*
    is scanned left-to-right, and matches are returned in the order found.  Empty
    matches are included in the result.
-
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
 
    .. versionchanged:: 3.7
       Non-empty matches can now start just after a previous empty match.
@@ -1094,10 +1065,6 @@ Functions
    character ``'0'``.  The backreference ``\g<0>`` substitutes in the entire
    substring matched by the RE.
 
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
-
    .. versionchanged:: 3.1
       Added the optional flags argument.
 
@@ -1111,6 +1078,8 @@ Functions
    .. versionchanged:: 3.7
       Unknown escapes in *repl* consisting of ``'\'`` and an ASCII letter
       now are errors.
+
+   .. versionchanged:: 3.7
       Empty matches for the pattern are replaced when adjacent to a previous
       non-empty match.
 
@@ -1119,20 +1088,17 @@ Functions
       In :class:`bytes` replacement strings, group *name* can only contain bytes
       in the ASCII range (``b'\x00'``-``b'\x7f'``).
 
-   .. deprecated:: 3.13
-      Passing *count* and *flags* as positional arguments is deprecated.
-      In future Python versions they will be
-      :ref:`keyword-only parameters <keyword-only_parameter>`.
-
 
 .. function:: subn(pattern, repl, string, count=0, flags=0)
 
    Perform the same operation as :func:`sub`, but return a tuple ``(new_string,
    number_of_subs_made)``.
 
-   The expression's behaviour can be modified by specifying a *flags* value.
-   Values can be any of the `flags`_ variables, combined using bitwise OR
-   (the ``|`` operator).
+   .. versionchanged:: 3.1
+      Added the optional flags argument.
+
+   .. versionchanged:: 3.5
+      Unmatched groups are replaced with an empty string.
 
 
 .. function:: escape(pattern)
@@ -1178,12 +1144,12 @@ Functions
 Exceptions
 ^^^^^^^^^^
 
-.. exception:: PatternError(msg, pattern=None, pos=None)
+.. exception:: error(msg, pattern=None, pos=None)
 
    Exception raised when a string passed to one of the functions here is not a
    valid regular expression (for example, it might contain unmatched parentheses)
    or when some other error occurs during compilation or matching.  It is never an
-   error if a string contains no match for a pattern.  The ``PatternError`` instance has
+   error if a string contains no match for a pattern.  The error instance has
    the following additional attributes:
 
    .. attribute:: msg
@@ -1208,10 +1174,6 @@ Exceptions
 
    .. versionchanged:: 3.5
       Added additional attributes.
-
-   .. versionchanged:: 3.13
-      ``PatternError`` was originally named ``error``; the latter is kept as an alias for
-      backward compatibility.
 
 .. _re-objects:
 
@@ -1755,7 +1717,7 @@ because the address has spaces, our splitting pattern, in it:
 .. doctest::
    :options: +NORMALIZE_WHITESPACE
 
-   >>> [re.split(":? ", entry, maxsplit=3) for entry in entries]
+   >>> [re.split(":? ", entry, 3) for entry in entries]
    [['Ross', 'McFluff', '834.345.1254', '155 Elm Street'],
    ['Ronald', 'Heathmore', '892.345.3428', '436 Finley Avenue'],
    ['Frank', 'Burger', '925.541.7625', '662 South Dogwood Way'],
@@ -1768,7 +1730,7 @@ house number from the street name:
 .. doctest::
    :options: +NORMALIZE_WHITESPACE
 
-   >>> [re.split(":? ", entry, maxsplit=4) for entry in entries]
+   >>> [re.split(":? ", entry, 4) for entry in entries]
    [['Ross', 'McFluff', '834.345.1254', '155', 'Elm Street'],
    ['Ronald', 'Heathmore', '892.345.3428', '436', 'Finley Avenue'],
    ['Frank', 'Burger', '925.541.7625', '662', 'South Dogwood Way'],

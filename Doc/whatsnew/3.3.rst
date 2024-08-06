@@ -1052,8 +1052,8 @@ their ``__init__`` method (for example, file objects) or in their
 crypt
 -----
 
-Addition of salt and modular crypt format (hashing method) and the :func:`!mksalt`
-function to the :mod:`!crypt` module.
+Addition of salt and modular crypt format (hashing method) and the :func:`~crypt.mksalt`
+function to the :mod:`crypt` module.
 
 (:issue:`10924`)
 
@@ -1097,12 +1097,12 @@ decimal
    C-module and libmpdec written by Stefan Krah.
 
 The new C version of the decimal module integrates the high speed libmpdec
-library for arbitrary precision correctly rounded decimal floating-point
+library for arbitrary precision correctly rounded decimal floating point
 arithmetic. libmpdec conforms to IBM's General Decimal Arithmetic Specification.
 
 Performance gains range from 10x for database applications to 100x for
 numerically intensive applications. These numbers are expected gains
-for standard precisions used in decimal floating-point arithmetic. Since
+for standard precisions used in decimal floating point arithmetic. Since
 the precision is user configurable, the exact figures may vary. For example,
 in integer bignum arithmetic the differences can be significantly higher.
 
@@ -1558,7 +1558,7 @@ Schlawack in :issue:`12708`.)
 nntplib
 -------
 
-The :class:`!nntplib.NNTP` class now supports the context management protocol to
+The :class:`nntplib.NNTP` class now supports the context management protocol to
 unconditionally consume :exc:`socket.error` exceptions and to close the NNTP
 connection when done::
 
@@ -1778,7 +1778,7 @@ shlex
 -----
 
 The previously undocumented helper function ``quote`` from the
-:mod:`!pipes` modules has been moved to the :mod:`shlex` module and
+:mod:`pipes` modules has been moved to the :mod:`shlex` module and
 documented.  :func:`~shlex.quote` properly escapes all characters in a string
 that might be otherwise given special meaning by the shell.
 

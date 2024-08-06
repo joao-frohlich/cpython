@@ -9,10 +9,6 @@
 
 #include "multiprocessing.h"
 
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>           // gettimeofday()
-#endif
-
 #ifdef HAVE_MP_SEMAPHORE
 
 enum { RECURSIVE_MUTEX, SEMAPHORE };
@@ -81,7 +77,6 @@ _GetSemaphoreValue(HANDLE handle, long *value)
 }
 
 /*[clinic input]
-@critical_section
 _multiprocessing.SemLock.acquire
 
     block as blocking: bool = True
@@ -93,7 +88,7 @@ Acquire the semaphore/lock.
 static PyObject *
 _multiprocessing_SemLock_acquire_impl(SemLockObject *self, int blocking,
                                       PyObject *timeout_obj)
-/*[clinic end generated code: output=f9998f0b6b0b0872 input=079ca779975f3ad6]*/
+/*[clinic end generated code: output=f9998f0b6b0b0872 input=e5b45f5cbb775166]*/
 {
     double timeout;
     DWORD res, full_msecs, nhandles;
@@ -173,7 +168,6 @@ _multiprocessing_SemLock_acquire_impl(SemLockObject *self, int blocking,
 }
 
 /*[clinic input]
-@critical_section
 _multiprocessing.SemLock.release
 
 Release the semaphore/lock.
@@ -181,7 +175,7 @@ Release the semaphore/lock.
 
 static PyObject *
 _multiprocessing_SemLock_release_impl(SemLockObject *self)
-/*[clinic end generated code: output=b22f53ba96b0d1db input=9bd62d3645e7a531]*/
+/*[clinic end generated code: output=b22f53ba96b0d1db input=ba7e63a961885d3d]*/
 {
     if (self->kind == RECURSIVE_MUTEX) {
         if (!ISMINE(self)) {
@@ -299,7 +293,6 @@ sem_timedwait_save(sem_t *sem, struct timespec *deadline, PyThreadState *_save)
 #endif /* !HAVE_SEM_TIMEDWAIT */
 
 /*[clinic input]
-@critical_section
 _multiprocessing.SemLock.acquire
 
     block as blocking: bool = True
@@ -311,7 +304,7 @@ Acquire the semaphore/lock.
 static PyObject *
 _multiprocessing_SemLock_acquire_impl(SemLockObject *self, int blocking,
                                       PyObject *timeout_obj)
-/*[clinic end generated code: output=f9998f0b6b0b0872 input=079ca779975f3ad6]*/
+/*[clinic end generated code: output=f9998f0b6b0b0872 input=e5b45f5cbb775166]*/
 {
     int res, err = 0;
     struct timespec deadline = {0};
@@ -385,7 +378,6 @@ _multiprocessing_SemLock_acquire_impl(SemLockObject *self, int blocking,
 }
 
 /*[clinic input]
-@critical_section
 _multiprocessing.SemLock.release
 
 Release the semaphore/lock.
@@ -393,7 +385,7 @@ Release the semaphore/lock.
 
 static PyObject *
 _multiprocessing_SemLock_release_impl(SemLockObject *self)
-/*[clinic end generated code: output=b22f53ba96b0d1db input=9bd62d3645e7a531]*/
+/*[clinic end generated code: output=b22f53ba96b0d1db input=ba7e63a961885d3d]*/
 {
     if (self->kind == RECURSIVE_MUTEX) {
         if (!ISMINE(self)) {
@@ -587,7 +579,6 @@ semlock_dealloc(SemLockObject* self)
 }
 
 /*[clinic input]
-@critical_section
 _multiprocessing.SemLock._count
 
 Num of `acquire()`s minus num of `release()`s for this process.
@@ -595,7 +586,7 @@ Num of `acquire()`s minus num of `release()`s for this process.
 
 static PyObject *
 _multiprocessing_SemLock__count_impl(SemLockObject *self)
-/*[clinic end generated code: output=5ba8213900e517bb input=9fa6e0b321b16935]*/
+/*[clinic end generated code: output=5ba8213900e517bb input=36fc59b1cd1025ab]*/
 {
     return PyLong_FromLong((long)self->count);
 }
@@ -682,7 +673,6 @@ _multiprocessing_SemLock__after_fork_impl(SemLockObject *self)
 }
 
 /*[clinic input]
-@critical_section
 _multiprocessing.SemLock.__enter__
 
 Enter the semaphore/lock.
@@ -690,13 +680,12 @@ Enter the semaphore/lock.
 
 static PyObject *
 _multiprocessing_SemLock___enter___impl(SemLockObject *self)
-/*[clinic end generated code: output=beeb2f07c858511f input=d35c9860992ee790]*/
+/*[clinic end generated code: output=beeb2f07c858511f input=c5e27d594284690b]*/
 {
     return _multiprocessing_SemLock_acquire_impl(self, 1, Py_None);
 }
 
 /*[clinic input]
-@critical_section
 _multiprocessing.SemLock.__exit__
 
     exc_type: object = None
@@ -711,7 +700,7 @@ static PyObject *
 _multiprocessing_SemLock___exit___impl(SemLockObject *self,
                                        PyObject *exc_type,
                                        PyObject *exc_value, PyObject *exc_tb)
-/*[clinic end generated code: output=3b37c1a9f8b91a03 input=1610c8cc3e0e337e]*/
+/*[clinic end generated code: output=3b37c1a9f8b91a03 input=7d644b64a89903f8]*/
 {
     return _multiprocessing_SemLock_release_impl(self);
 }
@@ -746,13 +735,13 @@ static PyMethodDef semlock_methods[] = {
  */
 
 static PyMemberDef semlock_members[] = {
-    {"handle", T_SEM_HANDLE, offsetof(SemLockObject, handle), Py_READONLY,
+    {"handle", T_SEM_HANDLE, offsetof(SemLockObject, handle), READONLY,
      ""},
-    {"kind", Py_T_INT, offsetof(SemLockObject, kind), Py_READONLY,
+    {"kind", T_INT, offsetof(SemLockObject, kind), READONLY,
      ""},
-    {"maxvalue", Py_T_INT, offsetof(SemLockObject, maxvalue), Py_READONLY,
+    {"maxvalue", T_INT, offsetof(SemLockObject, maxvalue), READONLY,
      ""},
-    {"name", Py_T_STRING, offsetof(SemLockObject, name), Py_READONLY,
+    {"name", T_STRING, offsetof(SemLockObject, name), READONLY,
      ""},
     {NULL}
 };

@@ -25,7 +25,7 @@
 #include "pycore_moduleobject.h"  // _PyModule_GetState()
 #include "pycore_typeobject.h"    // _PyType_GetModuleState()
 #include "pycore_strhex.h"        // _Py_strhex()
-
+#include "structmember.h"         // PyMemberDef
 #include "hashlib.h"
 
 /*[clinic input]
@@ -53,8 +53,8 @@ typedef struct {
     PyObject_HEAD
     int digestsize;
     // Prevents undefined behavior via multiple threads entering the C API.
-    bool use_mutex;
-    PyMutex mutex;
+    // The lock will be NULL before threaded access has been enabled.
+    PyThread_type_lock lock;
     Hacl_Hash_SHA2_state_t_256 *state;
 } SHA256object;
 
@@ -62,8 +62,8 @@ typedef struct {
     PyObject_HEAD
     int digestsize;
     // Prevents undefined behavior via multiple threads entering the C API.
-    bool use_mutex;
-    PyMutex mutex;
+    // The lock will be NULL before threaded access has been enabled.
+    PyThread_type_lock lock;
     Hacl_Hash_SHA2_state_t_512 *state;
 } SHA512object;
 
@@ -106,8 +106,7 @@ newSHA224object(sha2_state *state)
     if (!sha) {
         return NULL;
     }
-    HASHLIB_INIT_MUTEX(sha);
-
+    sha->lock = NULL;
     PyObject_GC_Track(sha);
     return sha;
 }
@@ -120,8 +119,7 @@ newSHA256object(sha2_state *state)
     if (!sha) {
         return NULL;
     }
-    HASHLIB_INIT_MUTEX(sha);
-
+    sha->lock = NULL;
     PyObject_GC_Track(sha);
     return sha;
 }
@@ -134,8 +132,7 @@ newSHA384object(sha2_state *state)
     if (!sha) {
         return NULL;
     }
-    HASHLIB_INIT_MUTEX(sha);
-
+    sha->lock = NULL;
     PyObject_GC_Track(sha);
     return sha;
 }
@@ -148,8 +145,7 @@ newSHA512object(sha2_state *state)
     if (!sha) {
         return NULL;
     }
-    HASHLIB_INIT_MUTEX(sha);
-
+    sha->lock = NULL;
     PyObject_GC_Track(sha);
     return sha;
 }
@@ -167,6 +163,9 @@ static void
 SHA256_dealloc(SHA256object *ptr)
 {
     Hacl_Hash_SHA2_free_256(ptr->state);
+    if (ptr->lock != NULL) {
+        PyThread_free_lock(ptr->lock);
+    }
     PyTypeObject *tp = Py_TYPE(ptr);
     PyObject_GC_UnTrack(ptr);
     PyObject_GC_Del(ptr);
@@ -177,6 +176,9 @@ static void
 SHA512_dealloc(SHA512object *ptr)
 {
     Hacl_Hash_SHA2_free_512(ptr->state);
+    if (ptr->lock != NULL) {
+        PyThread_free_lock(ptr->lock);
+    }
     PyTypeObject *tp = Py_TYPE(ptr);
     PyObject_GC_UnTrack(ptr);
     PyObject_GC_Del(ptr);
@@ -374,14 +376,14 @@ SHA256Type_update(SHA256object *self, PyObject *obj)
 
     GET_BUFFER_VIEW_OR_ERROUT(obj, &buf);
 
-    if (!self->use_mutex && buf.len >= HASHLIB_GIL_MINSIZE) {
-        self->use_mutex = true;
+    if (self->lock == NULL && buf.len >= HASHLIB_GIL_MINSIZE) {
+        self->lock = PyThread_allocate_lock();
     }
-    if (self->use_mutex) {
+    if (self->lock != NULL) {
         Py_BEGIN_ALLOW_THREADS
-        PyMutex_Lock(&self->mutex);
+        PyThread_acquire_lock(self->lock, 1);
         update_256(self->state, buf.buf, buf.len);
-        PyMutex_Unlock(&self->mutex);
+        PyThread_release_lock(self->lock);
         Py_END_ALLOW_THREADS
     } else {
         update_256(self->state, buf.buf, buf.len);
@@ -408,14 +410,14 @@ SHA512Type_update(SHA512object *self, PyObject *obj)
 
     GET_BUFFER_VIEW_OR_ERROUT(obj, &buf);
 
-    if (!self->use_mutex && buf.len >= HASHLIB_GIL_MINSIZE) {
-        self->use_mutex = true;
+    if (self->lock == NULL && buf.len >= HASHLIB_GIL_MINSIZE) {
+        self->lock = PyThread_allocate_lock();
     }
-    if (self->use_mutex) {
+    if (self->lock != NULL) {
         Py_BEGIN_ALLOW_THREADS
-        PyMutex_Lock(&self->mutex);
+        PyThread_acquire_lock(self->lock, 1);
         update_512(self->state, buf.buf, buf.len);
-        PyMutex_Unlock(&self->mutex);
+        PyThread_release_lock(self->lock);
         Py_END_ALLOW_THREADS
     } else {
         update_512(self->state, buf.buf, buf.len);
@@ -866,7 +868,6 @@ static int sha2_exec(PyObject *module)
 static PyModuleDef_Slot _sha2_slots[] = {
     {Py_mod_exec, sha2_exec},
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
 

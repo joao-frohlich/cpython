@@ -10,7 +10,6 @@ import operator
 
 INF = float("inf")
 NAN = float("nan")
-DBL_MAX = sys.float_info.max
 # These tests ensure that complex math does the right thing
 
 ZERO_DIVISION = (
@@ -35,16 +34,6 @@ class WithFloat:
 
 class ComplexSubclass(complex):
     pass
-
-class OtherComplexSubclass(complex):
-    pass
-
-class MyInt:
-    def __init__(self, value):
-        self.value = value
-
-    def __int__(self):
-        return self.value
 
 class WithComplex:
     def __init__(self, value):
@@ -104,10 +93,6 @@ class ComplexTest(unittest.TestCase):
                 msg += ': zeros have different signs'
         self.fail(msg.format(x, y))
 
-    def assertComplexesAreIdentical(self, x, y):
-        self.assertFloatsAreIdentical(x.real, y.real)
-        self.assertFloatsAreIdentical(x.imag, y.imag)
-
     def assertClose(self, x, y, eps=1e-9):
         """Return true iff complexes x and y "are close"."""
         self.assertCloseAbs(x.real, y.real, eps)
@@ -152,33 +137,6 @@ class ComplexTest(unittest.TestCase):
             z = complex(0, 0) / complex(denom_real, denom_imag)
             self.assertTrue(isnan(z.real))
             self.assertTrue(isnan(z.imag))
-
-        self.assertComplexesAreIdentical(complex(INF, 1)/(0.0+1j),
-                                         complex(NAN, -INF))
-
-        # test recover of infs if numerator has infs and denominator is finite
-        self.assertComplexesAreIdentical(complex(INF, -INF)/(1+0j),
-                                         complex(INF, -INF))
-        self.assertComplexesAreIdentical(complex(INF, INF)/(0.0+1j),
-                                         complex(INF, -INF))
-        self.assertComplexesAreIdentical(complex(NAN, INF)/complex(2**1000, 2**-1000),
-                                         complex(INF, INF))
-        self.assertComplexesAreIdentical(complex(INF, NAN)/complex(2**1000, 2**-1000),
-                                         complex(INF, -INF))
-
-        # test recover of zeros if denominator is infinite
-        self.assertComplexesAreIdentical((1+1j)/complex(INF, INF), (0.0+0j))
-        self.assertComplexesAreIdentical((1+1j)/complex(INF, -INF), (0.0+0j))
-        self.assertComplexesAreIdentical((1+1j)/complex(-INF, INF),
-                                         complex(0.0, -0.0))
-        self.assertComplexesAreIdentical((1+1j)/complex(-INF, -INF),
-                                         complex(-0.0, 0))
-        self.assertComplexesAreIdentical((INF+1j)/complex(INF, INF),
-                                         complex(NAN, NAN))
-        self.assertComplexesAreIdentical(complex(1, INF)/complex(INF, INF),
-                                         complex(NAN, NAN))
-        self.assertComplexesAreIdentical(complex(INF, 1)/complex(1, INF),
-                                         complex(NAN, NAN))
 
     def test_truediv_zero_division(self):
         for a, b in ZERO_DIVISION:
@@ -423,53 +381,25 @@ class ComplexTest(unittest.TestCase):
         check(complex(1.0, 10.0), 1.0, 10.0)
         check(complex(4.25, 0.5), 4.25, 0.5)
 
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(4.25+0j, 0), 4.25, 0.0)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not .*ComplexSubclass"):
-            check(complex(ComplexSubclass(4.25+0j), 0), 4.25, 0.0)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not .*WithComplex"):
-            check(complex(WithComplex(4.25+0j), 0), 4.25, 0.0)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(4.25j, 0), 0.0, 4.25)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(0j, 4.25), 0.0, 4.25)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'imag' must be a real number, not complex"):
-            check(complex(0, 4.25+0j), 0.0, 4.25)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'imag' must be a real number, not .*ComplexSubclass"):
-            check(complex(0, ComplexSubclass(4.25+0j)), 0.0, 4.25)
+        check(complex(4.25+0j, 0), 4.25, 0.0)
+        check(complex(ComplexSubclass(4.25+0j), 0), 4.25, 0.0)
+        check(complex(WithComplex(4.25+0j), 0), 4.25, 0.0)
+        check(complex(4.25j, 0), 0.0, 4.25)
+        check(complex(0j, 4.25), 0.0, 4.25)
+        check(complex(0, 4.25+0j), 0.0, 4.25)
+        check(complex(0, ComplexSubclass(4.25+0j)), 0.0, 4.25)
         with self.assertRaisesRegex(TypeError,
-                "argument 'imag' must be a real number, not .*WithComplex"):
+                "second argument must be a number, not 'WithComplex'"):
             complex(0, WithComplex(4.25+0j))
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'imag' must be a real number, not complex"):
-            check(complex(0.0, 4.25j), -4.25, 0.0)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(4.25+0j, 0j), 4.25, 0.0)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(4.25j, 0j), 0.0, 4.25)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(0j, 4.25+0j), 0.0, 4.25)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(0j, 4.25j), -4.25, 0.0)
+        check(complex(0.0, 4.25j), -4.25, 0.0)
+        check(complex(4.25+0j, 0j), 4.25, 0.0)
+        check(complex(4.25j, 0j), 0.0, 4.25)
+        check(complex(0j, 4.25+0j), 0.0, 4.25)
+        check(complex(0j, 4.25j), -4.25, 0.0)
 
         check(complex(real=4.25), 4.25, 0.0)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(real=4.25+0j), 4.25, 0.0)
-        with self.assertWarnsRegex(DeprecationWarning,
-                "argument 'real' must be a real number, not complex"):
-            check(complex(real=4.25+1.5j), 4.25, 1.5)
+        check(complex(real=4.25+0j), 4.25, 0.0)
+        check(complex(real=4.25+1.5j), 4.25, 1.5)
         check(complex(imag=1.5), 0.0, 1.5)
         check(complex(real=4.25, imag=1.5), 4.25, 1.5)
         check(complex(4.25, imag=1.5), 4.25, 1.5)
@@ -489,22 +419,22 @@ class ComplexTest(unittest.TestCase):
         del c, c2
 
         self.assertRaisesRegex(TypeError,
-            "argument must be a string or a number, not dict",
+            "first argument must be a string or a number, not 'dict'",
             complex, {})
         self.assertRaisesRegex(TypeError,
-            "argument must be a string or a number, not NoneType",
+            "first argument must be a string or a number, not 'NoneType'",
             complex, None)
         self.assertRaisesRegex(TypeError,
-            "argument 'real' must be a real number, not dict",
+            "first argument must be a string or a number, not 'dict'",
             complex, {1:2}, 0)
         self.assertRaisesRegex(TypeError,
-            "argument 'real' must be a real number, not str",
+            "can't take second arg if first is a string",
             complex, '1', 0)
         self.assertRaisesRegex(TypeError,
-            "argument 'imag' must be a real number, not dict",
+            "second argument must be a number, not 'dict'",
             complex, 0, {1:2})
         self.assertRaisesRegex(TypeError,
-            "argument 'imag' must be a real number, not str",
+                "second arg can't be a string",
             complex, 0, '1')
 
         self.assertRaises(TypeError, complex, WithComplex(1.5))
@@ -685,39 +615,10 @@ class ComplexTest(unittest.TestCase):
             if not any(ch in lit for ch in 'xXoObB'):
                 self.assertRaises(ValueError, complex, lit)
 
-    def test_from_number(self, cls=complex):
-        def eq(actual, expected):
-            self.assertEqual(actual, expected)
-            self.assertIs(type(actual), cls)
-
-        eq(cls.from_number(3.14), 3.14+0j)
-        eq(cls.from_number(3.14j), 3.14j)
-        eq(cls.from_number(314), 314.0+0j)
-        eq(cls.from_number(OtherComplexSubclass(3.14, 2.72)), 3.14+2.72j)
-        eq(cls.from_number(WithComplex(3.14+2.72j)), 3.14+2.72j)
-        eq(cls.from_number(WithFloat(3.14)), 3.14+0j)
-        eq(cls.from_number(WithIndex(314)), 314.0+0j)
-
-        cNAN = complex(NAN, NAN)
-        x = cls.from_number(cNAN)
-        self.assertTrue(x != x)
-        self.assertIs(type(x), cls)
-        if cls is complex:
-            self.assertIs(cls.from_number(cNAN), cNAN)
-
-        self.assertRaises(TypeError, cls.from_number, '3.14')
-        self.assertRaises(TypeError, cls.from_number, b'3.14')
-        self.assertRaises(TypeError, cls.from_number, MyInt(314))
-        self.assertRaises(TypeError, cls.from_number, {})
-        self.assertRaises(TypeError, cls.from_number)
-
-    def test_from_number_subclass(self):
-        self.test_from_number(ComplexSubclass)
-
     def test_hash(self):
         for x in range(-30, 30):
             self.assertEqual(hash(x), hash(complex(x, 0)))
-            x /= 3.0    # now check against floating-point
+            x /= 3.0    # now check against floating point
             self.assertEqual(hash(x), hash(complex(x, 0.)))
 
         self.assertNotEqual(hash(2000005 - 1j), -1)
@@ -726,8 +627,6 @@ class ComplexTest(unittest.TestCase):
         nums = [complex(x/3., y/7.) for x in range(-9,9) for y in range(-9,9)]
         for num in nums:
             self.assertAlmostEqual((num.real**2 + num.imag**2)  ** 0.5, abs(num))
-
-        self.assertRaises(OverflowError, abs, complex(DBL_MAX, DBL_MAX))
 
     def test_repr_str(self):
         def test(v, expected, test_fn=self.assertEqual):

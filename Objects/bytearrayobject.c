@@ -1,10 +1,10 @@
 /* PyByteArray (bytearray) implementation */
 
+#define PY_SSIZE_T_CLEAN
 #include "Python.h"
 #include "pycore_abstract.h"      // _PyIndex_Check()
 #include "pycore_bytes_methods.h"
 #include "pycore_bytesobject.h"
-#include "pycore_ceval.h"         // _PyEval_GetBuiltin()
 #include "pycore_object.h"        // _PyObject_GC_UNTRACK()
 #include "pycore_strhex.h"        // _Py_strhex_with_sep()
 #include "pycore_long.h"          // _PyLong_FromUnsignedChar()
@@ -132,7 +132,7 @@ PyByteArray_FromStringAndSize(const char *bytes, Py_ssize_t size)
     }
     else {
         alloc = size + 1;
-        new->ob_bytes = PyMem_Malloc(alloc);
+        new->ob_bytes = PyObject_Malloc(alloc);
         if (new->ob_bytes == NULL) {
             Py_DECREF(new);
             return PyErr_NoMemory();
@@ -221,17 +221,17 @@ PyByteArray_Resize(PyObject *self, Py_ssize_t requested_size)
     }
 
     if (logical_offset > 0) {
-        sval = PyMem_Malloc(alloc);
+        sval = PyObject_Malloc(alloc);
         if (sval == NULL) {
             PyErr_NoMemory();
             return -1;
         }
         memcpy(sval, PyByteArray_AS_STRING(self),
                Py_MIN((size_t)requested_size, (size_t)Py_SIZE(self)));
-        PyMem_Free(obj->ob_bytes);
+        PyObject_Free(obj->ob_bytes);
     }
     else {
-        sval = PyMem_Realloc(obj->ob_bytes, alloc);
+        sval = PyObject_Realloc(obj->ob_bytes, alloc);
         if (sval == NULL) {
             PyErr_NoMemory();
             return -1;
@@ -951,7 +951,7 @@ bytearray_repr(PyByteArrayObject *self)
     }
 
     newsize += 6 + length * 4;
-    buffer = PyMem_Malloc(newsize);
+    buffer = PyObject_Malloc(newsize);
     if (buffer == NULL) {
         PyErr_NoMemory();
         return NULL;
@@ -1008,7 +1008,7 @@ bytearray_repr(PyByteArrayObject *self)
     }
 
     v = PyUnicode_FromStringAndSize(buffer, p - buffer);
-    PyMem_Free(buffer);
+    PyObject_Free(buffer);
     return v;
 }
 
@@ -1088,7 +1088,7 @@ bytearray_dealloc(PyByteArrayObject *self)
         PyErr_Print();
     }
     if (self->ob_bytes != 0) {
-        PyMem_Free(self->ob_bytes);
+        PyObject_Free(self->ob_bytes);
     }
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -1121,44 +1121,16 @@ bytearray_dealloc(PyByteArrayObject *self)
 #include "stringlib/transmogrify.h"
 
 
-/*[clinic input]
-@text_signature "($self, sub[, start[, end]], /)"
-bytearray.find
-
-    sub: object
-    start: slice_index(accept={int, NoneType}, c_default='0') = None
-         Optional start position. Default: start of the bytes.
-    end: slice_index(accept={int, NoneType}, c_default='PY_SSIZE_T_MAX') = None
-         Optional stop position. Default: end of the bytes.
-    /
-
-Return the lowest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].
-
-Return -1 on failure.
-[clinic start generated code]*/
-
 static PyObject *
-bytearray_find_impl(PyByteArrayObject *self, PyObject *sub, Py_ssize_t start,
-                    Py_ssize_t end)
-/*[clinic end generated code: output=413e1cab2ae87da0 input=793dfad803e2952f]*/
+bytearray_find(PyByteArrayObject *self, PyObject *args)
 {
-    return _Py_bytes_find(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self),
-                          sub, start, end);
+    return _Py_bytes_find(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), args);
 }
 
-/*[clinic input]
-bytearray.count = bytearray.find
-
-Return the number of non-overlapping occurrences of subsection 'sub' in bytes B[start:end].
-[clinic start generated code]*/
-
 static PyObject *
-bytearray_count_impl(PyByteArrayObject *self, PyObject *sub,
-                     Py_ssize_t start, Py_ssize_t end)
-/*[clinic end generated code: output=a21ee2692e4f1233 input=4deb529db38deda8]*/
+bytearray_count(PyByteArrayObject *self, PyObject *args)
 {
-    return _Py_bytes_count(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self),
-                           sub, start, end);
+    return _Py_bytes_count(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), args);
 }
 
 /*[clinic input]
@@ -1190,55 +1162,22 @@ bytearray_copy_impl(PyByteArrayObject *self)
                                          PyByteArray_GET_SIZE(self));
 }
 
-/*[clinic input]
-bytearray.index = bytearray.find
-
-Return the lowest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].
-
-Raise ValueError if the subsection is not found.
-[clinic start generated code]*/
-
 static PyObject *
-bytearray_index_impl(PyByteArrayObject *self, PyObject *sub,
-                     Py_ssize_t start, Py_ssize_t end)
-/*[clinic end generated code: output=067a1e78efc672a7 input=8cbaf6836dbd2a9a]*/
+bytearray_index(PyByteArrayObject *self, PyObject *args)
 {
-    return _Py_bytes_index(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self),
-                           sub, start, end);
+    return _Py_bytes_index(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), args);
 }
 
-/*[clinic input]
-bytearray.rfind = bytearray.find
-
-Return the highest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].
-
-Return -1 on failure.
-[clinic start generated code]*/
-
 static PyObject *
-bytearray_rfind_impl(PyByteArrayObject *self, PyObject *sub,
-                     Py_ssize_t start, Py_ssize_t end)
-/*[clinic end generated code: output=51bf886f932b283c input=eaa107468a158423]*/
+bytearray_rfind(PyByteArrayObject *self, PyObject *args)
 {
-    return _Py_bytes_rfind(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self),
-                           sub, start, end);
+    return _Py_bytes_rfind(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), args);
 }
 
-/*[clinic input]
-bytearray.rindex = bytearray.find
-
-Return the highest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].
-
-Raise ValueError if the subsection is not found.
-[clinic start generated code]*/
-
 static PyObject *
-bytearray_rindex_impl(PyByteArrayObject *self, PyObject *sub,
-                      Py_ssize_t start, Py_ssize_t end)
-/*[clinic end generated code: output=38e1cf66bafb08b9 input=81cf49d0af4d5bd0]*/
+bytearray_rindex(PyByteArrayObject *self, PyObject *args)
 {
-    return _Py_bytes_rindex(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self),
-                            sub, start, end);
+    return _Py_bytes_rindex(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), args);
 }
 
 static int
@@ -1247,52 +1186,16 @@ bytearray_contains(PyObject *self, PyObject *arg)
     return _Py_bytes_contains(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), arg);
 }
 
-/*[clinic input]
-@text_signature "($self, prefix[, start[, end]], /)"
-bytearray.startswith
-
-    prefix as subobj: object
-        A bytes or a tuple of bytes to try.
-    start: slice_index(accept={int, NoneType}, c_default='0') = None
-        Optional start position. Default: start of the bytearray.
-    end: slice_index(accept={int, NoneType}, c_default='PY_SSIZE_T_MAX') = None
-        Optional stop position. Default: end of the bytearray.
-    /
-
-Return True if the bytearray starts with the specified prefix, False otherwise.
-[clinic start generated code]*/
-
 static PyObject *
-bytearray_startswith_impl(PyByteArrayObject *self, PyObject *subobj,
-                          Py_ssize_t start, Py_ssize_t end)
-/*[clinic end generated code: output=a3d9b6d44d3662a6 input=76385e0b376b45c1]*/
+bytearray_startswith(PyByteArrayObject *self, PyObject *args)
 {
-    return _Py_bytes_startswith(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self),
-                                subobj, start, end);
+    return _Py_bytes_startswith(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), args);
 }
 
-/*[clinic input]
-@text_signature "($self, suffix[, start[, end]], /)"
-bytearray.endswith
-
-    suffix as subobj: object
-        A bytes or a tuple of bytes to try.
-    start: slice_index(accept={int, NoneType}, c_default='0') = None
-         Optional start position. Default: start of the bytearray.
-    end: slice_index(accept={int, NoneType}, c_default='PY_SSIZE_T_MAX') = None
-         Optional stop position. Default: end of the bytearray.
-    /
-
-Return True if the bytearray ends with the specified suffix, False otherwise.
-[clinic start generated code]*/
-
 static PyObject *
-bytearray_endswith_impl(PyByteArrayObject *self, PyObject *subobj,
-                        Py_ssize_t start, Py_ssize_t end)
-/*[clinic end generated code: output=e75ea8c227954caa input=9b8baa879aa3d74b]*/
+bytearray_endswith(PyByteArrayObject *self, PyObject *args)
 {
-    return _Py_bytes_endswith(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self),
-                              subobj, start, end);
+    return _Py_bytes_endswith(PyByteArray_AS_STRING(self), PyByteArray_GET_SIZE(self), args);
 }
 
 /*[clinic input]
@@ -1474,7 +1377,7 @@ bytearray.maketrans
     to: Py_buffer
     /
 
-Return a translation table usable for the bytes or bytearray translate method.
+Return a translation table useable for the bytes or bytearray translate method.
 
 The returned table will be one where each byte in frm is mapped to the byte at
 the same position in to.
@@ -1484,7 +1387,7 @@ The bytes objects frm and to must be of the same length.
 
 static PyObject *
 bytearray_maketrans_impl(Py_buffer *frm, Py_buffer *to)
-/*[clinic end generated code: output=1df267d99f56b15e input=b10de38c85950a63]*/
+/*[clinic end generated code: output=1df267d99f56b15e input=5925a81d2fbbf151]*/
 {
     return _Py_bytes_maketrans(frm, to);
 }
@@ -1826,10 +1729,6 @@ bytearray_extend(PyByteArrayObject *self, PyObject *iterable_of_ints)
 
     while ((item = PyIter_Next(it)) != NULL) {
         if (! _getbytevalue(item, &value)) {
-            if (PyErr_ExceptionMatches(PyExc_TypeError) && PyUnicode_Check(iterable_of_ints)) {
-                PyErr_Format(PyExc_TypeError,
-                             "expected iterable of integers; got: 'str'");
-            }
             Py_DECREF(item);
             Py_DECREF(it);
             Py_DECREF(bytearray_obj);
@@ -2297,15 +2196,18 @@ bytearray_methods[] = {
     STRINGLIB_CENTER_METHODDEF
     BYTEARRAY_CLEAR_METHODDEF
     BYTEARRAY_COPY_METHODDEF
-    BYTEARRAY_COUNT_METHODDEF
+    {"count", (PyCFunction)bytearray_count, METH_VARARGS,
+     _Py_count__doc__},
     BYTEARRAY_DECODE_METHODDEF
-    BYTEARRAY_ENDSWITH_METHODDEF
+    {"endswith", (PyCFunction)bytearray_endswith, METH_VARARGS,
+     _Py_endswith__doc__},
     STRINGLIB_EXPANDTABS_METHODDEF
     BYTEARRAY_EXTEND_METHODDEF
-    BYTEARRAY_FIND_METHODDEF
+    {"find", (PyCFunction)bytearray_find, METH_VARARGS,
+     _Py_find__doc__},
     BYTEARRAY_FROMHEX_METHODDEF
     BYTEARRAY_HEX_METHODDEF
-    BYTEARRAY_INDEX_METHODDEF
+    {"index", (PyCFunction)bytearray_index, METH_VARARGS, _Py_index__doc__},
     BYTEARRAY_INSERT_METHODDEF
     {"isalnum", stringlib_isalnum, METH_NOARGS,
      _Py_isalnum__doc__},
@@ -2335,15 +2237,16 @@ bytearray_methods[] = {
     BYTEARRAY_REMOVEPREFIX_METHODDEF
     BYTEARRAY_REMOVESUFFIX_METHODDEF
     BYTEARRAY_REVERSE_METHODDEF
-    BYTEARRAY_RFIND_METHODDEF
-    BYTEARRAY_RINDEX_METHODDEF
+    {"rfind", (PyCFunction)bytearray_rfind, METH_VARARGS, _Py_rfind__doc__},
+    {"rindex", (PyCFunction)bytearray_rindex, METH_VARARGS, _Py_rindex__doc__},
     STRINGLIB_RJUST_METHODDEF
     BYTEARRAY_RPARTITION_METHODDEF
     BYTEARRAY_RSPLIT_METHODDEF
     BYTEARRAY_RSTRIP_METHODDEF
     BYTEARRAY_SPLIT_METHODDEF
     BYTEARRAY_SPLITLINES_METHODDEF
-    BYTEARRAY_STARTSWITH_METHODDEF
+    {"startswith", (PyCFunction)bytearray_startswith, METH_VARARGS ,
+     _Py_startswith__doc__},
     BYTEARRAY_STRIP_METHODDEF
     {"swapcase", stringlib_swapcase, METH_NOARGS,
      _Py_swapcase__doc__},
@@ -2426,7 +2329,7 @@ PyTypeObject PyByteArray_Type = {
     (initproc)bytearray___init__,       /* tp_init */
     PyType_GenericAlloc,                /* tp_alloc */
     PyType_GenericNew,                  /* tp_new */
-    PyObject_Free,                      /* tp_free */
+    PyObject_Del,                       /* tp_free */
 };
 
 /*********************** Bytearray Iterator ****************************/

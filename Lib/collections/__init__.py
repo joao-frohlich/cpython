@@ -46,8 +46,7 @@ else:
     _collections_abc.MutableSequence.register(deque)
 
 try:
-    # Expose _deque_iterator to support pickling deque iterators
-    from _collections import _deque_iterator  # noqa: F401
+    from _collections import _deque_iterator
 except ImportError:
     pass
 
@@ -458,7 +457,7 @@ def namedtuple(typename, field_names, *, rename=False, defaults=None, module=Non
     def _replace(self, /, **kwds):
         result = self._make(_map(kwds.pop, field_names, self))
         if kwds:
-            raise TypeError(f'Got unexpected field names: {list(kwds)!r}')
+            raise ValueError(f'Got unexpected field names: {list(kwds)!r}')
         return result
 
     _replace.__doc__ = (f'Return a new {typename} object replacing specified '
@@ -496,7 +495,6 @@ def namedtuple(typename, field_names, *, rename=False, defaults=None, module=Non
         '_field_defaults': field_defaults,
         '__new__': __new__,
         '_make': _make,
-        '__replace__': _replace,
         '_replace': _replace,
         '__repr__': __repr__,
         '_asdict': _asdict,
@@ -1017,7 +1015,7 @@ class ChainMap(_collections_abc.MutableMapping):
         return self.__missing__(key)            # support subclasses that define __missing__
 
     def get(self, key, default=None):
-        return self[key] if key in self else default    # needs to make use of __contains__
+        return self[key] if key in self else default
 
     def __len__(self):
         return len(set().union(*self.maps))     # reuses stored hash values if possible
@@ -1029,10 +1027,7 @@ class ChainMap(_collections_abc.MutableMapping):
         return iter(d)
 
     def __contains__(self, key):
-        for mapping in self.maps:
-            if key in mapping:
-                return True
-        return False
+        return any(key in m for m in self.maps)
 
     def __bool__(self):
         return any(self.maps)
@@ -1042,9 +1037,9 @@ class ChainMap(_collections_abc.MutableMapping):
         return f'{self.__class__.__name__}({", ".join(map(repr, self.maps))})'
 
     @classmethod
-    def fromkeys(cls, iterable, value=None, /):
-        'Create a new ChainMap with keys from iterable and values set to value.'
-        return cls(dict.fromkeys(iterable, value))
+    def fromkeys(cls, iterable, *args):
+        'Create a ChainMap with a single dict created from the iterable.'
+        return cls(dict.fromkeys(iterable, *args))
 
     def copy(self):
         'New ChainMap or subclass with a new copy of maps[0] and refs to maps[1:]'

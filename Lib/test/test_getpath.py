@@ -818,20 +818,6 @@ class MockGetPathTests(unittest.TestCase):
         actual = getpath(ns, expected)
         self.assertEqual(expected, actual)
 
-    def test_explicitly_set_stdlib_dir(self):
-        """Test the explicitly set stdlib_dir in the config is respected."""
-        ns = MockPosixNamespace(
-            PREFIX="/usr",
-            argv0="python",
-            ENV_PATH="/usr/bin",
-        )
-        ns["config"]["stdlib_dir"] = "/custom_stdlib_dir"
-        expected = dict(
-            stdlib_dir="/custom_stdlib_dir",
-        )
-        actual = getpath(ns, expected)
-        self.assertEqual(expected, actual)
-
 
 # ******************************************************************************
 
@@ -844,7 +830,6 @@ DEFAULT_NAMESPACE = dict(
     PYDEBUGEXT="",
     VERSION_MAJOR=9,    # fixed version number for ease
     VERSION_MINOR=8,    # of testing
-    ABI_THREAD="",
     PYWINVER=None,
     EXE_SUFFIX=None,
 

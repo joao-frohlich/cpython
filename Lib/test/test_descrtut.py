@@ -8,7 +8,7 @@
 # of much interest anymore), and a few were fiddled to make the output
 # deterministic.
 
-from test.support import sortdict  # noqa: F401
+from test.support import sortdict
 import doctest
 import unittest
 
@@ -139,7 +139,7 @@ instance variables cannot be assigned to:
     >>> a.x1 = 1
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-    AttributeError: 'defaultdict2' object has no attribute 'x1' and no __dict__ for setting new attributes
+    AttributeError: 'defaultdict2' object has no attribute 'x1'
     >>>
 
 """

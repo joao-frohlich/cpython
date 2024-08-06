@@ -2,11 +2,7 @@ import os
 import sys
 import unittest
 
-try:
-    from _testinternalcapi import perf_map_state_teardown, write_perf_map_entry
-except ImportError:
-    raise unittest.SkipTest("requires _testinternalcapi")
-
+from _testinternalcapi import perf_map_state_teardown, write_perf_map_entry
 
 if sys.platform != 'linux':
     raise unittest.SkipTest('Linux only')

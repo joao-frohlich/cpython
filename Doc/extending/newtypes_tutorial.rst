@@ -180,7 +180,9 @@ This initializes the :class:`!Custom` type, filling in a number of members
 to the appropriate default values, including :c:member:`~PyObject.ob_type` that we initially
 set to ``NULL``. ::
 
-   if (PyModule_AddObjectRef(m, "Custom", (PyObject *) &CustomType) < 0) {
+   Py_INCREF(&CustomType);
+   if (PyModule_AddObject(m, "Custom", (PyObject *) &CustomType) < 0) {
+       Py_DECREF(&CustomType);
        Py_DECREF(m);
        return NULL;
    }
@@ -860,7 +862,9 @@ function::
        if (m == NULL)
            return NULL;
 
-       if (PyModule_AddObjectRef(m, "SubList", (PyObject *) &SubListType) < 0) {
+       Py_INCREF(&SubListType);
+       if (PyModule_AddObject(m, "SubList", (PyObject *) &SubListType) < 0) {
+           Py_DECREF(&SubListType);
            Py_DECREF(m);
            return NULL;
        }

@@ -6,50 +6,13 @@
 # (before the site module is run).
 
 import _testinternalcapi
+import os
 import sys
 import unittest
-from test import support
 from test.support import MS_WINDOWS
 
 
 MAX_HASH_SEED = 4294967295
-
-
-BOOL_OPTIONS = [
-    'isolated',
-    'use_environment',
-    'dev_mode',
-    'install_signal_handlers',
-    'use_hash_seed',
-    'faulthandler',
-    'import_time',
-    'code_debug_ranges',
-    'show_ref_count',
-    'dump_refs',
-    'malloc_stats',
-    'parse_argv',
-    'site_import',
-    'warn_default_encoding',
-    'inspect',
-    'interactive',
-    'parser_debug',
-    'write_bytecode',
-    'quiet',
-    'user_site_directory',
-    'configure_c_stdio',
-    'buffered_stdio',
-    'use_frozen_modules',
-    'safe_path',
-    'pathconfig_warnings',
-    'module_search_paths_set',
-    'skip_source_first_line',
-    '_install_importlib',
-    '_init_main',
-    '_is_python_build',
-]
-if MS_WINDOWS:
-    BOOL_OPTIONS.append('legacy_windows_stdio')
-
 
 class SetConfigTests(unittest.TestCase):
     def setUp(self):
@@ -89,15 +52,42 @@ class SetConfigTests(unittest.TestCase):
         ]
 
         # int (unsigned)
-        int_options = [
+        options = [
             '_config_init',
-            'bytes_warning',
-            'optimization_level',
+            'isolated',
+            'use_environment',
+            'dev_mode',
+            'install_signal_handlers',
+            'use_hash_seed',
+            'faulthandler',
             'tracemalloc',
+            'import_time',
+            'code_debug_ranges',
+            'show_ref_count',
+            'dump_refs',
+            'malloc_stats',
+            'parse_argv',
+            'site_import',
+            'bytes_warning',
+            'inspect',
+            'interactive',
+            'optimization_level',
+            'parser_debug',
+            'write_bytecode',
             'verbose',
+            'quiet',
+            'user_site_directory',
+            'configure_c_stdio',
+            'buffered_stdio',
+            'pathconfig_warnings',
+            'module_search_paths_set',
+            'skip_source_first_line',
+            '_install_importlib',
+            '_init_main',
         ]
-        int_options.extend(BOOL_OPTIONS)
-        for key in int_options:
+        if MS_WINDOWS:
+            options.append('legacy_windows_stdio')
+        for key in options:
             value_tests.append((key, invalid_uint))
             type_tests.append((key, "abc"))
             type_tests.append((key, 2.0))
@@ -158,7 +148,6 @@ class SetConfigTests(unittest.TestCase):
                         _testinternalcapi.set_config(config)
 
     def test_flags(self):
-        bool_options = set(BOOL_OPTIONS)
         for sys_attr, key, value in (
             ("debug", "parser_debug", 1),
             ("inspect", "inspect", 2),
@@ -171,10 +160,7 @@ class SetConfigTests(unittest.TestCase):
         ):
             with self.subTest(sys=sys_attr, key=key, value=value):
                 self.set_config(**{key: value, 'parse_argv': 0})
-                if key in bool_options:
-                    self.assertEqual(getattr(sys.flags, sys_attr), int(bool(value)))
-                else:
-                    self.assertEqual(getattr(sys.flags, sys_attr), value)
+                self.assertEqual(getattr(sys.flags, sys_attr), value)
 
         self.set_config(write_bytecode=0)
         self.assertEqual(sys.flags.dont_write_bytecode, True)
@@ -210,19 +196,6 @@ class SetConfigTests(unittest.TestCase):
         self.assertEqual(sys.flags.hash_randomization, 1)
         self.set_config(use_hash_seed=1, hash_seed=123)
         self.assertEqual(sys.flags.hash_randomization, 1)
-
-        if support.Py_GIL_DISABLED:
-            self.set_config(enable_gil=-1)
-            self.assertEqual(sys.flags.gil, None)
-            self.set_config(enable_gil=0)
-            self.assertEqual(sys.flags.gil, 0)
-            self.set_config(enable_gil=1)
-            self.assertEqual(sys.flags.gil, 1)
-        else:
-            # Builds without Py_GIL_DISABLED don't have
-            # PyConfig.enable_gil. sys.flags.gil is always defined to 1, for
-            # consistency.
-            self.assertEqual(sys.flags.gil, 1)
 
     def test_options(self):
         self.check(warnoptions=[])

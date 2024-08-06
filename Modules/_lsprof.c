@@ -4,10 +4,7 @@
 
 #include "Python.h"
 #include "pycore_call.h"          // _PyObject_CallNoArgs()
-#include "pycore_ceval.h"         // _PyEval_SetProfile()
 #include "pycore_pystate.h"       // _PyThreadState_GET()
-#include "pycore_time.h"          // _PyTime_FromLong()
-
 #include "rotatingtree.h"
 
 /************************************************************/
@@ -18,8 +15,8 @@ struct _ProfilerEntry;
 /* represents a function called from another function */
 typedef struct _ProfilerSubEntry {
     rotating_node_t header;
-    PyTime_t tt;
-    PyTime_t it;
+    _PyTime_t tt;
+    _PyTime_t it;
     long callcount;
     long recursivecallcount;
     long recursionLevel;
@@ -29,8 +26,8 @@ typedef struct _ProfilerSubEntry {
 typedef struct _ProfilerEntry {
     rotating_node_t header;
     PyObject *userObj; /* PyCodeObject, or a descriptive str for builtins */
-    PyTime_t tt; /* total time in this entry */
-    PyTime_t it; /* inline time in this entry (not in subcalls) */
+    _PyTime_t tt; /* total time in this entry */
+    _PyTime_t it; /* inline time in this entry (not in subcalls) */
     long callcount; /* how many times this was called */
     long recursivecallcount; /* how many times called recursively */
     long recursionLevel;
@@ -38,8 +35,8 @@ typedef struct _ProfilerEntry {
 } ProfilerEntry;
 
 typedef struct _ProfilerContext {
-    PyTime_t t0;
-    PyTime_t subt;
+    _PyTime_t t0;
+    _PyTime_t subt;
     struct _ProfilerContext *previous;
     ProfilerEntry *ctxEntry;
 } ProfilerContext;
@@ -59,7 +56,6 @@ typedef struct {
 #define POF_ENABLED     0x001
 #define POF_SUBCALLS    0x002
 #define POF_BUILTINS    0x004
-#define POF_EXT_TIMER   0x008
 #define POF_NOMEMORY    0x100
 
 /*[clinic input]
@@ -86,31 +82,24 @@ _lsprof_get_state(PyObject *module)
 
 /*** External Timers ***/
 
-static PyTime_t CallExternalTimer(ProfilerObject *pObj)
+static _PyTime_t CallExternalTimer(ProfilerObject *pObj)
 {
-    PyObject *o = NULL;
-
-    // External timer can do arbitrary things so we need a flag to prevent
-    // horrible things to happen
-    pObj->flags |= POF_EXT_TIMER;
-    o = _PyObject_CallNoArgs(pObj->externalTimer);
-    pObj->flags &= ~POF_EXT_TIMER;
-
+    PyObject *o = _PyObject_CallNoArgs(pObj->externalTimer);
     if (o == NULL) {
         PyErr_WriteUnraisable(pObj->externalTimer);
         return 0;
     }
 
-    PyTime_t result;
+    _PyTime_t result;
     int err;
     if (pObj->externalTimerUnit > 0.0) {
         /* interpret the result as an integer that will be scaled
            in profiler_getstats() */
-        err = _PyTime_FromLong(&result, o);
+        err = _PyTime_FromNanosecondsObject(&result, o);
     }
     else {
         /* interpret the result as a double measured in seconds.
-           As the profiler works with PyTime_t internally
+           As the profiler works with _PyTime_t internally
            we convert it to a large integer */
         err = _PyTime_FromSecondsObject(&result, o, _PyTime_ROUND_FLOOR);
     }
@@ -122,16 +111,14 @@ static PyTime_t CallExternalTimer(ProfilerObject *pObj)
     return result;
 }
 
-static inline PyTime_t
+static inline _PyTime_t
 call_timer(ProfilerObject *pObj)
 {
     if (pObj->externalTimer != NULL) {
         return CallExternalTimer(pObj);
     }
     else {
-        PyTime_t t;
-        (void)PyTime_PerfCounterRaw(&t);
-        return t;
+        return _PyTime_GetPerfCounter();
     }
 }
 
@@ -185,7 +172,8 @@ normalizeUserObj(PyObject *obj)
         PyObject *modname = fn->m_module;
 
         if (name != NULL) {
-            PyObject *mo = _PyType_LookupRef(Py_TYPE(self), name);
+            PyObject *mo = _PyType_Lookup(Py_TYPE(self), name);
+            Py_XINCREF(mo);
             Py_DECREF(name);
             if (mo != NULL) {
                 PyObject *res = PyObject_Repr(mo);
@@ -321,8 +309,8 @@ initContext(ProfilerObject *pObj, ProfilerContext *self, ProfilerEntry *entry)
 static void
 Stop(ProfilerObject *pObj, ProfilerContext *self, ProfilerEntry *entry)
 {
-    PyTime_t tt = call_timer(pObj) - self->t0;
-    PyTime_t it = tt - self->subt;
+    _PyTime_t tt = call_timer(pObj) - self->t0;
+    _PyTime_t it = tt - self->subt;
     if (self->previous)
         self->previous->subt += tt;
     pObj->currentProfilerContext = self->previous;
@@ -567,7 +555,7 @@ _lsprof_Profiler_getstats_impl(ProfilerObject *self, PyTypeObject *cls)
         return NULL;
     }
     if (!self->externalTimer || self->externalTimerUnit == 0.0) {
-        PyTime_t onesec = _PyTime_FromSeconds(1);
+        _PyTime_t onesec = _PyTime_FromSeconds(1);
         collect.factor = (double)1 / onesec;
     }
     else {
@@ -785,11 +773,6 @@ Stop collecting profiling information.\n\
 static PyObject*
 profiler_disable(ProfilerObject *self, PyObject* noarg)
 {
-    if (self->flags & POF_EXT_TIMER) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "cannot disable profiler in external timer");
-        return NULL;
-    }
     if (self->flags & POF_ENABLED) {
         PyObject* result = NULL;
         PyObject* monitoring = _PyImport_GetModuleAttrString("sys", "monitoring");
@@ -843,11 +826,6 @@ Clear all profiling information collected so far.\n\
 static PyObject*
 profiler_clear(ProfilerObject *pObj, PyObject* noarg)
 {
-    if (pObj->flags & POF_EXT_TIMER) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "cannot clear profiler in external timer");
-        return NULL;
-    }
     clearEntries(pObj);
     Py_RETURN_NONE;
 }
@@ -856,7 +834,6 @@ static int
 profiler_traverse(ProfilerObject *op, visitproc visit, void *arg)
 {
     Py_VISIT(Py_TYPE(op));
-    Py_VISIT(op->externalTimer);
     return 0;
 }
 
@@ -867,7 +844,7 @@ profiler_dealloc(ProfilerObject *op)
     if (op->flags & POF_ENABLED) {
         PyThreadState *tstate = _PyThreadState_GET();
         if (_PyEval_SetProfile(tstate, NULL, NULL) < 0) {
-            PyErr_FormatUnraisable("Exception ignored when destroying _lsprof profiler");
+            _PyErr_WriteUnraisableMsg("When destroying _lsprof profiler", NULL);
         }
     }
 
@@ -1025,8 +1002,9 @@ _lsprof_exec(PyObject *module)
 
 static PyModuleDef_Slot _lsprofslots[] = {
     {Py_mod_exec, _lsprof_exec},
-    {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+    // XXX gh-103092: fix isolation.
+    {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+    //{Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
     {0, NULL}
 };
 

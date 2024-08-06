@@ -125,7 +125,7 @@ Data stream format
 
 The data format used by :mod:`pickle` is Python-specific.  This has the
 advantage that there are no restrictions imposed by external standards such as
-JSON (which can't represent pointer sharing); however it means that
+JSON or XDR (which can't represent pointer sharing); however it means that
 non-Python programs may not be able to reconstruct pickled Python objects.
 
 By default, the :mod:`pickle` data format uses a relatively compact binary
@@ -156,14 +156,13 @@ to read the pickle produced.
 
 * Protocol version 4 was added in Python 3.4.  It adds support for very large
   objects, pickling more kinds of objects, and some data format
-  optimizations.  This was the default protocol in Python 3.8--3.13.
+  optimizations.  It is the default protocol starting with Python 3.8.
   Refer to :pep:`3154` for information about improvements brought by
   protocol 4.
 
 * Protocol version 5 was added in Python 3.8.  It adds support for out-of-band
-  data and speedup for in-band data.  It is the default protocol starting with
-  Python 3.14.  Refer to :pep:`574` for information about improvements brought
-  by protocol 5.
+  data and speedup for in-band data.  Refer to :pep:`574` for information about
+  improvements brought by protocol 5.
 
 .. note::
    Serialization is a more primitive notion than persistence; although
@@ -200,10 +199,8 @@ The :mod:`pickle` module provides the following constants:
 
    An integer, the default :ref:`protocol version <pickle-protocols>` used
    for pickling.  May be less than :data:`HIGHEST_PROTOCOL`.  Currently the
-   default protocol is 5, introduced in Python 3.8 and incompatible
-   with previous versions. This version introduces support for out-of-band
-   buffers, where :pep:`3118`-compatible data can be transmitted separately
-   from the main pickle stream.
+   default protocol is 4, first introduced in Python 3.4 and incompatible
+   with previous versions.
 
    .. versionchanged:: 3.0
 
@@ -212,10 +209,6 @@ The :mod:`pickle` module provides the following constants:
    .. versionchanged:: 3.8
 
       The default protocol is 4.
-
-   .. versionchanged:: 3.14
-
-      The default protocol is 5.
 
 The :mod:`pickle` module provides the following functions to make the pickling
 process more convenient:
@@ -352,10 +345,6 @@ The :mod:`pickle` module exports three classes, :class:`Pickler`,
 
       See :ref:`pickle-persistent` for details and examples of uses.
 
-      .. versionchanged:: 3.13
-         Add the default implementation of this method in the C implementation
-         of :class:`!Pickler`.
-
    .. attribute:: dispatch_table
 
       A pickler object's dispatch table is a registry of *reduction
@@ -456,10 +445,6 @@ The :mod:`pickle` module exports three classes, :class:`Pickler`,
       :exc:`UnpicklingError` should be raised.
 
       See :ref:`pickle-persistent` for details and examples of uses.
-
-      .. versionchanged:: 3.13
-         Add the default implementation of this method in the C implementation
-         of :class:`!Unpickler`.
 
    .. method:: find_class(module, name)
 

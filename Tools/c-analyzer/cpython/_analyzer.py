@@ -1,4 +1,5 @@
 import os.path
+import re
 
 from c_common.clsutil import classonly
 from c_parser.info import (

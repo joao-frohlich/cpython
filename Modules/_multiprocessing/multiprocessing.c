@@ -14,17 +14,16 @@ class HANDLE_converter(CConverter):
     type = "HANDLE"
     format_unit = '"F_HANDLE"'
 
-    def parse_arg(self, argname, displayname, *, limited_capi):
-        return self.format_code("""
+    def parse_arg(self, argname, displayname):
+        return """
             {paramname} = PyLong_AsVoidPtr({argname});
             if (!{paramname} && PyErr_Occurred()) {{{{
                 goto exit;
             }}}}
-            """,
-            argname=argname)
+            """.format(argname=argname, paramname=self.parser_name)
 
 [python start generated code]*/
-/*[python end generated code: output=da39a3ee5e6b4b0d input=3cf0318efc6a8772]*/
+/*[python end generated code: output=da39a3ee5e6b4b0d input=3e537d244034affb]*/
 
 /*[clinic input]
 module _multiprocessing
@@ -181,7 +180,7 @@ static PyMethodDef module_methods[] = {
     _MULTIPROCESSING_RECV_METHODDEF
     _MULTIPROCESSING_SEND_METHODDEF
 #endif
-#if !defined(POSIX_SEMAPHORES_NOT_ENABLED)
+#if !defined(POSIX_SEMAPHORES_NOT_ENABLED) && !defined(__ANDROID__)
     _MULTIPROCESSING_SEM_UNLINK_METHODDEF
 #endif
     {NULL}
@@ -267,7 +266,8 @@ multiprocessing_exec(PyObject *module)
     ADD_FLAG(HAVE_BROKEN_SEM_UNLINK);
 #endif
 
-    if (PyModule_Add(module, "flags", flags) < 0) {
+    if (PyModule_AddObject(module, "flags", flags) < 0) {
+        Py_DECREF(flags);
         return -1;
     }
 
@@ -277,7 +277,6 @@ multiprocessing_exec(PyObject *module)
 static PyModuleDef_Slot multiprocessing_slots[] = {
     {Py_mod_exec, multiprocessing_exec},
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
 

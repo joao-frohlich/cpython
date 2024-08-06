@@ -99,7 +99,7 @@ The class can be used to simulate nested scopes and is useful in templating.
         :func:`super` function.  A reference to ``d.parents`` is equivalent to:
         ``ChainMap(*d.maps[1:])``.
 
-    Note, the iteration order of a :class:`ChainMap` is determined by
+    Note, the iteration order of a :class:`ChainMap()` is determined by
     scanning the mappings last to first::
 
         >>> baseline = {'music': 'bach', 'art': 'rembrandt'}
@@ -358,7 +358,7 @@ Common patterns for working with :class:`Counter` objects::
     list(c)                         # list unique elements
     set(c)                          # convert to a set
     dict(c)                         # convert to a regular dictionary
-    c.items()                       # access the (elem, cnt) pairs
+    c.items()                       # convert to a list of (elem, cnt) pairs
     Counter(dict(list_of_pairs))    # convert from a list of (elem, cnt) pairs
     c.most_common()[:-n-1:-1]       # n least common elements
     +c                              # remove zero and negative counts
@@ -979,12 +979,6 @@ field names, the method and attribute names start with an underscore.
         >>> for partnum, record in inventory.items():
         ...     inventory[partnum] = record._replace(price=newprices[partnum], timestamp=time.now())
 
-    Named tuples are also supported by generic function :func:`copy.replace`.
-
-    .. versionchanged:: 3.13
-       Raise :exc:`TypeError` instead of :exc:`ValueError` for invalid
-       keyword arguments.
-
 .. attribute:: somenamedtuple._fields
 
     Tuple of strings listing the field names.  Useful for introspection
@@ -1230,7 +1224,7 @@ variants of :func:`functools.lru_cache`:
             result = self.func(*args)
             self.cache[args] = time(), result
             if len(self.cache) > self.maxsize:
-                self.cache.popitem(last=False)
+                self.cache.popitem(0)
             return result
 
 
@@ -1262,12 +1256,12 @@ variants of :func:`functools.lru_cache`:
             if self.requests[args] <= self.cache_after:
                 self.requests.move_to_end(args)
                 if len(self.requests) > self.maxrequests:
-                    self.requests.popitem(last=False)
+                    self.requests.popitem(0)
             else:
                 self.requests.pop(args, None)
                 self.cache[args] = result
                 if len(self.cache) > self.maxsize:
-                    self.cache.popitem(last=False)
+                    self.cache.popitem(0)
             return result
 
 .. doctest::

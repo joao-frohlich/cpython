@@ -4,12 +4,11 @@ import io
 import sys
 import types
 import pathlib
-import contextlib
 
 from . import data01
+from . import zipdata01
 from importlib.resources.abc import ResourceReader
-from test.support import import_helper, os_helper
-from . import zip as zip_
+from test.support import import_helper
 
 
 from importlib.machinery import ModuleSpec
@@ -142,23 +141,39 @@ class CommonTests(metaclass=abc.ABCMeta):
 
 
 class ZipSetupBase:
-    ZIP_MODULE = 'data01'
+    ZIP_MODULE = None
+
+    @classmethod
+    def setUpClass(cls):
+        data_path = pathlib.Path(cls.ZIP_MODULE.__file__)
+        data_dir = data_path.parent
+        cls._zip_path = str(data_dir / 'ziptestdata.zip')
+        sys.path.append(cls._zip_path)
+        cls.data = importlib.import_module('ziptestdata')
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            sys.path.remove(cls._zip_path)
+        except ValueError:
+            pass
+
+        try:
+            del sys.path_importer_cache[cls._zip_path]
+            del sys.modules[cls.data.__name__]
+        except KeyError:
+            pass
+
+        try:
+            del cls.data
+            del cls._zip_path
+        except AttributeError:
+            pass
 
     def setUp(self):
-        self.fixtures = contextlib.ExitStack()
-        self.addCleanup(self.fixtures.close)
-
-        self.fixtures.enter_context(import_helper.isolated_modules())
-
-        temp_dir = self.fixtures.enter_context(os_helper.temp_dir())
-        modules = pathlib.Path(temp_dir) / 'zipped modules.zip'
-        src_path = pathlib.Path(__file__).parent.joinpath(self.ZIP_MODULE)
-        self.fixtures.enter_context(
-            import_helper.DirsOnSysPath(str(zip_.make_zip_file(src_path, modules)))
-        )
-
-        self.data = importlib.import_module(self.ZIP_MODULE)
+        modules = import_helper.modules_setup()
+        self.addCleanup(import_helper.modules_cleanup, *modules)
 
 
 class ZipSetup(ZipSetupBase):
-    pass
+    ZIP_MODULE = zipdata01  # type: ignore

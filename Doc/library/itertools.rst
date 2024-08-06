@@ -58,12 +58,12 @@ Iterator                        Arguments                       Results         
 :func:`compress`                data, selectors                 (d[0] if s[0]), (d[1] if s[1]), ...                 ``compress('ABCDEF', [1,0,1,0,1,1]) → A C E F``
 :func:`dropwhile`               predicate, seq                  seq[n], seq[n+1], starting when predicate fails     ``dropwhile(lambda x: x<5, [1,4,6,3,8]) → 6 3 8``
 :func:`filterfalse`             predicate, seq                  elements of seq where predicate(elem) fails         ``filterfalse(lambda x: x<5, [1,4,6,3,8]) → 6 8``
-:func:`groupby`                 iterable[, key]                 sub-iterators grouped by value of key(v)            ``groupby(['A','B','ABC'], len) → (1, A B) (3, ABC)``
+:func:`groupby`                 iterable[, key]                 sub-iterators grouped by value of key(v)
 :func:`islice`                  seq, [start,] stop [, step]     elements from seq[start:stop:step]                  ``islice('ABCDEFG', 2, None) → C D E F G``
 :func:`pairwise`                iterable                        (p[0], p[1]), (p[1], p[2])                          ``pairwise('ABCDEFG') → AB BC CD DE EF FG``
 :func:`starmap`                 func, seq                       func(\*seq[0]), func(\*seq[1]), ...                 ``starmap(pow, [(2,5), (3,2), (10,3)]) → 32 9 1000``
 :func:`takewhile`               predicate, seq                  seq[0], seq[1], until predicate fails               ``takewhile(lambda x: x<5, [1,4,6,3,8]) → 1 4``
-:func:`tee`                     it, n                           it1, it2, ... itn  splits one iterator into n       ``tee('ABC', 2) → A B C, A B C``
+:func:`tee`                     it, n                           it1, it2, ... itn  splits one iterator into n
 :func:`zip_longest`             p, q, ...                       (p[0], q[0]), (p[1], q[1]), ...                     ``zip_longest('ABCD', 'xy', fillvalue='-') → Ax By C- D-``
 ============================    ============================    =================================================   =============================================================
 
@@ -162,13 +162,10 @@ loops that truncate the stream.
        Added the optional *initial* parameter.
 
 
-.. function:: batched(iterable, n, *, strict=False)
+.. function:: batched(iterable, n)
 
    Batch data from the *iterable* into tuples of length *n*. The last
    batch may be shorter than *n*.
-
-   If *strict* is true, will raise a :exc:`ValueError` if the final
-   batch is shorter than *n*.
 
    Loops over the input iterable and accumulates data into tuples up to
    size *n*.  The input is consumed lazily, just enough to fill a batch.
@@ -184,20 +181,15 @@ loops that truncate the stream.
 
    Roughly equivalent to::
 
-      def batched(iterable, n, *, strict=False):
+      def batched(iterable, n):
           # batched('ABCDEFG', 3) → ABC DEF G
           if n < 1:
               raise ValueError('n must be at least one')
           iterator = iter(iterable)
           while batch := tuple(islice(iterator, n)):
-              if strict and len(batch) != n:
-                  raise ValueError('batched(): incomplete batch')
               yield batch
 
    .. versionadded:: 3.12
-
-   .. versionchanged:: 3.13
-      Added the *strict* option.
 
 
 .. function:: chain(*iterables)
@@ -337,7 +329,7 @@ loops that truncate the stream.
               yield n
               n += step
 
-   When counting with floating-point numbers, better accuracy can sometimes be
+   When counting with floating point numbers, better accuracy can sometimes be
    achieved by substituting multiplicative code such as: ``(start + step * i
    for i in count())``.
 
@@ -978,7 +970,7 @@ The following recipes have a more mathematical flavor:
    def reshape(matrix, cols):
        "Reshape a 2-D matrix to have a given number of columns."
        # reshape([(0, 1), (2, 3), (4, 5)], 3) →  (0, 1, 2), (3, 4, 5)
-       return batched(chain.from_iterable(matrix), cols, strict=True)
+       return batched(chain.from_iterable(matrix), cols)
 
    def transpose(matrix):
        "Swap the rows and columns of a 2-D matrix."
@@ -1237,10 +1229,6 @@ The following recipes have a more mathematical flavor:
     [(0, 1, 2), (3, 4, 5), (6, 7, 8), (9, 10, 11)]
     >>> list(reshape(M, 4))
     [(0, 1, 2, 3), (4, 5, 6, 7), (8, 9, 10, 11)]
-    >>> list(reshape(M, 5))
-    Traceback (most recent call last):
-    ...
-    ValueError: batched(): incomplete batch
     >>> list(reshape(M, 6))
     [(0, 1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)]
     >>> list(reshape(M, 12))

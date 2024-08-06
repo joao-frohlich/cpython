@@ -43,25 +43,6 @@ def load_tests(loader, tests, ignore):
                 ))
     return tests
 
-def reraise_if_not_enum(*enum_types_or_exceptions):
-    from functools import wraps
-
-    def decorator(func):
-        @wraps(func)
-        def inner(*args, **kwargs):
-            excs = [
-                e
-                for e in enum_types_or_exceptions
-                if isinstance(e, Exception)
-            ]
-            if len(excs) == 1:
-                raise excs[0]
-            elif excs:
-                raise ExceptionGroup('Enum Exceptions', excs)
-            return func(*args, **kwargs)
-        return inner
-    return decorator
-
 MODULE = __name__
 SHORT_MODULE = MODULE.split('.')[-1]
 
@@ -99,42 +80,30 @@ try:
 except Exception as exc:
     FlagStooges = exc
 
-try:
-    class FlagStoogesWithZero(Flag):
-        NOFLAG = 0
-        LARRY = 1
-        CURLY = 2
-        MOE = 4
-        BIG = 389
-except Exception as exc:
-    FlagStoogesWithZero = exc
+class FlagStoogesWithZero(Flag):
+    NOFLAG = 0
+    LARRY = 1
+    CURLY = 2
+    MOE = 4
+    BIG = 389
 
-try:
-    class IntFlagStooges(IntFlag):
-        LARRY = 1
-        CURLY = 2
-        MOE = 4
-        BIG = 389
-except Exception as exc:
-    IntFlagStooges = exc
+class IntFlagStooges(IntFlag):
+    LARRY = 1
+    CURLY = 2
+    MOE = 4
+    BIG = 389
 
-try:
-    class IntFlagStoogesWithZero(IntFlag):
-        NOFLAG = 0
-        LARRY = 1
-        CURLY = 2
-        MOE = 4
-        BIG = 389
-except Exception as exc:
-    IntFlagStoogesWithZero = exc
+class IntFlagStoogesWithZero(IntFlag):
+    NOFLAG = 0
+    LARRY = 1
+    CURLY = 2
+    MOE = 4
+    BIG = 389
 
 # for pickle test and subclass tests
-try:
-    class Name(StrEnum):
-        BDFL = 'Guido van Rossum'
-        FLUFL = 'Barry Warsaw'
-except Exception as exc:
-    Name = exc
+class Name(StrEnum):
+    BDFL = 'Guido van Rossum'
+    FLUFL = 'Barry Warsaw'
 
 try:
     Question = Enum('Question', 'who what when where why', module=__name__)
@@ -176,7 +145,7 @@ class TestHelpers(unittest.TestCase):
 
     sunder_names = '_bad_', '_good_', '_what_ho_'
     dunder_names = '__mal__', '__bien__', '__que_que__'
-    private_names = '_MyEnum__private', '_MyEnum__still_private', '_MyEnum___triple_private'
+    private_names = '_MyEnum__private', '_MyEnum__still_private'
     private_and_sunder_names = '_MyEnum__private_', '_MyEnum__also_private_'
     random_names = 'okay', '_semi_private', '_weird__', '_MyEnum__'
 
@@ -240,35 +209,26 @@ class classproperty:
 
 # for global repr tests
 
-try:
-    @enum.global_enum
-    class HeadlightsK(IntFlag, boundary=enum.KEEP):
-        OFF_K = 0
-        LOW_BEAM_K = auto()
-        HIGH_BEAM_K = auto()
-        FOG_K = auto()
-except Exception as exc:
-    HeadlightsK = exc
+@enum.global_enum
+class HeadlightsK(IntFlag, boundary=enum.KEEP):
+    OFF_K = 0
+    LOW_BEAM_K = auto()
+    HIGH_BEAM_K = auto()
+    FOG_K = auto()
 
 
-try:
-    @enum.global_enum
-    class HeadlightsC(IntFlag, boundary=enum.CONFORM):
-        OFF_C = 0
-        LOW_BEAM_C = auto()
-        HIGH_BEAM_C = auto()
-        FOG_C = auto()
-except Exception as exc:
-    HeadlightsC = exc
+@enum.global_enum
+class HeadlightsC(IntFlag, boundary=enum.CONFORM):
+    OFF_C = 0
+    LOW_BEAM_C = auto()
+    HIGH_BEAM_C = auto()
+    FOG_C = auto()
 
 
-try:
-    @enum.global_enum
-    class NoName(Flag):
-        ONE = 1
-        TWO = 2
-except Exception as exc:
-    NoName = exc
+@enum.global_enum
+class NoName(Flag):
+    ONE = 1
+    TWO = 2
 
 
 # tests
@@ -447,7 +407,7 @@ class _EnumTests:
     def test_bad_new_super(self):
         with self.assertRaisesRegex(
                 TypeError,
-                'do not use .super...__new__;',
+                'has no members defined',
             ):
             class BadSuper(self.enum_type):
                 def __new__(cls, value):
@@ -514,7 +474,6 @@ class _EnumTests:
             self.assertFalse('first' in MainEnum)
         val = MainEnum.dupe
         self.assertIn(val, MainEnum)
-        self.assertNotIn(float('nan'), MainEnum)
         #
         class OtherEnum(Enum):
             one = auto()
@@ -1363,8 +1322,9 @@ class TestSpecial(unittest.TestCase):
                 green = 2
                 blue = 3
 
-    @reraise_if_not_enum(Theory)
     def test_enum_function_with_qualname(self):
+        if isinstance(Theory, Exception):
+            raise Theory
         self.assertEqual(Theory.__qualname__, 'spanish_inquisition')
 
     def test_enum_of_types(self):
@@ -1495,27 +1455,6 @@ class TestSpecial(unittest.TestCase):
             spam = nonmember(SpamEnumIsInner)
         self.assertTrue(SpamEnum.spam is SpamEnumIsInner)
 
-    def test_using_members_as_nonmember(self):
-        class Example(Flag):
-            A = 1
-            B = 2
-            ALL = nonmember(A | B)
-
-        self.assertEqual(Example.A.value, 1)
-        self.assertEqual(Example.B.value, 2)
-        self.assertEqual(Example.ALL, 3)
-        self.assertIs(type(Example.ALL), int)
-
-        class Example(Flag):
-            A = auto()
-            B = auto()
-            ALL = nonmember(A | B)
-
-        self.assertEqual(Example.A.value, 1)
-        self.assertEqual(Example.B.value, 2)
-        self.assertEqual(Example.ALL, 3)
-        self.assertIs(type(Example.ALL), int)
-
     def test_nested_classes_in_enum_with_member(self):
         """Support locally-defined nested classes."""
         class Outer(Enum):
@@ -1614,7 +1553,6 @@ class TestSpecial(unittest.TestCase):
         test_pickle_dump_load(self.assertIs, MyUnBrokenEnum.I)
         test_pickle_dump_load(self.assertIs, MyUnBrokenEnum)
 
-    @reraise_if_not_enum(FloatStooges)
     def test_floatenum_fromhex(self):
         h = float.hex(FloatStooges.MOE.value)
         self.assertIs(FloatStooges.fromhex(h), FloatStooges.MOE)
@@ -1735,7 +1673,6 @@ class TestSpecial(unittest.TestCase):
         self.assertIs(ThreePart((3, 3.0, 'three')), ThreePart.THREE)
         self.assertIs(ThreePart(3, 3.0, 'three'), ThreePart.THREE)
 
-    @reraise_if_not_enum(IntStooges)
     def test_intenum_from_bytes(self):
         self.assertIs(IntStooges.from_bytes(b'\x00\x03', 'big'), IntStooges.MOE)
         with self.assertRaises(ValueError):
@@ -1764,28 +1701,33 @@ class TestSpecial(unittest.TestCase):
             class Huh(MyStr, MyInt, Enum):
                 One = 1
 
-    @reraise_if_not_enum(Stooges)
     def test_pickle_enum(self):
+        if isinstance(Stooges, Exception):
+            raise Stooges
         test_pickle_dump_load(self.assertIs, Stooges.CURLY)
         test_pickle_dump_load(self.assertIs, Stooges)
 
-    @reraise_if_not_enum(IntStooges)
     def test_pickle_int(self):
+        if isinstance(IntStooges, Exception):
+            raise IntStooges
         test_pickle_dump_load(self.assertIs, IntStooges.CURLY)
         test_pickle_dump_load(self.assertIs, IntStooges)
 
-    @reraise_if_not_enum(FloatStooges)
     def test_pickle_float(self):
+        if isinstance(FloatStooges, Exception):
+            raise FloatStooges
         test_pickle_dump_load(self.assertIs, FloatStooges.CURLY)
         test_pickle_dump_load(self.assertIs, FloatStooges)
 
-    @reraise_if_not_enum(Answer)
     def test_pickle_enum_function(self):
+        if isinstance(Answer, Exception):
+            raise Answer
         test_pickle_dump_load(self.assertIs, Answer.him)
         test_pickle_dump_load(self.assertIs, Answer)
 
-    @reraise_if_not_enum(Question)
     def test_pickle_enum_function_with_module(self):
+        if isinstance(Question, Exception):
+            raise Question
         test_pickle_dump_load(self.assertIs, Question.who)
         test_pickle_dump_load(self.assertIs, Question)
 
@@ -1848,8 +1790,9 @@ class TestSpecial(unittest.TestCase):
                 [Season.SUMMER, Season.WINTER, Season.AUTUMN, Season.SPRING],
                 )
 
-    @reraise_if_not_enum(Name)
     def test_subclassing(self):
+        if isinstance(Name, Exception):
+            raise Name
         self.assertEqual(Name.BDFL, 'Guido van Rossum')
         self.assertTrue(Name.BDFL, Name('Guido van Rossum'))
         self.assertIs(Name.BDFL, getattr(Name, 'BDFL'))
@@ -3053,13 +2996,11 @@ class TestSpecial(unittest.TestCase):
         class ThirdFailedStrEnum(CustomStrEnum):
             one = '1'
             two = 2  # this will become '2'
-        with self.assertRaisesRegex(TypeError,
-                r"argument (2|'encoding') must be str, not "):
+        with self.assertRaisesRegex(TypeError, '.encoding. must be str, not '):
             class ThirdFailedStrEnum(CustomStrEnum):
                 one = '1'
                 two = b'2', sys.getdefaultencoding
-        with self.assertRaisesRegex(TypeError,
-                r"argument (3|'errors') must be str, not "):
+        with self.assertRaisesRegex(TypeError, '.errors. must be str, not '):
             class ThirdFailedStrEnum(CustomStrEnum):
                 one = '1'
                 two = b'2', 'ascii', 9
@@ -3370,65 +3311,6 @@ class TestSpecial(unittest.TestCase):
                     member = Base.__new__(cls)
                     member._value_ = Base(value)
                     return member
-
-    def test_extra_member_creation(self):
-        class IDEnumMeta(EnumMeta):
-            def __new__(metacls, cls, bases, classdict, **kwds):
-                # add new entries to classdict
-                for name in classdict.member_names:
-                    classdict[f'{name}_DESC'] = f'-{classdict[name]}'
-                return super().__new__(metacls, cls, bases, classdict, **kwds)
-        class IDEnum(StrEnum, metaclass=IDEnumMeta):
-            pass
-        class MyEnum(IDEnum):
-            ID = 'id'
-            NAME = 'name'
-        self.assertEqual(list(MyEnum), [MyEnum.ID, MyEnum.NAME, MyEnum.ID_DESC, MyEnum.NAME_DESC])
-
-    def test_add_alias(self):
-        class mixin:
-            @property
-            def ORG(self):
-                return 'huh'
-        class Color(mixin, Enum):
-            RED = 1
-            GREEN = 2
-            BLUE = 3
-        Color.RED._add_alias_('ROJO')
-        self.assertIs(Color.RED, Color['ROJO'])
-        self.assertIs(Color.RED, Color.ROJO)
-        Color.BLUE._add_alias_('ORG')
-        self.assertIs(Color.BLUE, Color['ORG'])
-        self.assertIs(Color.BLUE, Color.ORG)
-        self.assertEqual(Color.RED.ORG, 'huh')
-        self.assertEqual(Color.GREEN.ORG, 'huh')
-        self.assertEqual(Color.BLUE.ORG, 'huh')
-        self.assertEqual(Color.ORG.ORG, 'huh')
-
-    def test_add_value_alias_after_creation(self):
-        class Color(Enum):
-            RED = 1
-            GREEN = 2
-            BLUE = 3
-        Color.RED._add_value_alias_(5)
-        self.assertIs(Color.RED, Color(5))
-
-    def test_add_value_alias_during_creation(self):
-        class Types(Enum):
-            Unknown = 0,
-            Source  = 1, 'src'
-            NetList = 2, 'nl'
-            def __new__(cls, int_value, *value_aliases):
-                member = object.__new__(cls)
-                member._value_ = int_value
-                for alias in value_aliases:
-                    member._add_value_alias_(alias)
-                return member
-        self.assertIs(Types(0), Types.Unknown)
-        self.assertIs(Types(1), Types.Source)
-        self.assertIs(Types('src'), Types.Source)
-        self.assertIs(Types(2), Types.NetList)
-        self.assertIs(Types('nl'), Types.NetList)
 
     def test_second_tuple_item_is_falsey(self):
         class Cardinal(Enum):
@@ -3741,13 +3623,9 @@ class OldTestFlag(unittest.TestCase):
             self.assertIn(e, Perm)
             self.assertIs(type(e), Perm)
 
-    @reraise_if_not_enum(
-        FlagStooges,
-        FlagStoogesWithZero,
-        IntFlagStooges,
-        IntFlagStoogesWithZero,
-    )
     def test_pickle(self):
+        if isinstance(FlagStooges, Exception):
+            raise FlagStooges
         test_pickle_dump_load(self.assertIs, FlagStooges.CURLY)
         test_pickle_dump_load(self.assertEqual,
                         FlagStooges.CURLY|FlagStooges.MOE)
@@ -4052,7 +3930,6 @@ class OldTestIntFlag(unittest.TestCase):
         self.assertTrue(isinstance(Open.WO | Open.RW, Open))
         self.assertEqual(Open.WO | Open.RW, 3)
 
-    @reraise_if_not_enum(HeadlightsK)
     def test_global_repr_keep(self):
         self.assertEqual(
                 repr(HeadlightsK(0)),
@@ -4067,7 +3944,6 @@ class OldTestIntFlag(unittest.TestCase):
                 '%(m)s.HeadlightsK(8)' % {'m': SHORT_MODULE},
                 )
 
-    @reraise_if_not_enum(HeadlightsC)
     def test_global_repr_conform1(self):
         self.assertEqual(
                 repr(HeadlightsC(0)),
@@ -4082,7 +3958,6 @@ class OldTestIntFlag(unittest.TestCase):
                 '%(m)s.OFF_C' % {'m': SHORT_MODULE},
                 )
 
-    @reraise_if_not_enum(NoName)
     def test_global_enum_str(self):
         self.assertEqual(repr(NoName.ONE), 'test_enum.ONE')
         self.assertEqual(repr(NoName(0)), 'test_enum.NoName(0)')
@@ -4775,18 +4650,21 @@ class TestInternals(unittest.TestCase):
                 red = 'red'
                 blue = 2
                 green = auto()
+                yellow = auto()
 
-        self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
+        self.assertEqual(list(Color),
+                         [Color.red, Color.blue, Color.green, Color.yellow])
         self.assertEqual(Color.red.value, 'red')
         self.assertEqual(Color.blue.value, 2)
         self.assertEqual(Color.green.value, 3)
+        self.assertEqual(Color.yellow.value, 4)
 
     @unittest.skipIf(
             python_version < (3, 13),
             'mixed types with auto() will raise in 3.13',
             )
     def test_auto_garbage_fail(self):
-        with self.assertRaisesRegex(TypeError, "unable to increment 'red'"):
+        with self.assertRaisesRegex(TypeError, 'will require all values to be sortable'):
             class Color(Enum):
                 red = 'red'
                 blue = auto()
@@ -4796,7 +4674,7 @@ class TestInternals(unittest.TestCase):
             'mixed types with auto() will raise in 3.13',
             )
     def test_auto_garbage_corrected_fail(self):
-        with self.assertRaisesRegex(TypeError, 'unable to sort non-numeric values'):
+        with self.assertRaisesRegex(TypeError, 'will require all values to be sortable'):
             class Color(Enum):
                 red = 'red'
                 blue = 2
@@ -4890,6 +4768,8 @@ class TestInternals(unittest.TestCase):
         self.assertEqual(Huh.TWO.value, (2, 2))
         self.assertEqual(Huh.THREE.value, (3, 3, 3))
 
+class TestEnumTypeSubclassing(unittest.TestCase):
+    pass
 
 expected_help_output_with_docs = """\
 Help on class Color in module %s:
@@ -5146,14 +5026,12 @@ class TestStdLib(unittest.TestCase):
             @bltns.property
             def zeroth(self):
                 return 'zeroed %s' % self.name
-        _test_simple_enum(CheckedColor, SimpleColor)
+        self.assertTrue(_test_simple_enum(CheckedColor, SimpleColor) is None)
         SimpleColor.MAGENTA._value_ = 9
         self.assertRaisesRegex(
                 TypeError, "enum mismatch",
                 _test_simple_enum, CheckedColor, SimpleColor,
                 )
-        #
-        #
         class CheckedMissing(IntFlag, boundary=KEEP):
             SIXTY_FOUR = 64
             ONE_TWENTY_EIGHT = 128
@@ -5170,78 +5048,8 @@ class TestStdLib(unittest.TestCase):
             ALL = 2048 + 128 + 64 + 12
         M = Missing
         self.assertEqual(list(CheckedMissing), [M.SIXTY_FOUR, M.ONE_TWENTY_EIGHT, M.TWENTY_FORTY_EIGHT])
+        #
         _test_simple_enum(CheckedMissing, Missing)
-        #
-        #
-        class CheckedUnhashable(Enum):
-            ONE = dict()
-            TWO = set()
-            name = 'python'
-        self.assertIn(dict(), CheckedUnhashable)
-        self.assertIn('python', CheckedUnhashable)
-        self.assertEqual(CheckedUnhashable.name.value, 'python')
-        self.assertEqual(CheckedUnhashable.name.name, 'name')
-        #
-        @_simple_enum()
-        class Unhashable:
-            ONE = dict()
-            TWO = set()
-            name = 'python'
-        self.assertIn(dict(), Unhashable)
-        self.assertIn('python', Unhashable)
-        self.assertEqual(Unhashable.name.value, 'python')
-        self.assertEqual(Unhashable.name.name, 'name')
-        _test_simple_enum(CheckedUnhashable, Unhashable)
-        ##
-        class CheckedComplexStatus(IntEnum):
-            def __new__(cls, value, phrase, description=''):
-                obj = int.__new__(cls, value)
-                obj._value_ = value
-                obj.phrase = phrase
-                obj.description = description
-                return obj
-            CONTINUE = 100, 'Continue', 'Request received, please continue'
-            PROCESSING = 102, 'Processing'
-            EARLY_HINTS = 103, 'Early Hints'
-            SOME_HINTS = 103, 'Some Early Hints'
-        #
-        @_simple_enum(IntEnum)
-        class ComplexStatus:
-            def __new__(cls, value, phrase, description=''):
-                obj = int.__new__(cls, value)
-                obj._value_ = value
-                obj.phrase = phrase
-                obj.description = description
-                return obj
-            CONTINUE = 100, 'Continue', 'Request received, please continue'
-            PROCESSING = 102, 'Processing'
-            EARLY_HINTS = 103, 'Early Hints'
-            SOME_HINTS = 103, 'Some Early Hints'
-        _test_simple_enum(CheckedComplexStatus, ComplexStatus)
-        #
-        #
-        class CheckedComplexFlag(IntFlag):
-            def __new__(cls, value, label):
-                obj = int.__new__(cls, value)
-                obj._value_ = value
-                obj.label = label
-                return obj
-            SHIRT = 1, 'upper half'
-            VEST = 1, 'outer upper half'
-            PANTS = 2, 'lower half'
-        self.assertIs(CheckedComplexFlag.SHIRT, CheckedComplexFlag.VEST)
-        #
-        @_simple_enum(IntFlag)
-        class ComplexFlag:
-            def __new__(cls, value, label):
-                obj = int.__new__(cls, value)
-                obj._value_ = value
-                obj.label = label
-                return obj
-            SHIRT = 1, 'upper half'
-            VEST = 1, 'uppert half'
-            PANTS = 2, 'lower half'
-        _test_simple_enum(CheckedComplexFlag, ComplexFlag)
 
 
 class MiscTestCase(unittest.TestCase):

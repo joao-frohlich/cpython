@@ -11,9 +11,8 @@
 **Source code:** :source:`Lib/optparse.py`
 
 .. deprecated:: 3.2
-   The :mod:`optparse` module is :term:`soft deprecated` and will not be
-   developed further; development will continue with the :mod:`argparse`
-   module.
+   The :mod:`optparse` module is deprecated and will not be developed further;
+   development will continue with the :mod:`argparse` module.
 
 --------------
 
@@ -1352,7 +1351,7 @@ The whole point of creating and populating an OptionParser is to call its
       the list of arguments to process (default: ``sys.argv[1:]``)
 
    ``values``
-      a :class:`Values` object to store option arguments in (default: a
+      an :class:`Values` object to store option arguments in (default: a
       new instance of :class:`Values`) -- if you give an existing object, the
       option defaults will not be initialized on it
 

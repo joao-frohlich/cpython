@@ -39,9 +39,11 @@ from itertools import cycle, count
 from test import support
 from test.support.script_helper import (
     assert_python_ok, assert_python_failure, run_python_until_end)
-from test.support import (
-    import_helper, is_apple, os_helper, threading_helper, warnings_helper,
-)
+from test.support import import_helper
+from test.support import os_helper
+from test.support import threading_helper
+from test.support import warnings_helper
+from test.support import skip_if_sanitizer
 from test.support.os_helper import FakePath
 
 import codecs
@@ -63,6 +65,10 @@ else:
         return obj
     class EmptyStruct(ctypes.Structure):
         pass
+
+# Does io.IOBase finalizer log the exception if the close() method fails?
+# The exception is ignored silently by default in release build.
+IOBASE_EMITS_UNRAISABLE = (support.Py_DEBUG or sys.flags.dev_mode)
 
 
 def _default_chunk_size():
@@ -625,10 +631,10 @@ class IOTest(unittest.TestCase):
         self.read_ops(f, True)
 
     def test_large_file_ops(self):
-        # On Windows and Apple platforms this test consumes large resources; It
-        # takes a long time to build the >2 GiB file and takes >2 GiB of disk
-        # space therefore the resource must be enabled to run this test.
-        if sys.platform[:3] == 'win' or is_apple:
+        # On Windows and Mac OSX this test consumes large resources; It takes
+        # a long time to build the >2 GiB file and takes >2 GiB of disk space
+        # therefore the resource must be enabled to run this test.
+        if sys.platform[:3] == 'win' or sys.platform == 'darwin':
             support.requires(
                 'largefile',
                 'test requires %s bytes and a long time to run' % self.LARGE)
@@ -1160,7 +1166,7 @@ class APIMismatchTest(unittest.TestCase):
     def test_RawIOBase_io_in_pyio_match(self):
         """Test that pyio RawIOBase class has all c RawIOBase methods"""
         mismatch = support.detect_api_mismatch(pyio.RawIOBase, io.RawIOBase,
-                                               ignore=('__weakref__', '__static_attributes__'))
+                                               ignore=('__weakref__',))
         self.assertEqual(mismatch, set(), msg='Python RawIOBase does not have all C RawIOBase methods')
 
     def test_RawIOBase_pyio_in_io_match(self):
@@ -1237,7 +1243,10 @@ class CommonBufferedTests:
             with self.assertRaises(AttributeError):
                 self.tp(rawio).xyzzy
 
-            self.assertEqual(cm.unraisable.exc_type, OSError)
+            if not IOBASE_EMITS_UNRAISABLE:
+                self.assertIsNone(cm.unraisable)
+            elif cm.unraisable is not None:
+                self.assertEqual(cm.unraisable.exc_type, OSError)
 
     def test_repr(self):
         raw = self.MockRawIO()
@@ -1253,9 +1262,11 @@ class CommonBufferedTests:
         # Issue #25455
         raw = self.MockRawIO()
         b = self.tp(raw)
-        with support.swap_attr(raw, 'name', b), support.infinite_recursion(25):
-            with self.assertRaises(RuntimeError):
+        with support.swap_attr(raw, 'name', b):
+            try:
                 repr(b)  # Should not crash
+            except RuntimeError:
+                pass
 
     def test_flush_error_on_close(self):
         # Test that buffered file is closed despite failed flush
@@ -1697,6 +1708,19 @@ class BufferedReaderTest(unittest.TestCase, CommonBufferedTests):
 class CBufferedReaderTest(BufferedReaderTest, SizeofTest):
     tp = io.BufferedReader
 
+    @skip_if_sanitizer(memory=True, address=True, thread=True,
+                       reason="sanitizer defaults to crashing "
+                       "instead of returning NULL for malloc failure.")
+    def test_constructor(self):
+        BufferedReaderTest.test_constructor(self)
+        # The allocation can succeed on 32-bit builds, e.g. with more
+        # than 2 GiB RAM and a 64-bit kernel.
+        if sys.maxsize > 0x7FFFFFFF:
+            rawio = self.MockRawIO()
+            bufio = self.tp(rawio)
+            self.assertRaises((OverflowError, MemoryError, ValueError),
+                bufio.__init__, rawio, sys.maxsize)
+
     def test_initialization(self):
         rawio = self.MockRawIO([b"abc"])
         bufio = self.tp(rawio)
@@ -2051,6 +2075,19 @@ class BufferedWriterTest(unittest.TestCase, CommonBufferedTests):
 
 class CBufferedWriterTest(BufferedWriterTest, SizeofTest):
     tp = io.BufferedWriter
+
+    @skip_if_sanitizer(memory=True, address=True, thread=True,
+                       reason="sanitizer defaults to crashing "
+                       "instead of returning NULL for malloc failure.")
+    def test_constructor(self):
+        BufferedWriterTest.test_constructor(self)
+        # The allocation can succeed on 32-bit builds, e.g. with more
+        # than 2 GiB RAM and a 64-bit kernel.
+        if sys.maxsize > 0x7FFFFFFF:
+            rawio = self.MockRawIO()
+            bufio = self.tp(rawio)
+            self.assertRaises((OverflowError, MemoryError, ValueError),
+                bufio.__init__, rawio, sys.maxsize)
 
     def test_initialization(self):
         rawio = self.MockRawIO()
@@ -2561,6 +2598,19 @@ class BufferedRandomTest(BufferedReaderTest, BufferedWriterTest):
 class CBufferedRandomTest(BufferedRandomTest, SizeofTest):
     tp = io.BufferedRandom
 
+    @skip_if_sanitizer(memory=True, address=True, thread=True,
+                       reason="sanitizer defaults to crashing "
+                       "instead of returning NULL for malloc failure.")
+    def test_constructor(self):
+        BufferedRandomTest.test_constructor(self)
+        # The allocation can succeed on 32-bit builds, e.g. with more
+        # than 2 GiB RAM and a 64-bit kernel.
+        if sys.maxsize > 0x7FFFFFFF:
+            rawio = self.MockRawIO()
+            bufio = self.tp(rawio)
+            self.assertRaises((OverflowError, MemoryError, ValueError),
+                bufio.__init__, rawio, sys.maxsize)
+
     def test_garbage_collection(self):
         CBufferedReaderTest.test_garbage_collection(self)
         CBufferedWriterTest.test_garbage_collection(self)
@@ -2828,16 +2878,11 @@ class TextIOWrapperTest(unittest.TestCase):
         # Issue #25455
         raw = self.BytesIO()
         t = self.TextIOWrapper(raw, encoding="utf-8")
-        with support.swap_attr(raw, 'name', t), support.infinite_recursion(25):
-            with self.assertRaises(RuntimeError):
+        with support.swap_attr(raw, 'name', t):
+            try:
                 repr(t)  # Should not crash
-
-    def test_subclass_repr(self):
-        class TestSubclass(self.TextIOWrapper):
-            pass
-
-        f = TestSubclass(self.StringIO())
-        self.assertIn(TestSubclass.__name__, repr(f))
+            except RuntimeError:
+                pass
 
     def test_line_buffering(self):
         r = self.BytesIO()
@@ -3072,7 +3117,10 @@ class TextIOWrapperTest(unittest.TestCase):
             with self.assertRaises(AttributeError):
                 self.TextIOWrapper(rawio, encoding="utf-8").xyzzy
 
-            self.assertEqual(cm.unraisable.exc_type, OSError)
+            if not IOBASE_EMITS_UNRAISABLE:
+                self.assertIsNone(cm.unraisable)
+            elif cm.unraisable is not None:
+                self.assertEqual(cm.unraisable.exc_type, OSError)
 
     # Systematic tests of the text I/O API
 
@@ -3678,8 +3726,10 @@ class TextIOWrapperTest(unittest.TestCase):
             codecs.lookup('utf-8')
 
             class C:
+                def __init__(self):
+                    self.buf = io.BytesIO()
                 def __del__(self):
-                    io.TextIOWrapper(io.BytesIO(), **{kwargs})
+                    io.TextIOWrapper(self.buf, **{kwargs})
                     print("ok")
             c = C()
             """.format(iomod=iomod, kwargs=kwargs)
@@ -4015,28 +4065,6 @@ class CTextIOWrapperTest(TextIOWrapperTest):
         t.write("ghi")
         t.write("x"*chunk_size)
         self.assertEqual([b"abcdef", b"ghi", b"x"*chunk_size], buf._write_stack)
-
-    def test_issue119506(self):
-        chunk_size = 8192
-
-        class MockIO(self.MockRawIO):
-            written = False
-            def write(self, data):
-                if not self.written:
-                    self.written = True
-                    t.write("middle")
-                return super().write(data)
-
-        buf = MockIO()
-        t = self.TextIOWrapper(buf)
-        t.write("abc")
-        t.write("def")
-        # writing data which size >= chunk_size cause flushing buffer before write.
-        t.write("g" * chunk_size)
-        t.flush()
-
-        self.assertEqual([b"abcdef", b"middle", b"g"*chunk_size],
-                         buf._write_stack)
 
 
 class PyTextIOWrapperTest(TextIOWrapperTest):
@@ -4533,11 +4561,11 @@ class MiscIOTest(unittest.TestCase):
         ''')
         proc = assert_python_ok('-X', 'warn_default_encoding', '-c', code)
         warnings = proc.err.splitlines()
-        self.assertEqual(len(warnings), 4)
+        self.assertEqual(len(warnings), 2)
         self.assertTrue(
             warnings[0].startswith(b"<string>:5: EncodingWarning: "))
         self.assertTrue(
-            warnings[2].startswith(b"<string>:8: EncodingWarning: "))
+            warnings[1].startswith(b"<string>:8: EncodingWarning: "))
 
     def test_text_encoding(self):
         # PEP 597, bpo-47000. io.text_encoding() returns "locale" or "utf-8"

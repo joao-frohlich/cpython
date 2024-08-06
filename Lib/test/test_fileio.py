@@ -10,14 +10,12 @@ from weakref import proxy
 from functools import wraps
 
 from test.support import (
-    cpython_only, swap_attr, gc_collect, is_emscripten, is_wasi,
-    infinite_recursion,
+    cpython_only, swap_attr, gc_collect, is_emscripten, is_wasi
 )
 from test.support.os_helper import (
     TESTFN, TESTFN_ASCII, TESTFN_UNICODE, make_bad_fd,
     )
 from test.support.warnings_helper import check_warnings
-from test.support.import_helper import import_module
 from collections import UserList
 
 import _io  # C implementation of io
@@ -175,16 +173,6 @@ class AutoFileTests:
         self.assertEqual(repr(self.f),
                          "<%s.FileIO [closed]>" % (self.modulename,))
 
-    def test_subclass_repr(self):
-        class TestSubclass(self.FileIO):
-            pass
-
-        f = TestSubclass(TESTFN)
-        with f:
-            self.assertIn(TestSubclass.__name__, repr(f))
-
-        self.assertIn(TestSubclass.__name__, repr(f))
-
     def testReprNoCloseFD(self):
         fd = os.open(TESTFN, os.O_RDONLY)
         try:
@@ -195,7 +183,6 @@ class AutoFileTests:
         finally:
             os.close(fd)
 
-    @infinite_recursion(25)
     def testRecursiveRepr(self):
         # Issue #25455
         with swap_attr(self.f, 'name', self.f):
@@ -485,14 +472,6 @@ class OtherFileTests:
             import msvcrt
             self.assertRaises(OSError, msvcrt.get_osfhandle, make_bad_fd())
 
-    def testBooleanFd(self):
-        for fd in False, True:
-            with self.assertWarnsRegex(RuntimeWarning,
-                    'bool is used as a file descriptor') as cm:
-                f = self.FileIO(fd, closefd=False)
-            f.close()
-            self.assertEqual(cm.filename, __file__)
-
     def testBadModeArgument(self):
         # verify that we get a sensible error message for bad mode argument
         bad_mode = "qwerty"
@@ -598,7 +577,7 @@ class COtherFileTests(OtherFileTests, unittest.TestCase):
     @cpython_only
     def testInvalidFd_overflow(self):
         # Issue 15989
-        _testcapi = import_module("_testcapi")
+        import _testcapi
         self.assertRaises(TypeError, self.FileIO, _testcapi.INT_MAX + 1)
         self.assertRaises(TypeError, self.FileIO, _testcapi.INT_MIN - 1)
 

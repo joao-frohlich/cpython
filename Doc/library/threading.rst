@@ -127,12 +127,9 @@ This module defines the following functions:
    Its value may be used to uniquely identify this particular thread system-wide
    (until the thread terminates, after which the value may be recycled by the OS).
 
-   .. availability:: Windows, FreeBSD, Linux, macOS, OpenBSD, NetBSD, AIX, DragonFlyBSD, GNU/kFreeBSD.
+   .. availability:: Windows, FreeBSD, Linux, macOS, OpenBSD, NetBSD, AIX, DragonFlyBSD.
 
    .. versionadded:: 3.8
-
-   .. versionchanged:: 3.13
-      Added support for GNU/kFreeBSD.
 
 
 .. function:: enumerate()
@@ -412,7 +409,7 @@ since it is impossible to detect the termination of alien threads.
       timeout occurs.
 
       When the *timeout* argument is present and not ``None``, it should be a
-      floating-point number specifying a timeout for the operation in seconds
+      floating point number specifying a timeout for the operation in seconds
       (or fractions thereof). As :meth:`~Thread.join` always returns ``None``,
       you must call :meth:`~Thread.is_alive` after :meth:`~Thread.join` to
       decide whether a timeout happened -- if the thread is still alive, the
@@ -534,10 +531,9 @@ All methods are executed atomically.
    lock, subsequent attempts to acquire it block, until it is released; any
    thread may release it.
 
-   .. versionchanged:: 3.13
-      ``Lock`` is now a class. In earlier Pythons, ``Lock`` was a factory
-      function which returned an instance of the underlying private lock
-      type.
+   Note that ``Lock`` is actually a factory function which returns an instance
+   of the most efficient version of the concrete Lock class that is supported
+   by the platform.
 
 
    .. method:: acquire(blocking=True, timeout=-1)
@@ -794,7 +790,7 @@ item to the buffer only needs to wake up one consumer thread.
       occurs.  Once awakened or timed out, it re-acquires the lock and returns.
 
       When the *timeout* argument is present and not ``None``, it should be a
-      floating-point number specifying a timeout for the operation in seconds
+      floating point number specifying a timeout for the operation in seconds
       (or fractions thereof).
 
       When the underlying lock is an :class:`RLock`, it is not released using
@@ -1018,10 +1014,10 @@ method.  The :meth:`~Event.wait` method blocks until the flag is true.
       has not expired. The return value represents the
       reason that this blocking method returned; ``True`` if returning because
       the internal flag is set to true, or ``False`` if a timeout is given and
-      the internal flag did not become true within the given wait time.
+      the the internal flag did not become true within the given wait time.
 
       When the timeout argument is present and not ``None``, it should be a
-      floating-point number specifying a timeout for the operation in seconds,
+      floating point number specifying a timeout for the operation in seconds,
       or fractions thereof.
 
       .. versionchanged:: 3.1

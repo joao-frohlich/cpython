@@ -2,7 +2,11 @@
 preserve
 [clinic start generated code]*/
 
-#include "pycore_modsupport.h"    // _PyArg_CheckPositional()
+#if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
+#  include "pycore_gc.h"            // PyGC_Head
+#  include "pycore_runtime.h"       // _Py_ID()
+#endif
+
 
 PyDoc_STRVAR(method___reduce____doc__,
 "__reduce__($self, /)\n"
@@ -82,4 +86,4 @@ instancemethod_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=5a5e3f2d0726f189 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=2a5e7fa5947a86cb input=a9049054013a1b77]*/

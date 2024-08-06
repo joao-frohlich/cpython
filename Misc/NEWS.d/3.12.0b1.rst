@@ -4,7 +4,7 @@
 .. release date: 2023-05-22
 .. section: Security
 
-Fixed a security in flaw in :func:`!uu.decode` that could allow for directory
+Fixed a security in flaw in :func:`uu.decode` that could allow for directory
 traversal based on the input if no ``out_file`` was specified.
 
 ..
@@ -1008,7 +1008,7 @@ Update the bundled copy of pip to version 23.1.2.
 .. nonce: pst8iT
 .. section: Library
 
-Make :mod:`dis` display the value of oparg of :opcode:`!KW_NAMES`.
+Make :mod:`dis` display the value of oparg of :opcode:`KW_NAMES`.
 
 ..
 
@@ -1828,7 +1828,7 @@ is relative.
 .. nonce: 511Tbh
 .. section: Library
 
-Convert private :meth:`!_posixsubprocess.fork_exec` to use Argument Clinic.
+Convert private :meth:`_posixsubprocess.fork_exec` to use Argument Clinic.
 
 ..
 

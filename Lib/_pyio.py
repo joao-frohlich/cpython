@@ -16,7 +16,7 @@ else:
     _setmode = None
 
 import io
-from io import (__all__, SEEK_SET, SEEK_CUR, SEEK_END)  # noqa: F401
+from io import (__all__, SEEK_SET, SEEK_CUR, SEEK_END)
 
 valid_seek_flags = {0, 1, 2}  # Hardwired values
 if hasattr(os, 'SEEK_HOLE') :
@@ -33,8 +33,11 @@ DEFAULT_BUFFER_SIZE = 8 * 1024  # bytes
 # Rebind for compatibility
 BlockingIOError = BlockingIOError
 
+# Does io.IOBase finalizer log the exception if the close() method fails?
+# The exception is ignored silently by default in release build.
+_IOBASE_EMITS_UNRAISABLE = (hasattr(sys, "gettotalrefcount") or sys.flags.dev_mode)
 # Does open() check its 'errors' argument?
-_CHECK_ERRORS = (hasattr(sys, "gettotalrefcount") or sys.flags.dev_mode)
+_CHECK_ERRORS = _IOBASE_EMITS_UNRAISABLE
 
 
 def text_encoding(encoding, stacklevel=2):
@@ -413,9 +416,18 @@ class IOBase(metaclass=abc.ABCMeta):
         if closed:
             return
 
-        # If close() fails, the caller logs the exception with
-        # sys.unraisablehook. close() must be called at the end at __del__().
-        self.close()
+        if _IOBASE_EMITS_UNRAISABLE:
+            self.close()
+        else:
+            # The try/except block is in case this is called at program
+            # exit time, when it's possible that globals have already been
+            # deleted, and then the close() call might fail.  Since
+            # there's nothing we can do about such failures and they annoy
+            # the end users, we suppress the traceback.
+            try:
+                self.close()
+            except:
+                pass
 
     ### Inquiries ###
 
@@ -1496,11 +1508,6 @@ class FileIO(RawIOBase):
         if isinstance(file, float):
             raise TypeError('integer argument expected, got float')
         if isinstance(file, int):
-            if isinstance(file, bool):
-                import warnings
-                warnings.warn("bool is used as a file descriptor",
-                              RuntimeWarning, stacklevel=2)
-                file = int(file)
             fd = file
             if fd < 0:
                 raise ValueError('negative file descriptor')
@@ -1577,7 +1584,6 @@ class FileIO(RawIOBase):
             self._blksize = getattr(fdfstat, 'st_blksize', 0)
             if self._blksize <= 1:
                 self._blksize = DEFAULT_BUFFER_SIZE
-            self._estimated_size = fdfstat.st_size
 
             if _setmode:
                 # don't translate newlines (\r\n <=> \n)
@@ -1655,18 +1661,14 @@ class FileIO(RawIOBase):
         """
         self._checkClosed()
         self._checkReadable()
-        if self._estimated_size <= 0:
-            bufsize = DEFAULT_BUFFER_SIZE
-        else:
-            bufsize = self._estimated_size + 1
-
-            if self._estimated_size > 65536:
-                try:
-                    pos = os.lseek(self._fd, 0, SEEK_CUR)
-                    if self._estimated_size >= pos:
-                        bufsize = self._estimated_size - pos + 1
-                except OSError:
-                    pass
+        bufsize = DEFAULT_BUFFER_SIZE
+        try:
+            pos = os.lseek(self._fd, 0, SEEK_CUR)
+            end = os.fstat(self._fd).st_size
+            if end >= pos:
+                bufsize = end - pos + 1
+        except OSError:
+            pass
 
         result = bytearray()
         while True:
@@ -1742,7 +1744,6 @@ class FileIO(RawIOBase):
         if size is None:
             size = self.tell()
         os.ftruncate(self._fd, size)
-        self._estimated_size = size
         return size
 
     def close(self):

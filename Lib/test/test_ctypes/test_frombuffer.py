@@ -1,17 +1,13 @@
+from ctypes import *
 import array
 import gc
 import unittest
-from ctypes import (Structure, Union, Array, sizeof,
-                    _Pointer, _SimpleCData, _CFuncPtr,
-                    c_char, c_int)
-
 
 class X(Structure):
     _fields_ = [("c_int", c_int)]
     init_called = False
     def __init__(self):
         self._init_called = True
-
 
 class Test(unittest.TestCase):
     def test_from_buffer(self):
@@ -125,6 +121,8 @@ class Test(unittest.TestCase):
             (c_int * 1).from_buffer_copy(a, 16 * sizeof(c_int))
 
     def test_abstract(self):
+        from ctypes import _Pointer, _SimpleCData, _CFuncPtr
+
         self.assertRaises(TypeError, Array.from_buffer, bytearray(10))
         self.assertRaises(TypeError, Structure.from_buffer, bytearray(10))
         self.assertRaises(TypeError, Union.from_buffer, bytearray(10))
@@ -138,7 +136,6 @@ class Test(unittest.TestCase):
         self.assertRaises(TypeError, _CFuncPtr.from_buffer_copy, b"123")
         self.assertRaises(TypeError, _Pointer.from_buffer_copy, b"123")
         self.assertRaises(TypeError, _SimpleCData.from_buffer_copy, b"123")
-
 
 if __name__ == '__main__':
     unittest.main()

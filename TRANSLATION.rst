@@ -10,6 +10,10 @@ Palavras traduzidas
     print       escreva
     range       intervalo
     input       entrada
+    len         tamanho
+    open        abre
+    close       fecha
+    end         fim
     =========   ==========
 
 Palavras-chave traduzidas
@@ -21,12 +25,40 @@ Palavras-chave traduzidas
     =========   ==========
     English     Portuguese
     =========   ==========
-    if          se
+    and         e_logico
+    as          como
+    assert      certifique
+    break       quebra
+    class       classe
+    continue    continue
+    def         defina
+    del         remover
+    elif        senaose
     else        senao
+    except      espere
+    False       Falso
+    finally     finally*
     for         para
+    from        desta
+    global      global
+    if          se
+    import      importe
     in          em
     in          no
+    is          iguais
+    lambda      lambda
+    None        Nada
+    nonlocal    naolocal
+    not         nao_logico
+    or          ou_logico
+    pass        passe
+    raise       levante
+    return      retorne
+    True        Verdade
+    try         tente
     while       enquanto
-    break       quebra
-    case        caso
+    with        with*
+    yield       produz
     =========   ==========
+
+\* Palavras que precisam ser traduzidas ainda

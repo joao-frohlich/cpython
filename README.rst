@@ -1,3 +1,18 @@
+This is Porthon, based in Python version 3.14.0 alpha 0
+=======================================================
+
+This fork contains an attempt to turn Python into a portuguese programming language, using the
+infrastructure of the Python compiler, and just translating keywords and method names. For now,
+I'm just putting it here in order to document my changes, and the idea is that, when I finish
+translating the most important keywords and methods (and also standardize the C code), I submit
+the changes to the cpython repository.
+
+Everything in the below text works in this fork. The main changes are contained in the
+`pegen.c`_ file, where, for now, there is a `translate_ptbr_token` function, and a call for it
+in the `initialize_token` function.
+
+.. _pegen.c: https://github.com/joao-frohlich/cpython/blob/ptbr-mod/Parser/pegen.c
+
 This is Python version 3.14.0 alpha 0
 =====================================
 

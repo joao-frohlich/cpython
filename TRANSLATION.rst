@@ -30,7 +30,7 @@ Palavras-chave traduzidas
     assert      certifique
     break       quebra
     class       classe
-    continue    continue
+    continue    continue**
     def         defina
     del         remover
     elif        senaose
@@ -40,13 +40,13 @@ Palavras-chave traduzidas
     finally     finally*
     for         para
     from        desta
-    global      global
+    global      global**
     if          se
     import      importe
     in          em
     in          no
     is          iguais
-    lambda      lambda
+    lambda      lambda**
     None        Nada
     nonlocal    naolocal
     not         nao_logico
@@ -62,3 +62,4 @@ Palavras-chave traduzidas
     =========   ==========
 
 \* Palavras que precisam ser traduzidas ainda
+\*\* Palavras que não precisaram de tradução

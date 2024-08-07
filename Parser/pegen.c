@@ -240,14 +240,41 @@ void translate_token(struct token *new_token, const char * ptbr_token, const cha
 
 void translate_ptbr_token(struct token *new_token) {
     //Method names
-    if (new_token->end_col_offset-new_token->col_offset == 9) {
+    if (new_token->end_col_offset-new_token->col_offset == 16) {
+        translate_token(new_token, "eh_superconjunto", "issuperset");
+    } else if (new_token->end_col_offset-new_token->col_offset == 14) {
+        translate_token(new_token, "eh_subconjunto", "issubset");
+    } else if (new_token->end_col_offset-new_token->col_offset == 13) {
+        translate_token(new_token, "intersecciona", "intersection");
+    } else if (new_token->end_col_offset-new_token->col_offset == 11) {
+        translate_token(new_token, "decrescenta", "pop");
+        translate_token(new_token, "eh_disjunto", "isdisjoint");
+    } else if (new_token->end_col_offset-new_token->col_offset == 10) {
+        translate_token(new_token, "acrescenta", "append");
+        translate_token(new_token, "diferencia", "difference");
+    } else if (new_token->end_col_offset-new_token->col_offset == 9) {
         translate_token(new_token, "intervalo", "range");
+    } else if (new_token->end_col_offset-new_token->col_offset == 8) {
+        translate_token(new_token, "adiciona", "add");
+        translate_token(new_token, "atualiza", "update");
+        translate_token(new_token, "conjunto", "set");
+        translate_token(new_token, "descarte", "discard");
     } else if (new_token->end_col_offset-new_token->col_offset == 7) {
-        translate_token(new_token, "escreva", "print");
         translate_token(new_token, "entrada", "input");
+        translate_token(new_token, "escreva", "print");
+        translate_token(new_token, "estende", "extend");
+        translate_token(new_token, "inverte", "inverse");
         translate_token(new_token, "tamanho", "len");
+    } else if (new_token->end_col_offset-new_token->col_offset == 6) {
+        translate_token(new_token, "indice", "index");
+        translate_token(new_token, "insere", "insert");
+        translate_token(new_token, "ordena", "sort");
     } else if (new_token->end_col_offset-new_token->col_offset == 5) {
+        translate_token(new_token, "copia", "copy");
+        translate_token(new_token, "conta", "count");
         translate_token(new_token, "fecha", "close");
+        translate_token(new_token, "limpa", "clear");
+        translate_token(new_token, "uniao", "union");
     } else if (new_token->end_col_offset-new_token->col_offset == 4) {
         translate_token(new_token, "abre", "open");
     } else if (new_token->end_col_offset-new_token->col_offset == 3) {
@@ -263,10 +290,11 @@ void translate_ptbr_token(struct token *new_token) {
         translate_token(new_token, "enquanto", "while");
         translate_token(new_token, "naolocal", "nonlocal");
     } else if (new_token->end_col_offset-new_token->col_offset == 7) {
+        translate_token(new_token, "deletar", "del");
         translate_token(new_token, "eh_tipo", "is");
         translate_token(new_token, "importe", "import");
         translate_token(new_token, "levante", "raise");
-        translate_token(new_token, "remover", "del");
+        translate_token(new_token, "Nenhum", "None");
         translate_token(new_token, "retorne", "return");
         translate_token(new_token, "senaose", "elif");
         translate_token(new_token, "Verdade", "True");
@@ -284,7 +312,6 @@ void translate_ptbr_token(struct token *new_token) {
         translate_token(new_token, "tente", "try");
     } else if (new_token->end_col_offset-new_token->col_offset == 4) {
         translate_token(new_token, "como", "as");
-        translate_token(new_token, "Nada", "None");
         translate_token(new_token, "para", "for");
         translate_token(new_token, "seja", "if");
     } else if (new_token->end_col_offset-new_token->col_offset == 2) {

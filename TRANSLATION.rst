@@ -4,17 +4,38 @@ Palavras traduzidas
 .. table:: Palavras traduzidas
     :widhts: auto
 
-    =========   ==========
-    English     Portuguese
-    =========   ==========
-    print       escreva
-    range       intervalo
-    input       entrada
-    len         tamanho
-    open        abre
-    close       fecha
-    end         fim
-    =========   ==========
+    ============    ================
+    English         Portuguese
+    ============    ================
+    print           escreva
+    range           intervalo
+    input           entrada
+    len             tamanho
+    open            abre
+    close           fecha
+    end             fim
+    set             conjunto
+    add             adiciona
+    clear           limpa
+    copy            copia
+    difference      diferencia
+    discard         descarte
+    intersection    intersecciona
+    isdisjoint      eh_disjunto
+    issubset        eh_subconjunto
+    issuperset      eh_superconjunto
+    pop             decrescenta
+    remove          remove**
+    union           uniao
+    update          atualiza
+    append          acrescenta
+    count           conta
+    extend          estende
+    index           indice
+    insert          insere
+    reverse         inverte
+    sort            ordena
+    ============    ================
 
 Palavras-chave traduzidas
 =========================
@@ -32,7 +53,7 @@ Palavras-chave traduzidas
     class       classe
     continue    continue**
     def         defina
-    del         remover
+    del         deletar
     elif        senaose
     else        senao
     except      espere
@@ -46,7 +67,7 @@ Palavras-chave traduzidas
     in          em_um
     is          eh_tipo
     lambda      lambda**
-    None        Nada
+    None        Nenhum
     nonlocal    naolocal
     not         nao_logico
     or          ou_logico

@@ -227,129 +227,68 @@ _get_keyword_or_name_type(Parser *p, struct token *new_token)
     return NAME;
 }
 
+void translate_token(struct token *new_token, const char * ptbr_token, const char * en_token) {
+    const size_t ptbr_len = strlen(ptbr_token), en_len = strlen(en_token);
+    if (strncmp(new_token->start, ptbr_token, ptbr_len) == 0) {
+        strncpy((char * restrict)new_token->start, en_token, en_len);
+        for (char *c = (char *)new_token->start+en_len; c < new_token->start+ptbr_len; c++) {
+            *c = '\0';
+        }
+        new_token->end_col_offset = new_token->col_offset+en_len;
+    }
+}
+
 void translate_ptbr_token(struct token *new_token) {
     //Method names
     if (new_token->end_col_offset-new_token->col_offset == 9) {
-        if (strncmp(new_token->start, "intervalo", 9) == 0) {
-            strncpy((char * restrict)new_token->start, "range\0\0\0\0", 9);
-        } 
+        translate_token(new_token, "intervalo", "range");
     } else if (new_token->end_col_offset-new_token->col_offset == 7) {
-        if (strncmp(new_token->start, "escreva", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "print\0\0", 7);
-        } else if (strncmp(new_token->start, "entrada", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "input\0\0", 7);
-        } else if (strncmp(new_token->start, "tamanho", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "len\0\0\0\0", 7);
-        }
+        translate_token(new_token, "escreva", "print");
+        translate_token(new_token, "entrada", "input");
+        translate_token(new_token, "tamanho", "len");
     } else if (new_token->end_col_offset-new_token->col_offset == 5) {
-        if (strncmp(new_token->start, "fecha", 5) == 0) {
-            strncpy((char * restrict)new_token->start, "close", 5);
-        }
+        translate_token(new_token, "fecha", "close");
     } else if (new_token->end_col_offset-new_token->col_offset == 4) {
-        if (strncmp(new_token->start, "abre", 4) == 0) {
-            strncpy((char * restrict)new_token->start, "open", 4);
-        }
+        translate_token(new_token, "abre", "open");
     } else if (new_token->end_col_offset-new_token->col_offset == 3) {
-        if (strncmp(new_token->start, "fim", 3) == 0) {
-            strncpy((char * restrict)new_token->start, "end", 3);
-        }
+        translate_token(new_token, "fim", "end");
     }
     //Keywords
     if (new_token->end_col_offset-new_token->col_offset == 10) {
-        if (strncmp(new_token->start, "certifique", 10) == 0) {
-            strncpy((char * restrict)new_token->start, "assert\0\0\0\0", 6);
-            new_token->end_col_offset = new_token->col_offset+6;
-        } else if (strncmp(new_token->start, "nao_logico", 10) == 0) {
-            strncpy((char * restrict)new_token->start, "not\0\0\0\0\0\0\0", 10);
-            new_token->end_col_offset = new_token->col_offset+3;
-        }
+        translate_token(new_token, "certifique", "assert");
+        translate_token(new_token, "nao_logico", "not");
     } else if (new_token->end_col_offset-new_token->col_offset == 9) {
-        if (strncmp(new_token->start, "ou_logico", 9) == 0) {
-            strncpy((char * restrict)new_token->start, "or\0\0\0\0\0\0\0", 9);
-            new_token->end_col_offset = new_token->col_offset+2;
-        }
+        translate_token(new_token, "ou_logico", "or");
     } else if (new_token->end_col_offset-new_token->col_offset == 8) {
-        if (strncmp(new_token->start, "enquanto", 8) == 0) {
-            strncpy((char * restrict)new_token->start, "while\0\0\0", 8);
-            new_token->end_col_offset = new_token->col_offset+5;
-        } else if (strncmp(new_token->start, "naolocal", 8) == 0) {
-            strncpy((char * restrict)new_token->start, "nonlocal", 8);
-            new_token->end_col_offset = new_token->col_offset+8;
-        }
+        translate_token(new_token, "enquanto", "while");
+        translate_token(new_token, "naolocal", "nonlocal");
     } else if (new_token->end_col_offset-new_token->col_offset == 7) {
-        if (strncmp(new_token->start, "eh_tipo", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "is\0\0\0\0\0", 7);
-            new_token->end_col_offset = new_token->col_offset+2;
-        } else if (strncmp(new_token->start, "importe", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "import\0", 7);
-            new_token->end_col_offset = new_token->col_offset+6;
-        } else if (strncmp(new_token->start, "levante", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "raise\0\0", 7);
-            new_token->end_col_offset = new_token->col_offset+5;
-        } else if (strncmp(new_token->start, "remover", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "del\0\0\0\0", 7);
-            new_token->end_col_offset = new_token->col_offset+3;
-        } else if (strncmp(new_token->start, "retorne", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "return\0", 7);
-            new_token->end_col_offset = new_token->col_offset+6;
-        } else if (strncmp(new_token->start, "senaose", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "elif\0\0\0", 7);
-            new_token->end_col_offset = new_token->col_offset+4;
-        } else if (strncmp(new_token->start, "Verdade", 7) == 0) {
-            strncpy((char * restrict)new_token->start, "True\0\0\0", 7);
-            new_token->end_col_offset = new_token->col_offset+4;
-        } 
+        translate_token(new_token, "eh_tipo", "is");
+        translate_token(new_token, "importe", "import");
+        translate_token(new_token, "levante", "raise");
+        translate_token(new_token, "remover", "del");
+        translate_token(new_token, "retorne", "return");
+        translate_token(new_token, "senaose", "elif");
+        translate_token(new_token, "Verdade", "True");
     } else if (new_token->end_col_offset-new_token->col_offset == 6) {
-        if (strncmp(new_token->start, "classe", 6) == 0) {
-            strncpy((char * restrict)new_token->start, "class\0", 5);
-            new_token->end_col_offset = new_token->col_offset+5;
-        } else if (strncmp(new_token->start, "defina", 6) == 0) {
-            strncpy((char * restrict)new_token->start, "def\0\0\0", 6);
-            new_token->end_col_offset = new_token->col_offset+3;
-        } else if (strncmp(new_token->start, "espere", 6) == 0) {
-            strncpy((char * restrict)new_token->start, "except", 6);
-            new_token->end_col_offset = new_token->col_offset+6;
-        } else if (strncmp(new_token->start, "produz", 6) == 0) {
-            strncpy((char * restrict)new_token->start, "yield\0", 6);
-            new_token->end_col_offset = new_token->col_offset+5;
-        } else if (strncmp(new_token->start, "quebra", 6) == 0) {
-            strncpy((char * restrict)new_token->start, "break\0", 6);
-            new_token->end_col_offset = new_token->col_offset+5;
-        }
+        translate_token(new_token, "classe", "class");
+        translate_token(new_token, "defina", "def");
+        translate_token(new_token, "espere", "except");
+        translate_token(new_token, "produz", "yield");
+        translate_token(new_token, "quebra", "break");
     } else if (new_token->end_col_offset-new_token->col_offset == 5) {
-        if (strncmp(new_token->start, "deste", 5) == 0) {
-            strncpy((char * restrict)new_token->start, "from\0", 5);
-            new_token->end_col_offset = new_token->col_offset+4;
-        } else if (strncmp(new_token->start, "em_um", 5) == 0) {
-            strncpy((char * restrict)new_token->start, "in\0\0\0", 5);
-            new_token->end_col_offset = new_token->col_offset+2;
-        } else if (strncmp(new_token->start, "Falso", 5) == 0) {
-            strncpy((char * restrict)new_token->start, "False", 5);
-            new_token->end_col_offset = new_token->col_offset+5;
-        } else if (strncmp(new_token->start, "passe", 5) == 0) {
-            strncpy((char * restrict)new_token->start, "pass\0", 5);
-            new_token->end_col_offset = new_token->col_offset+4;
-        } else if (strncmp(new_token->start, "senao", 5) == 0) {
-            strncpy((char * restrict)new_token->start, "else\0", 5);
-            new_token->end_col_offset = new_token->col_offset+4;
-        } else if (strncmp(new_token->start, "tente", 5) == 0) {
-            strncpy((char * restrict)new_token->start, "try\0\0", 5);
-            new_token->end_col_offset = new_token->col_offset+3;
-        }
+        translate_token(new_token, "deste", "from");
+        translate_token(new_token, "Falso", "False");
+        translate_token(new_token, "passe", "pass");
+        translate_token(new_token, "senao", "else");
+        translate_token(new_token, "tente", "try");
     } else if (new_token->end_col_offset-new_token->col_offset == 4) {
-        if (strncmp(new_token->start, "como", 4) == 0) {
-            strncpy((char * restrict)new_token->start, "as\0\0", 4);
-            new_token->end_col_offset = new_token->col_offset+2;
-        } else if (strncmp(new_token->start, "Nada", 4) == 0) {
-            strncpy((char * restrict)new_token->start, "None", 4);
-            new_token->end_col_offset = new_token->col_offset+4;
-        } else if (strncmp(new_token->start, "para", 4) == 0) {
-            strncpy((char * restrict)new_token->start, "for\0", 4);
-            new_token->end_col_offset = new_token->col_offset+3;
-        } else if (strncmp(new_token->start, "seja", 4) == 0) {
-            strncpy((char * restrict)new_token->start, "if\0\0", 4);
-            new_token->end_col_offset = new_token->col_offset+2;
-        }
+        translate_token(new_token, "como", "as");
+        translate_token(new_token, "Nada", "None");
+        translate_token(new_token, "para", "for");
+        translate_token(new_token, "seja", "if");
+    } else if (new_token->end_col_offset-new_token->col_offset == 2) {
+        translate_token(new_token, "em", "in");
     }
 }
 

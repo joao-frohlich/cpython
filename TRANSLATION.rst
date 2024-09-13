@@ -14,6 +14,7 @@ Palavras traduzidas
     open            abre
     close           fecha
     end             fim
+    type            tipo
     ============    ================
     set             conjunto
     ============    ================
@@ -88,6 +89,15 @@ Palavras traduzidas
     upper           torna_maiuscula
     zfill           enche_zero
     ============    ================
+    dict            dicionario
+    ============    ================
+    fromkeys        das_chaves
+    get             pega
+    items           items**
+    keys            chaves
+    popitem         decrescenta_item
+    setdefault      define_padrao
+    values          valores
 
 Palavras-chave traduzidas
 =========================

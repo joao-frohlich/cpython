@@ -241,6 +241,7 @@ void translate_token(struct token *new_token, const char * ptbr_token, const cha
 void translate_ptbr_token(struct token *new_token) {
     //Method names
     if (new_token->end_col_offset-new_token->col_offset == 16) {
+        translate_token(new_token, "decrescenta_item", "popitem");
         translate_token(new_token, "eh_identificador", "isidentifier");
         translate_token(new_token, "eh_superconjunto", "issuperset");
     } else if (new_token->end_col_offset-new_token->col_offset == 15) {
@@ -254,6 +255,7 @@ void translate_ptbr_token(struct token *new_token) {
         translate_token(new_token, "fazer_traducao", "maketrans");
         translate_token(new_token, "remove_prefixo", "removeprefix");
     } else if (new_token->end_col_offset-new_token->col_offset == 13) {
+        translate_token(new_token, "define_padrao", "setdefault");
         translate_token(new_token, "divide_linhas", "splitlines");
         translate_token(new_token, "eh_alfabetico", "isalpha");
         translate_token(new_token, "eh_imprimivel", "isprintable");
@@ -280,6 +282,8 @@ void translate_ptbr_token(struct token *new_token) {
         translate_token(new_token, "capitaliza", "capitalize");
         translate_token(new_token, "centraliza", "center");
         translate_token(new_token, "comeca_com", "startswith");
+        translate_token(new_token, "das_chaves", "fromkeys");
+        translate_token(new_token, "dicionario", "dict");
         translate_token(new_token, "diferencia", "difference");
         translate_token(new_token, "eh_decimal", "isdecimal");
         translate_token(new_token, "enche_zero", "zfill");
@@ -308,8 +312,10 @@ void translate_ptbr_token(struct token *new_token) {
         translate_token(new_token, "inverte", "reverse");
         translate_token(new_token, "procura", "find");
         translate_token(new_token, "tamanho", "len");
+        translate_token(new_token, "valores", "values");
     } else if (new_token->end_col_offset-new_token->col_offset == 6) {
         translate_token(new_token, "acha_d", "rfind");
+        translate_token(new_token, "chaves", "keys");
         translate_token(new_token, "indice", "index");
         translate_token(new_token, "insere", "insert");
         translate_token(new_token, "ordena", "sort");
@@ -324,6 +330,8 @@ void translate_ptbr_token(struct token *new_token) {
         translate_token(new_token, "uniao", "union");
     } else if (new_token->end_col_offset-new_token->col_offset == 4) {
         translate_token(new_token, "abre", "open");
+        translate_token(new_token, "pega", "get");
+        translate_token(new_token, "tipo", "type");
     } else if (new_token->end_col_offset-new_token->col_offset == 3) {
         translate_token(new_token, "fim", "end");
         translate_token(new_token, "fio", "str");

@@ -1,7 +1,7 @@
 Palavras traduzidas
 ===================
 
-.. table:: Palavras traduzidas
+.. table:: Palavras traduzidas (gerais)
     :widhts: auto
 
     ============    ================
@@ -15,6 +15,11 @@ Palavras traduzidas
     close           fecha
     end             fim
     type            tipo
+    ============    ================
+
+.. table:: Palavras traduzidas (conjunto)
+    :widhts: auto
+
     ============    ================
     set             conjunto
     ============    ================
@@ -32,6 +37,11 @@ Palavras traduzidas
     union           uniao
     update          atualiza
     ============    ================
+
+.. table:: Palavras traduzidas (lista)
+    :widhts: auto
+
+    ============    ================
     list            lista
     ============    ================
     append          acrescenta
@@ -41,6 +51,11 @@ Palavras traduzidas
     insert          insere
     reverse         inverte
     sort            ordena
+    ============    ================
+
+.. table:: Palavras traduzidas (fio)
+    :widhts: auto
+
     ============    ================
     str             fio
     ============    ================
@@ -89,6 +104,11 @@ Palavras traduzidas
     upper           torna_maiuscula
     zfill           enche_zero
     ============    ================
+
+.. table:: Palavras traduzidas (dicionario)
+    :widhts: auto
+
+    ============    ================
     dict            dicionario
     ============    ================
     fromkeys        das_chaves
@@ -98,6 +118,7 @@ Palavras traduzidas
     popitem         decrescenta_item
     setdefault      define_padrao
     values          valores
+    ============    ================
 
 Palavras-chave traduzidas
 =========================

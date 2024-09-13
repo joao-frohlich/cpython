@@ -14,7 +14,9 @@ Palavras traduzidas
     open            abre
     close           fecha
     end             fim
+    ============    ================
     set             conjunto
+    ============    ================
     add             adiciona
     clear           limpa
     copy            copia
@@ -28,6 +30,9 @@ Palavras traduzidas
     remove          remove**
     union           uniao
     update          atualiza
+    ============    ================
+    list            lista
+    ============    ================
     append          acrescenta
     count           conta
     extend          estende
@@ -35,6 +40,53 @@ Palavras traduzidas
     insert          insere
     reverse         inverte
     sort            ordena
+    ============    ================
+    str             fio
+    ============    ================
+    capitalize      capitaliza
+    casefold        forca_minuscula
+    center          centraliza
+    encode          codifica
+    endswith        termina_com
+    expandtabs      expande_tabs
+    find            procura
+    format          formata
+    format_map      formata_mapa
+    isalnum         eh_alfanumerico
+    isalpha         eh_alfabetico
+    isascii         eh_ascii
+    isdecimal       eh_decimal
+    isdigit         eh_digito
+    isidentifier    eh_identificador
+    islower         eh_minusculo
+    isnumeric       eh_numerico
+    isprintable     eh_imprimivel
+    isspace         eh_espaco
+    istitle         eh_titulo
+    isupper         eh_maiusculo
+    join            junta
+    ljust           justifica_e
+    lower           torna_minuscula
+    lstrip          remove_espaco_e
+    maketrans       fazer_traducao
+    partition       particiona
+    removeprefix    remove_prefixo
+    removesuffix    remove_sufixo
+    replace         substitui
+    rfind           acha_d
+    rindex          indice_d
+    rjust           justifica_d
+    rpartition      particiona_d
+    rsplit          separa_d
+    split           separa
+    splitlines      divide_linhas
+    startswith      comeca_com
+    strip           remove_espaco
+    swapcase        troca_case
+    title           torna_titulo
+    translate       faz_traducao
+    upper           torna_maiuscula
+    zfill           enche_zero
     ============    ================
 
 Palavras-chave traduzidas
@@ -64,7 +116,7 @@ Palavras-chave traduzidas
     global      global**
     if          seja
     import      importe
-    in          em_um
+    in          em
     is          eh_tipo
     lambda      lambda**
     None        Nenhum

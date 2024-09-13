@@ -241,44 +241,92 @@ void translate_token(struct token *new_token, const char * ptbr_token, const cha
 void translate_ptbr_token(struct token *new_token) {
     //Method names
     if (new_token->end_col_offset-new_token->col_offset == 16) {
+        translate_token(new_token, "eh_identificador", "isidentifier");
         translate_token(new_token, "eh_superconjunto", "issuperset");
+    } else if (new_token->end_col_offset-new_token->col_offset == 15) {
+        translate_token(new_token, "eh_alfanumerico", "isalnum");
+        translate_token(new_token, "forca_minuscula", "casefold");
+        translate_token(new_token, "remove_espaco_e", "lstrip");
+        translate_token(new_token, "torna_maiuscula", "upper");
+        translate_token(new_token, "torna_minuscula", "lower");
     } else if (new_token->end_col_offset-new_token->col_offset == 14) {
         translate_token(new_token, "eh_subconjunto", "issubset");
+        translate_token(new_token, "fazer_traducao", "maketrans");
+        translate_token(new_token, "remove_prefixo", "removeprefix");
     } else if (new_token->end_col_offset-new_token->col_offset == 13) {
+        translate_token(new_token, "divide_linhas", "splitlines");
+        translate_token(new_token, "eh_alfabetico", "isalpha");
+        translate_token(new_token, "eh_imprimivel", "isprintable");
         translate_token(new_token, "intersecciona", "intersection");
+        translate_token(new_token, "remove_espaco", "strip");
+        translate_token(new_token, "remove_sufixo", "removesuffix");
+    } else if (new_token->end_col_offset-new_token->col_offset == 12) {
+        translate_token(new_token, "eh_minusculo", "islower");
+        translate_token(new_token, "eh_maiusculo", "isupper");
+        translate_token(new_token, "expande_tabs", "expandtabs");
+        translate_token(new_token, "faz_traducao", "translate");
+        translate_token(new_token, "formata_mapa", "format_map");
+        translate_token(new_token, "particiona_d", "rpartition");
+        translate_token(new_token, "torna_titulo", "title");
     } else if (new_token->end_col_offset-new_token->col_offset == 11) {
         translate_token(new_token, "decrescenta", "pop");
         translate_token(new_token, "eh_disjunto", "isdisjoint");
+        translate_token(new_token, "eh_numerico", "isnumeric");
+        translate_token(new_token, "justifica_d", "rjust");
+        translate_token(new_token, "justifica_e", "ljust");
+        translate_token(new_token, "termina_com", "endswith");
     } else if (new_token->end_col_offset-new_token->col_offset == 10) {
         translate_token(new_token, "acrescenta", "append");
+        translate_token(new_token, "capitaliza", "capitalize");
+        translate_token(new_token, "centraliza", "center");
+        translate_token(new_token, "comeca_com", "startswith");
         translate_token(new_token, "diferencia", "difference");
+        translate_token(new_token, "eh_decimal", "isdecimal");
+        translate_token(new_token, "enche_zero", "zfill");
+        translate_token(new_token, "particiona", "partition");
+        translate_token(new_token, "troca_case", "swapcase");
     } else if (new_token->end_col_offset-new_token->col_offset == 9) {
+        translate_token(new_token, "eh_digito", "isdigit");
+        translate_token(new_token, "eh_espaco", "isspace");
+        translate_token(new_token, "eh_titulo", "istitle");
         translate_token(new_token, "intervalo", "range");
+        translate_token(new_token, "substitui", "replace");
     } else if (new_token->end_col_offset-new_token->col_offset == 8) {
         translate_token(new_token, "adiciona", "add");
         translate_token(new_token, "atualiza", "update");
+        translate_token(new_token, "codifica", "encode");
         translate_token(new_token, "conjunto", "set");
         translate_token(new_token, "descarte", "discard");
+        translate_token(new_token, "eh_ascii", "isascii");
+        translate_token(new_token, "indice_d", "rindex");
+        translate_token(new_token, "separa_d", "rsplit");
     } else if (new_token->end_col_offset-new_token->col_offset == 7) {
         translate_token(new_token, "entrada", "input");
         translate_token(new_token, "escreva", "print");
         translate_token(new_token, "estende", "extend");
-        translate_token(new_token, "inverte", "inverse");
+        translate_token(new_token, "formata", "format");
+        translate_token(new_token, "inverte", "reverse");
+        translate_token(new_token, "procura", "find");
         translate_token(new_token, "tamanho", "len");
     } else if (new_token->end_col_offset-new_token->col_offset == 6) {
+        translate_token(new_token, "acha_d", "rfind");
         translate_token(new_token, "indice", "index");
         translate_token(new_token, "insere", "insert");
         translate_token(new_token, "ordena", "sort");
+        translate_token(new_token, "separa", "split");
     } else if (new_token->end_col_offset-new_token->col_offset == 5) {
         translate_token(new_token, "copia", "copy");
         translate_token(new_token, "conta", "count");
         translate_token(new_token, "fecha", "close");
+        translate_token(new_token, "junta", "join");
         translate_token(new_token, "limpa", "clear");
+        translate_token(new_token, "lista", "list");
         translate_token(new_token, "uniao", "union");
     } else if (new_token->end_col_offset-new_token->col_offset == 4) {
         translate_token(new_token, "abre", "open");
     } else if (new_token->end_col_offset-new_token->col_offset == 3) {
         translate_token(new_token, "fim", "end");
+        translate_token(new_token, "fio", "str");
     }
     //Keywords
     if (new_token->end_col_offset-new_token->col_offset == 10) {
@@ -289,6 +337,7 @@ void translate_ptbr_token(struct token *new_token) {
     } else if (new_token->end_col_offset-new_token->col_offset == 8) {
         translate_token(new_token, "enquanto", "while");
         translate_token(new_token, "naolocal", "nonlocal");
+        translate_token(new_token, "e_logico", "and");
     } else if (new_token->end_col_offset-new_token->col_offset == 7) {
         translate_token(new_token, "deletar", "del");
         translate_token(new_token, "eh_tipo", "is");
